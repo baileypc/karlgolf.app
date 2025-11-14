@@ -1,0 +1,40 @@
+{
+  "name": "karlgolf.app",
+  "version": "3.1.0",
+  "type": "module",
+  "description": "Karl's GIR - Golf Statistics Tracker PWA",
+  "scripts": {
+    "dev": "vite",
+    "build": "node pre-build.js && tsc && vite build && node build-deploy.js",
+    "build:watch": "nodemon --watch src --watch public --ext ts,tsx,css,json --exec \"npm run build\"",
+    "preview": "vite preview",
+    "deploy": "npm run build"
+  },
+  "keywords": [
+    "golf",
+    "statistics",
+    "pwa",
+    "gir"
+  ],
+  "author": "Karl's GIR",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.0",
+    "nodemon": "^3.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.1.0",
+    "@fortawesome/free-solid-svg-icons": "^7.1.0",
+    "@fortawesome/react-fontawesome": "^3.1.0",
+    "@tanstack/react-query": "^5.90.7",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.9.5"
+  }
+}

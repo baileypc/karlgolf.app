@@ -1,0 +1,820 @@
+/* ============================================
+   Karl's GIR - Semantic CSS Architecture
+   Version: 3.1.0
+   Mobile-First PWA Design System
+   ============================================ */
+
+/* ============================================
+   1. CSS CUSTOM PROPERTIES (Design Tokens)
+   ============================================ */
+:root {
+    /* Base Colors (3-color system) */
+    --bg-app: #000000;              /* Pure black - app background */
+    --bg-header-footer: #0a140a;    /* Very dark green - header/footer (DEPRECATED) */
+    --color-interactive: #DDEDD2;   /* Mint green - buttons, inputs, accents */
+    
+    /* Derived Background Colors */
+    --bg-primary: rgba(221, 237, 210, 0.2);  /* Mint green at 20% opacity for cards */
+    --bg-secondary: #050a05;        /* Even darker green */
+    --bg-card: rgba(221, 237, 210, 0.2);     /* Card backgrounds - mint at 20% opacity */
+    --bg-hover: rgba(221, 237, 210, 0.3);    /* Hover states - mint at 30% opacity */
+    --bg-modal: rgba(10, 20, 10, 0.98);
+    
+    /* Text Colors */
+    --text-primary: #DDEDD2;        /* Primary text (mint green) */
+    --text-secondary: #DDEDD2;      /* Secondary text (mint green - no opacity) */
+    --text-muted: #DDEDD2;          /* Muted text (mint green - no opacity) */
+    --text-on-light: #0a140a;       /* Text on light backgrounds */
+    
+    /* Border Colors */
+    --border-primary: #DDEDD2;      /* Primary borders (mint green) */
+    --border-secondary: #DDEDD2;    /* Secondary borders (mint green) */
+    --border-muted: #DDEDD2;        /* Muted borders (mint green) */
+    
+    /* Semantic Colors */
+    --color-success: #DDEDD2;       /* Success (mint green) */
+    --color-error: #F2D1A4;         /* Error (brown) */
+    --color-warning: #D4A574;       /* Warning (gold) */
+    --color-info: #DDEDD2;          /* Info (mint green) */
+    
+    /* Spacing Scale (Mobile-First) */
+    --space-xs: 0.25rem;   /* 4px */
+    --space-sm: 0.5rem;    /* 8px */
+    --space-md: 1rem;      /* 16px */
+    --space-lg: 1.5rem;    /* 24px */
+    --space-xl: 2rem;      /* 32px */
+    --space-2xl: 3rem;     /* 48px */
+    --space-3xl: 4rem;     /* 64px */
+    
+    /* Typography */
+    --font-base: 1rem;      /* 16px - prevents iOS zoom */
+    --font-sm: 0.875rem;    /* 14px */
+    --font-lg: 1.125rem;    /* 18px */
+    --font-xl: 1.25rem;     /* 20px */
+    --font-2xl: 1.5rem;     /* 24px */
+    --font-3xl: 1.875rem;   /* 30px */
+    --font-4xl: 2.25rem;    /* 36px */
+    
+    --line-tight: 1.2;
+    --line-normal: 1.5;
+    --line-relaxed: 1.6;
+    
+    /* Touch Targets - Increased for golf course mobile use */
+    --touch-min: 52px;
+    --touch-padding: 14px 20px;
+    
+    /* Border Radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-full: 9999px;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+    
+    /* Transitions */
+    --transition-fast: 0.1s ease;
+    --transition-base: 0.2s ease;
+    --transition-slow: 0.3s ease;
+}
+
+/* ============================================
+   2. RESET & BASE STYLES
+   ============================================ */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    height: 100%;
+    height: -webkit-fill-available;
+    background-color: var(--bg-app);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: var(--font-base);
+    line-height: var(--line-normal);
+    color: var(--text-primary);
+    background-color: var(--bg-app);
+    min-height: 100%;
+    min-height: -webkit-fill-available;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+/* Hide scrollbar for cleaner mobile experience */
+::-webkit-scrollbar {
+    display: none;
+}
+
+html {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* ============================================
+   3. TYPOGRAPHY
+   ============================================ */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    line-height: var(--line-tight);
+    color: var(--text-primary);
+    margin-bottom: var(--space-md);
+}
+
+h1 {
+    font-size: var(--font-3xl);
+}
+
+h2 {
+    font-size: var(--font-2xl);
+}
+
+h3 {
+    font-size: var(--font-xl);
+}
+
+h4 {
+    font-size: var(--font-lg);
+}
+
+h5, h6 {
+    font-size: var(--font-base);
+}
+
+p {
+    margin-bottom: var(--space-md);
+    line-height: var(--line-relaxed);
+}
+
+a {
+    color: var(--color-interactive);
+    text-decoration: none;
+    transition: opacity var(--transition-base);
+}
+
+a:hover {
+    opacity: 0.8;
+}
+
+a:active {
+    opacity: 0.6;
+}
+
+/* ============================================
+   4. LAYOUT
+   ============================================ */
+.page-wrapper {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-app);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--space-md);
+}
+
+@media (min-width: 640px) {
+    .container {
+        padding: 0 var(--space-lg);
+        max-width: 640px;
+    }
+}
+
+@media (min-width: 768px) {
+    .container {
+        max-width: 768px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .container {
+        max-width: 1024px;
+    }
+}
+
+/* Full-height screen with centered content */
+.min-h-screen {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+}
+
+/* ============================================
+   5. BUTTONS
+   ============================================ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--touch-min);
+    padding: var(--touch-padding);
+    font-size: var(--font-base);
+    font-weight: 600;
+    border-radius: var(--radius-lg);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    -webkit-tap-highlight-color: transparent;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-primary {
+    background-color: var(--color-interactive);
+    color: var(--text-on-light);
+}
+
+.btn-primary:hover {
+    background-color: #c5ddb8;
+}
+
+.btn-primary:active {
+    background-color: #b5cda8;
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--color-interactive);
+    border: 2px solid var(--color-interactive);
+}
+
+.btn-secondary:hover {
+    background-color: rgba(221, 237, 210, 0.1);
+}
+
+.btn-secondary:active {
+    background-color: rgba(221, 237, 210, 0.2);
+}
+
+.btn-error {
+    background-color: var(--color-error);
+    color: var(--text-on-light);
+}
+
+.btn-error:hover {
+    background-color: #e2c194;
+}
+
+/* Button as text link */
+.btn-link {
+    background: none;
+    border: none;
+    padding: 0;
+    min-height: auto;
+    color: var(--color-interactive);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.btn-link:hover {
+    opacity: 0.8;
+}
+
+/* ============================================
+   6. FORMS
+   ============================================ */
+.form-group {
+    margin-bottom: var(--space-lg);
+}
+
+.form-label {
+    display: block;
+    font-size: var(--font-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-sm);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    min-height: var(--touch-min);
+    padding: var(--touch-padding);
+    font-size: var(--font-base);
+    font-family: inherit;
+    color: var(--text-on-light);
+    background-color: var(--color-interactive);
+    border: 2px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+    color: rgba(221, 237, 210, 0.6);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--text-on-light);
+    box-shadow: 0 0 0 3px rgba(221, 237, 210, 0.3);
+}
+
+.form-textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+/* Input wrapper for inputs with icons (password toggle, etc.) */
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-wrapper .form-input {
+    padding-right: 3rem;
+}
+
+.input-icon {
+    position: absolute;
+    right: var(--space-md);
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: var(--space-sm);
+    color: var(--text-on-light);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: auto;
+}
+
+.input-icon:hover {
+    opacity: 0.7;
+}
+
+/* Custom checkbox/radio styling */
+input[type="checkbox"],
+input[type="radio"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: var(--space-sm);
+    cursor: pointer;
+}
+
+/* ============================================
+   7. CARDS
+   ============================================ */
+.card {
+    background-color: var(--bg-card);
+    border: 2px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 1rem;  /* Reduced from var(--space-lg) 24px to 16px for mobile */
+    box-shadow: none;
+}
+
+.card-primary {
+    background-color: var(--color-interactive);
+    color: var(--text-on-light);
+    border-color: var(--color-interactive);
+}
+
+.card-interactive {
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-interactive:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 640px) {
+    .card {
+        padding: 1.5rem;  /* Reduced from var(--space-xl) 32px to 24px for tablets/desktop */
+    }
+}
+
+/* Login/Auth form card */
+.login-form-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+@media (min-width: 640px) {
+    .login-form-card {
+        padding: var(--space-2xl);
+    }
+}
+
+/* ============================================
+   8. MODALS
+   ============================================ */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: var(--space-md);
+}
+
+.modal {
+    background-color: var(--bg-modal);
+    border: 2px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-xl);
+}
+
+.modal-large {
+    max-width: 700px;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-lg);
+}
+
+.modal-header h2,
+.modal-header h3 {
+    margin-bottom: 0;
+    color: var(--text-primary);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: var(--font-3xl);
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: var(--space-sm);
+    min-width: var(--touch-min);
+    min-height: var(--touch-min);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    transition: background-color var(--transition-base);
+}
+
+.modal-close:hover {
+    background-color: var(--bg-hover);
+}
+
+.modal-body {
+    margin-bottom: var(--space-xl);
+    color: var(--text-primary);
+}
+
+.modal-footer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+@media (min-width: 640px) {
+    .modal-footer {
+        flex-direction: row;
+        justify-content: flex-end;
+    }
+    
+    .modal {
+        padding: var(--space-xl) var(--space-2xl);
+    }
+}
+
+/* ============================================
+   9. MESSAGES & ALERTS
+   ============================================ */
+.message {
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+    font-size: var(--font-sm);
+}
+
+.message-success {
+    background-color: rgba(221, 237, 210, 0.1);
+    border-left: 3px solid var(--color-success);
+    color: var(--color-success);
+}
+
+.message-error {
+    background-color: rgba(242, 209, 164, 0.1);
+    border-left: 3px solid var(--color-error);
+    color: var(--color-error);
+}
+
+.message-info {
+    background-color: rgba(221, 237, 210, 0.1);
+    border-left: 3px solid var(--color-info);
+    color: var(--color-info);
+}
+
+/* Error message (legacy class - maps to message-error) */
+.error-message {
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+    font-size: var(--font-sm);
+    background-color: rgba(242, 209, 164, 0.1);
+    border-left: 3px solid var(--color-error);
+    color: var(--color-error);
+}
+
+/* ============================================
+   10. DISPLAY & FLEX UTILITIES
+   ============================================ */
+.hidden { display: none !important; }
+.block { display: block; }
+.inline-block { display: inline-block; }
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+.grid { display: grid; }
+
+.flex-col { flex-direction: column; }
+.flex-row { flex-direction: row; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+.justify-start { justify-content: flex-start; }
+.flex-1 { flex: 1; }
+.flex-wrap { flex-wrap: wrap; }
+
+/* ============================================
+   11. SPACING UTILITIES
+   ============================================ */
+/* Gap */
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+.gap-xl { gap: var(--space-xl); }
+.gap-2xl { gap: var(--space-2xl); }
+
+/* Margin */
+.m-0 { margin: 0; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+
+.mt-xs { margin-top: var(--space-xs); }
+.mt-sm { margin-top: var(--space-sm); }
+.mt-md { margin-top: var(--space-md); }
+.mt-lg { margin-top: var(--space-lg); }
+.mt-xl { margin-top: var(--space-xl); }
+
+.mb-xs { margin-bottom: var(--space-xs); }
+.mb-sm { margin-bottom: var(--space-sm); }
+.mb-md { margin-bottom: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+.mb-xl { margin-bottom: var(--space-xl); }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+
+.ml-auto { margin-left: auto; }
+.mr-auto { margin-right: auto; }
+
+/* Padding */
+.p-0 { padding: 0; }
+.p-sm { padding: var(--space-sm); }
+.p-md { padding: var(--space-md); }
+.p-lg { padding: var(--space-lg); }
+.p-xl { padding: var(--space-xl); }
+.p-4 { padding: 1rem; }
+.p-8 { padding: 2rem; }
+
+.px-md { padding-left: var(--space-md); padding-right: var(--space-md); }
+.py-md { padding-top: var(--space-md); padding-bottom: var(--space-md); }
+
+.pr-12 { padding-right: 3rem; }
+
+/* Space-y (vertical spacing between children) - legacy support */
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+
+/* ============================================
+   12. TEXT UTILITIES
+   ============================================ */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.text-sm { font-size: var(--font-sm); }
+.text-base { font-size: var(--font-base); }
+.text-lg { font-size: var(--font-lg); }
+.text-xl { font-size: var(--font-xl); }
+.text-2xl { font-size: var(--font-2xl); }
+
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-normal { font-weight: 400; }
+
+/* Legacy Tailwind color classes */
+.text-karl-text-primary { color: var(--text-primary); }
+.text-karl-text-secondary { color: var(--text-secondary); }
+
+/* ============================================
+   13. WIDTH & MAX-WIDTH UTILITIES
+   ============================================ */
+.w-full { width: 100%; }
+.w-auto { width: auto; }
+.w-12 { width: 3rem; }
+.w-16 { width: 4rem; }
+
+.h-12 { height: 3rem; }
+.h-16 { height: 4rem; }
+
+.max-w-xs { max-width: 20rem; }
+.max-w-sm { max-width: 24rem; }
+.max-w-md { max-width: 28rem; }
+.max-w-lg { max-width: 32rem; }
+.max-w-xl { max-width: 36rem; }
+
+/* ============================================
+   14. POSITION UTILITIES
+   ============================================ */
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.sticky { position: sticky; }
+
+/* ============================================
+   15. OPACITY & VISIBILITY
+   ============================================ */
+.opacity-0 { opacity: 0; }
+.opacity-50 { opacity: 0.5; }
+.opacity-70 { opacity: 0.7; }
+.opacity-90 { opacity: 0.9; }
+.opacity-100 { opacity: 1; }
+
+/* ============================================
+   16. BORDER & ROUNDED
+   ============================================ */
+.rounded { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: var(--radius-full); }
+
+.border { border: 1px solid var(--border-secondary); }
+.border-karl-border-primary { border-color: var(--border-primary); }
+
+/* ============================================
+   17. COMPONENT-SPECIFIC STYLES
+   ============================================ */
+
+/* Header/Footer */
+.site-header,
+.site-footer {
+    background-color: var(--bg-header-footer);
+    border-color: var(--border-primary);
+    padding: var(--space-md);
+}
+
+.site-header {
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.site-footer {
+    border-top: 1px solid var(--border-primary);
+}
+
+/* Loading Spinner */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-muted);
+    border-top-color: var(--color-interactive);
+    border-radius: var(--radius-full);
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Touch Target Helper */
+.touch-target {
+    min-height: var(--touch-min);
+    min-width: var(--touch-min);
+    padding: var(--touch-padding);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.touch-target:active {
+    transform: scale(0.98);
+    transition: transform var(--transition-fast);
+}
+
+/* ============================================
+   18. RESPONSIVE UTILITIES
+   ============================================ */
+@media (min-width: 640px) {
+    .sm\:flex-row { flex-direction: row; }
+    .sm\:gap-lg { gap: var(--space-lg); }
+    .sm\:p-4 { padding: 1rem; }
+    .sm\:p-8 { padding: 2rem; }
+    .sm\:p-lg { padding: var(--space-lg); }
+    .sm\:text-lg { font-size: var(--font-lg); }
+    .sm\:text-xl { font-size: var(--font-xl); }
+    .sm\:text-2xl { font-size: var(--font-2xl); }
+    .sm\:w-16 { width: 4rem; }
+    .sm\:h-16 { height: 4rem; }
+}
+
+@media (min-width: 768px) {
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .md\:grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* ============================================
+   19. LOADING STATES
+   ============================================ */
+body.loading {
+    opacity: 0;
+    transition: opacity 0.15s ease-in;
+}
+
+body.ready {
+    opacity: 1;
+}
+
+/* ============================================
+   20. UTILITY: Background Colors (Legacy Support)
+   ============================================ */
+.bg-karl-bg-card { background-color: var(--bg-card); }
+.bg-karl-green { background-color: var(--color-interactive); }
+.bg-karl-light-green { background-color: var(--color-interactive); }
+.bg-karl-brown { background-color: var(--color-error); }
+.bg-karl-error { background-color: #dc2626; }
+
+/* Text colors for dynamic buttons */
+.text-on-light { color: var(--text-on-light); }
+
+/* Ring utilities for dynamic button states */
+.ring-mint { box-shadow: 0 0 0 2px var(--color-interactive); }
+.ring-2 { box-shadow: 0 0 0 2px currentColor; }
+
+/* ============================================
+   Placeholder Text Visibility Fix
+   ============================================ */
+input::placeholder,
+textarea::placeholder {
+    color: rgba(221, 237, 210, 0.5) !important;
+    opacity: 1 !important;
+}
+
+input:focus::placeholder,
+textarea:focus::placeholder {
+    color: rgba(221, 237, 210, 0.4) !important;
+}
+
+/* ============================================
+   END OF STYLES
+   ============================================ */

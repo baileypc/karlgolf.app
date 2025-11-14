@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP removed - causing issues on production with CDN resources -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Admin Dashboard - Karl's GIR</title>
+    <link rel="icon" href="data:,">
+    
+    <!-- Force no-cache on page load -->
+    <script>
+        // Prevent any caching
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href.split('?')[0] + '?nocache=' + Date.now());
+        }
+    </script>
+    
+    <!-- Admin Dashboard Styles - Cache busted with timestamp -->
+    <link rel="stylesheet" href="./admin-styles.css?v=9.5.1&t=" id="admin-styles">
+    <script>
+        // Force cache bust on every load
+        (function() {
+            var link = document.getElementById('admin-styles');
+            if (link) {
+                link.href = './admin-styles.css?v=9.5.1&t=' + Date.now();
+            }
+        })();
+    </script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- React and ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel Standalone for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Fix Font Awesome SVG icon colors (FA6 uses inline SVGs with hardcoded fill)
+        function fixIconColors() {
+            // Refresh button icons - dark color on light background
+            const refreshIcons = document.querySelectorAll('.btn-refresh-users i svg, .btn-refresh-users i path');
+            refreshIcons.forEach(icon => {
+                icon.setAttribute('fill', '#0a140a');
+            });
+            
+            // Logout button icons - light color on dark background
+            const logoutIcons = document.querySelectorAll('.btn-logout i svg, .btn-logout i path');
+            logoutIcons.forEach(icon => {
+                icon.setAttribute('fill', '#FCA5A5');
+            });
+        }
+        
+        // Run after DOM and Font Awesome load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(fixIconColors, 100);
+                // Also run after a delay to catch dynamically loaded icons
+                setTimeout(fixIconColors, 500);
+            });
+        } else {
+            setTimeout(fixIconColors, 100);
+            setTimeout(fixIconColors, 500);
+        }
+        
+        // Admin Dashboard Component
+        function AdminDashboard() {
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [isLoading, setIsLoading] = useState(true);
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [loginError, setLoginError] = useState('');
+            const [isLoggingIn, setIsLoggingIn] = useState(false);
+            const [analytics, setAnalytics] = useState(null);
+            const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+            const [users, setUsers] = useState(null);
+            const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+            const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+            const [userToDelete, setUserToDelete] = useState(null);
+            const [isDeletingUser, setIsDeletingUser] = useState(false);
+            const [selectedUser, setSelectedUser] = useState(null);
+            const [userStats, setUserStats] = useState(null);
+            const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
+            
+            // Check authentication on mount
+            useEffect(() => {
+                // Force fresh data on every mount
+                checkAuth();
+            }, []);
+            
+            // Force refresh on component mount to prevent stale cache
+            useEffect(() => {
+                // Add timestamp to prevent caching
+                const timestamp = Date.now();
+                console.log('%c✅✅✅ NEW VERSION 9.0.0 LOADED ✅✅✅', 'background: #DDEDD2; color: #000; font-size: 24px; font-weight: bold; padding: 20px;');
+                console.log('Admin Dashboard loaded at:', new Date(timestamp).toISOString());
+                console.log('If you see this message, the NEW version is loading!');
+                console.log('%cIf you do NOT see this green banner, you are viewing the OLD cached version!', 'background: red; color: white; font-size: 16px; padding: 10px;');
+            }, []);
+            
+            // Load analytics and users when authenticated
+            useEffect(() => {
+                if (isAuthenticated) {
+                    loadAnalytics();
+                    loadUsers();
+                }
+            }, [isAuthenticated]);
+            
+            // Fix icon colors after render (Font Awesome 6 uses inline SVGs with hardcoded fill)
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    fixIconColors();
+                }, 100);
+                return () => clearTimeout(timer);
+            });
+            
+            // Fix icon colors when users data changes (refresh icon is conditionally rendered)
+            useEffect(() => {
+                if (users !== null) {
+                    const timer = setTimeout(() => {
+                        fixIconColors();
+                    }, 100);
+                    return () => clearTimeout(timer);
+                }
+            }, [users, isLoadingUsers]);
+            
+            const checkAuth = async () => {
+                try {
+                    const response = await fetch('../api/admin/auth.php?action=check');
+                    const data = await response.json();
+                    setIsAuthenticated(data.loggedIn || false);
+                    if (data.loggedIn) {
+                        setUsername(data.username || 'admin');
+                    }
+                } catch (error) {
+                    console.error('Auth check error:', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                setIsLoggingIn(true);
+                setLoginError('');
+                
+                try {
+                    const response = await fetch('../api/admin/auth.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'login',
+                            username: username,
+                            password: password
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        setIsAuthenticated(true);
+                        setPassword('');
+                    } else {
+                        setLoginError(data.message || 'Login failed');
+                    }
+                } catch (error) {
+                    setLoginError('Network error. Please try again.');
+                    console.error('Login error:', error);
+                } finally {
+                    setIsLoggingIn(false);
+                }
+            };
+            
+            const handleLogout = async () => {
+                try {
+                    await fetch('../api/admin/auth.php?action=logout');
+                    setIsAuthenticated(false);
+                    setUsername('');
+                    setPassword('');
+                    setAnalytics(null);
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            };
+            
+            const loadAnalytics = async () => {
+                setIsLoadingAnalytics(true);
+                try {
+                    const response = await fetch('../api/admin/analytics.php');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        setAnalytics(data);
+                    }
+                } catch (error) {
+                    console.error('Analytics load error:', error);
+                } finally {
+                    setIsLoadingAnalytics(false);
+                }
+            };
+            
+            const loadUsers = async () => {
+                setIsLoadingUsers(true);
+                try {
+                    const response = await fetch('../api/admin/users.php');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        setUsers(data);
+                    }
+                } catch (error) {
+                    console.error('Users load error:', error);
+                } finally {
+                    setIsLoadingUsers(false);
+                }
+            };
+
+            const handleDeleteUser = (user) => {
+                setUserToDelete(user);
+                setDeleteModalOpen(true);
+            };
+
+            const confirmDeleteUser = async () => {
+                if (!userToDelete) return;
+
+                setIsDeletingUser(true);
+                try {
+                    const response = await fetch('../api/admin/delete-user.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userHash: userToDelete.userHash
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Reload users list
+                        await loadUsers();
+                        setDeleteModalOpen(false);
+                        setUserToDelete(null);
+                    } else {
+                        alert('Failed to delete user: ' + (data.message || 'Unknown error'));
+                    }
+                } catch (error) {
+                    console.error('Delete user error:', error);
+                    alert('Network error. Please try again.');
+                } finally {
+                    setIsDeletingUser(false);
+                }
+            };
+
+            const handleViewUserStats = async (user) => {
+                setSelectedUser(user);
+                setIsLoadingUserStats(true);
+                setUserStats(null);
+
+                try {
+                    const response = await fetch(`../api/admin/user-stats.php?userHash=${encodeURIComponent(user.userHash)}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        setUserStats(data);
+                    } else {
+                        alert('Failed to load user stats: ' + (data.message || 'Unknown error'));
+                        setSelectedUser(null);
+                    }
+                } catch (error) {
+                    console.error('Load user stats error:', error);
+                    alert('Network error. Please try again.');
+                    setSelectedUser(null);
+                } finally {
+                    setIsLoadingUserStats(false);
+                }
+            };
+
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            };
+            
+            const downloadUsersCSV = () => {
+                if (!users || !users.users || users.users.length === 0) return;
+                
+                // Filter to only include users with email addresses (signed-up users, not trial users)
+                const signedUpUsers = users.users.filter(user => user.email);
+                
+                if (signedUpUsers.length === 0) {
+                    alert('No signed-up users with email addresses found.');
+                    return;
+                }
+                
+                // Create CSV content
+                const headers = ['Email', 'Rounds', 'Signup Date', 'Last Activity'];
+                const rows = signedUpUsers.map(user => {
+                    const email = user.email;
+                    const rounds = user.roundsCount || 0;
+                    const signup = user.signupDate ? formatDate(user.signupDate) : 'N/A';
+                    const activity = user.lastActivity ? formatDate(user.lastActivity) : 'Never';
+                    return [email, rounds, signup, activity];
+                });
+                
+                // Build CSV string
+                let csvContent = headers.join(',') + '\\n';
+                rows.forEach(row => {
+                    // Escape commas and quotes in email addresses
+                    const escapedRow = row.map(cell => {
+                        const cellStr = String(cell);
+                        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\\n')) {
+                            return `"${cellStr.replace(/"/g, '""')}"`;
+                        }
+                        return cellStr;
+                    });
+                    csvContent += escapedRow.join(',') + '\\n';
+                });
+                
+                // Create download link
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `karls-gir-users-${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+            
+            const downloadPDFReport = () => {
+                if (!analytics || !users) {
+                    alert('Analytics data not loaded yet.');
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Colors
+                const primaryColor = [221, 237, 210]; // #DDEDD2
+                const darkColor = [10, 20, 10]; // #0A140A
+                const accentColor = [139, 195, 74]; // Light green
+
+                // Header
+                doc.setFillColor(...primaryColor);
+                doc.rect(0, 0, 210, 40, 'F');
+                doc.setTextColor(...darkColor);
+                doc.setFontSize(24);
+                doc.setFont(undefined, 'bold');
+                doc.text("Karl's GIR Golf Tracker", 105, 20, { align: 'center' });
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'normal');
+                doc.text('Analytics Report', 105, 30, { align: 'center' });
+                doc.setFontSize(10);
+                doc.text(new Date().toLocaleDateString(), 105, 36, { align: 'center' });
+
+                let y = 50;
+
+                // Key Metrics Section
+                doc.setTextColor(...darkColor);
+                doc.setFontSize(16);
+                doc.setFont(undefined, 'bold');
+                doc.text('Key Metrics', 20, y);
+                y += 10;
+
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+
+                const metrics = [
+                    ['Total Users', formatNumber(users?.totalUsers || 0)],
+                    ['Total Signups', formatNumber(analytics.summary?.totalSignups || 0)],
+                    ['Total Page Visits', formatNumber(analytics.summary?.totalPageVisits || 0)],
+                    ['Active Users', formatNumber(users?.users?.filter(u => u.roundsCount > 0).length || 0)],
+                    ['Rounds Started', formatNumber(analytics.roundStats?.totalStarts || 0)],
+                    ['Rounds Completed', formatNumber(analytics.roundStats?.totalSaves || 0)],
+                    ['Completion Rate', (analytics.roundStats?.completionRate || 0) + '%']
+                ];
+
+                metrics.forEach(([label, value]) => {
+                    doc.setFont(undefined, 'bold');
+                    doc.text(label + ':', 25, y);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(value, 100, y);
+                    y += 7;
+                });
+
+                y += 5;
+
+                // Engagement Section
+                doc.setFontSize(16);
+                doc.setFont(undefined, 'bold');
+                doc.text('Engagement Metrics', 20, y);
+                y += 10;
+
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+
+                const engagement = [
+                    ['Daily Active Users', formatNumber(analytics.marketStats?.dailyActiveUsers || 0)],
+                    ['Weekly Active Users', formatNumber(analytics.marketStats?.weeklyActiveUsers || 0)],
+                    ['Engagement Score', (analytics.marketStats?.engagementScore || 0) + '/100'],
+                    ['Retention Rate', (analytics.marketStats?.retentionRate || 0) + '%'],
+                    ['Avg Rounds/User', analytics.marketStats?.averageRoundsPerUser || 0]
+                ];
+
+                engagement.forEach(([label, value]) => {
+                    doc.setFont(undefined, 'bold');
+                    doc.text(label + ':', 25, y);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(value, 100, y);
+                    y += 7;
+                });
+
+                y += 5;
+
+                // User Acquisition Trend (Simple Bar Chart)
+                if (analytics.acquisitionTrend && Object.keys(analytics.acquisitionTrend).length > 0) {
+                    doc.setFontSize(16);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('User Acquisition Trend (Last 14 Days)', 20, y);
+                    y += 10;
+
+                    const trendData = Object.entries(analytics.acquisitionTrend).slice(-14);
+                    const maxCount = Math.max(...trendData.map(([_, count]) => count), 1);
+                    const barWidth = 150;
+
+                    doc.setFontSize(9);
+                    trendData.forEach(([date, count]) => {
+                        if (y > 270) return; // Prevent overflow
+
+                        doc.setFont(undefined, 'normal');
+                        doc.text(date, 25, y);
+
+                        // Draw bar
+                        const width = (count / maxCount) * barWidth;
+                        doc.setFillColor(...accentColor);
+                        doc.rect(70, y - 3, width, 5, 'F');
+
+                        // Draw count
+                        doc.text(count.toString(), 70 + width + 3, y);
+
+                        y += 6;
+                    });
+                }
+
+                // Footer
+                doc.setFontSize(8);
+                doc.setTextColor(128, 128, 128);
+                doc.text('Generated by Karl\'s GIR Admin Dashboard', 105, 285, { align: 'center' });
+
+                // Save PDF
+                doc.save(`karls-gir-report-${new Date().toISOString().split('T')[0]}.pdf`);
+            };
+
+            const formatNumber = (num) => {
+                return num ? num.toLocaleString() : '0';
+            };
+            
+            if (isLoading) {
+                return (
+                    <div className="min-h-screen  flex items-center justify-center">
+                        <div className=" text-xl">Loading...</div>
+                    </div>
+                );
+            }
+            
+            if (!isAuthenticated) {
+                return (
+                    <div className="min-h-screen  flex items-center justify-center p-4">
+                        <div className="card rounded-lg p-8 w-full max-w-md border border-primary">
+                            <div className="text-center mb-6">
+                                <h1 className="text-2xl font-bold  mb-2">Admin Dashboard</h1>
+                                <p className="text-secondary text-sm">Karl's GIR Analytics</p>
+                            </div>
+                            
+                            <form onSubmit={handleLogin}>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium mb-2">
+                                        Username
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+                                
+                                <div className="mb-6">
+                                    <label className="block text-sm font-medium mb-2">
+                                        Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                
+                                {loginError && (
+                                    <div className="mb-4 p-3 bg-red-900/30 border border-red-500 rounded-lg text-red-300 text-sm">
+                                        {loginError}
+                                    </div>
+                                )}
+                                
+                                <button
+                                    type="submit"
+                                    disabled={isLoggingIn}
+                                    className="btn btn-login w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isLoggingIn ? 'Logging in...' : 'Login'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+            
+            return (
+                <div className="min-h-screen admin-dashboard-container">
+                    <div className="max-w-7xl mx-auto admin-content-wrapper">
+                        {/* Enhanced Header - Mobile First */}
+                        <div className="card mb-4 card-padding-md">
+                            <div className="flex justify-between items-center gap-3">
+                                <div className="admin-header-flex">
+                                    <img 
+                                        src={"./images/karls_gir.png?t=" + Date.now()} 
+                                        alt="Karl's GIR" 
+                                        className="admin-logo"
+                                    />
+                                    <div className="admin-header-text-wrapper">
+                                        <h1 className="text-2xl font-bold mb-1 text-karl-light-green admin-title">
+                                            Karl's GIR Admin
+                                        </h1>
+                                        <p className="text-secondary text-xs admin-version">
+                                            v9.5.1 · {new Date().toLocaleTimeString()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={downloadPDFReport}
+                                        disabled={!analytics || !users}
+                                        className="icon-button"
+                                        style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            backgroundColor: 'var(--color-interactive)',
+                                            border: '2px solid var(--border-primary)',
+                                            opacity: (!analytics || !users) ? 0.5 : 1
+                                        }}
+                                        title="Download PDF Report"
+                                    >
+                                        <i className="fas fa-file-pdf"></i>
+                                    </button>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="icon-button btn-logout"
+                                        title="Logout"
+                                    >
+                                        <i className="fas fa-sign-out-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {isLoadingAnalytics && !analytics ? (
+                            <div className="text-center py-12">
+                                <div className=" text-xl">Loading analytics...</div>
+                            </div>
+                        ) : analytics ? (
+                            <>
+                                {/* MUST HAVE #1: Registered Users Table - TOP PRIORITY */}
+                                <div className="card card-margin-lg card-padding-md">
+                                    <div className="flex justify-between items-center mb-4 section-header">
+                                        <h2 className="text-xl font-bold section-title">
+                                            <i className="fas fa-users icon-spacing icon-color"></i>
+                                            <span className="section-title-span">Users ({users?.totalUsers || 0})</span>
+                                        </h2>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={downloadUsersCSV}
+                                                disabled={!users || users.users.length === 0}
+                                                className="icon-button"
+                                                style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    backgroundColor: 'var(--color-interactive)',
+                                                    border: '2px solid var(--border-primary)',
+                                                    opacity: (!users || users.users.length === 0) ? 0.5 : 1
+                                                }}
+                                                title="Download CSV"
+                                            >
+                                                <i className="fas fa-download"></i>
+                                            </button>
+                                            <button
+                                                onClick={loadUsers}
+                                                disabled={isLoadingUsers}
+                                                className="icon-button btn-refresh-users"
+                                                title="Refresh Users"
+                                            >
+                                                {isLoadingUsers ? (
+                                                    <i className="fas fa-spinner fa-spin"></i>
+                                                ) : (
+                                                    <i className="fas fa-sync-alt"></i>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    {isLoadingUsers ? (
+                                        <div className="text-center py-8">
+                                            <div className="loading mx-auto"></div>
+                                            <p className="text-secondary mt-4 loading-text">Loading users...</p>
+                                        </div>
+                                    ) : users && users.users && users.users.length > 0 ? (
+                                        <div className="overflow-x-auto admin-table-wrapper">
+                                            <table className="w-full admin-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th className="text-left admin-table-header">
+                                                            Email
+                                                        </th>
+                                                        <th className="text-center admin-table-header admin-table-header-width-60">
+                                                            Rounds
+                                                        </th>
+                                                        <th className="text-left admin-table-header admin-table-header-hidden">
+                                                            Signup
+                                                        </th>
+                                                        <th className="text-left admin-table-header admin-table-header-hidden">
+                                                            Activity
+                                                        </th>
+                                                        <th className="text-center admin-table-header" style={{ width: '80px' }}>
+                                                            Actions
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {users.users.map((user, idx) => (
+                                                        <tr 
+                                                            key={idx} 
+                                                            className="admin-table-row"
+                                                        >
+                                                            <td className="admin-table-cell">
+                                                                {user.email ? (
+                                                                    <div>
+                                                                        <span
+                                                                            className="font-semibold text-email"
+                                                                            onClick={() => handleViewUserStats(user)}
+                                                                            style={{
+                                                                                cursor: 'pointer',
+                                                                                textDecoration: 'underline',
+                                                                                color: 'var(--color-karl-light-green)'
+                                                                            }}
+                                                                        >
+                                                                            {user.email}
+                                                                        </span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div>
+                                                                        <span
+                                                                            className="text-user-id"
+                                                                            onClick={() => handleViewUserStats(user)}
+                                                                            style={{
+                                                                                cursor: 'pointer',
+                                                                                textDecoration: 'underline'
+                                                                            }}
+                                                                        >
+                                                                            User ID: {user.userHash ? user.userHash.substring(0, 20) + '...' : 'N/A'}
+                                                                        </span>
+                                                                        <div className="text-user-note">
+                                                                            (email not stored - user signed up without email)
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td className="admin-table-cell text-center-cell">
+                                                                <span className={user.roundsCount > 0 ? 'text-rounds-count' : 'text-rounds-zero'}>
+                                                                    {user.roundsCount || 0}
+                                                                </span>
+                                                            </td>
+                                                            <td className="admin-table-cell admin-table-cell-hidden">
+                                                                {user.signupDate ? (
+                                                                    <div className="text-xs">{formatDate(user.signupDate)}</div>
+                                                                ) : (
+                                                                    <span className="italic opacity-60">N/A</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="admin-table-cell admin-table-cell-hidden">
+                                                                {user.lastActivity ? (
+                                                                    <div className="text-xs">{formatDate(user.lastActivity)}</div>
+                                                                ) : (
+                                                                    <span className="italic opacity-60">Never</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="admin-table-cell text-center-cell">
+                                                                <button
+                                                                    onClick={() => handleDeleteUser(user)}
+                                                                    className="icon-button"
+                                                                    style={{
+                                                                        width: '32px',
+                                                                        height: '32px',
+                                                                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                                                                        border: '1px solid rgba(239, 68, 68, 0.5)',
+                                                                        color: '#FCA5A5'
+                                                                    }}
+                                                                    title="Delete User"
+                                                                >
+                                                                    <i className="fas fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                            <div className="admin-table-footer">
+                                                {users.totalUsers} {users.totalUsers === 1 ? 'user' : 'users'}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <i className="fas fa-users empty-state-icon"></i>
+                                            <p className="text-secondary empty-state-text">No users found</p>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* MUST HAVE #2: Usage Metrics - SECOND PRIORITY */}
+                                <div className="card card-margin-lg card-padding-md">
+                                    <h2 className="text-xl font-bold section-title" style={{ marginBottom: '1.5rem' }}>
+                                        <i className="fas fa-chart-line icon-spacing icon-color"></i>
+                                        Usage Metrics
+                                    </h2>
+                                    <div className="usage-metrics-grid">
+                                        <div className="card metric-card">
+                                            <div className="metric-label">
+                                                Total Page Visits
+                                            </div>
+                                            <div className="metric-value">
+                                                {formatNumber(analytics.summary?.totalPageVisits || 0)}
+                                            </div>
+                                        </div>
+                                        <div className="card metric-card">
+                                            <div className="metric-label">
+                                                Active Users
+                                            </div>
+                                            <div className="metric-value">
+                                                {users?.users?.filter(u => u.roundsCount > 0).length || 0}
+                                            </div>
+                                        </div>
+                                        <div className="card metric-card">
+                                            <div className="metric-label">
+                                                Rounds Started
+                                            </div>
+                                            <div className="metric-value">
+                                                {formatNumber(analytics.roundStats?.totalStarts || 0)}
+                                            </div>
+                                        </div>
+                                        <div className="card metric-card">
+                                            <div className="metric-label">
+                                                Rounds Completed
+                                            </div>
+                                            <div className="metric-value">
+                                                {formatNumber(analytics.roundStats?.totalSaves || 0)}
+                                            </div>
+                                        </div>
+                                        <div className="card metric-card">
+                                            <div className="metric-label">
+                                                Completion Rate
+                                            </div>
+                                            <div className="metric-value">
+                                                {analytics.roundStats?.completionRate || 0}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Market Research Insights - Moved below must-haves */}
+                                <div className="card card-margin-xl card-padding-xl">
+                                    <h2 className="text-2xl font-bold mb-4">
+                                        <i className="fas fa-chart-bar icon-spacing icon-color"></i>
+                                        Market Research Insights for App Promotion
+                                    </h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">User Acquisition</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {formatNumber(analytics.summary?.totalSignups || 0)}
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                {analytics.summary?.totalPageVisits > 0 ? 
+                                                    Math.round((analytics.summary.totalSignups / analytics.summary.totalPageVisits) * 100) : 0}% conversion rate
+                                            </div>
+                                            {analytics.marketStats?.growthRate !== undefined && (
+                                                <div className="text-xs mt-2">
+                                                    <span className={analytics.marketStats.growthRate >= 0 ? 'text-karl-light-green' : 'text-color-error'}>
+                                                        {analytics.marketStats.growthRate >= 0 ? '↑' : '↓'} {Math.abs(analytics.marketStats.growthRate)}% growth
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">Daily Active Users</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {formatNumber(analytics.marketStats?.dailyActiveUsers || 0)}
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                Users active in last 24 hours
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">Weekly Active Users</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {formatNumber(analytics.marketStats?.weeklyActiveUsers || 0)}
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                Users active in last 7 days
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">Engagement Score</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {analytics.marketStats?.engagementScore || 0}/100
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                Based on completion, activity & rounds
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">Retention Rate</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {analytics.marketStats?.retentionRate || 0}%
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                Users returning after 7 days
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">Avg Rounds/User</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {analytics.marketStats?.averageRoundsPerUser || 0}
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                Average rounds per registered user
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Acquisition Trend Chart */}
+                                    {analytics.acquisitionTrend && Object.keys(analytics.acquisitionTrend).length > 0 && (
+                                        <div className="mt-6">
+                                            <h3 className="text-lg font-semibold mb-3">
+                                                <i className="fas fa-chart-bar icon-spacing icon-color"></i>
+                                                User Acquisition Trend (Last 30 Days)
+                                            </h3>
+                                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                {Object.entries(analytics.acquisitionTrend).slice(-14).map(([date, count]) => {
+                                                    const maxCount = Math.max(...Object.values(analytics.acquisitionTrend), 1);
+                                                    return (
+                                                        <div key={date} className="flex items-center gap-3">
+                                                            <span className="text-sm text-secondary w-24">{date}</span>
+                                                            <div className="progress-bar-container">
+                                                                <div 
+                                                                    className="progress-bar"
+                                                                    style={{ width: `${Math.max(5, (count / maxCount) * 100)}%` }}
+                                                                ></div>
+                                                            </div>
+                                                            <span className="text-karl-light-green font-semibold w-12 text-right text-sm">{count}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                
+
+                                {/* Growth Trends */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                    <div className="card card-padding-xl">
+                                        <h2 className="text-xl font-bold mb-4">
+                                        <i className="fas fa-chart-line icon-spacing icon-color"></i>
+                                        Signup Trend (Last 14 Days)
+                                    </h2>
+                                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                                            {Object.entries(analytics.signupsByDate || {}).slice(-14).map(([date, count]) => (
+                                                <div key={date} className="flex justify-between items-center py-2 border-b border-primary">
+                                                    <span className="">{date}</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-32 rounded-full progress-bar-small progress-bar-container">
+                                                            <div 
+                                                                className="progress-bar progress-bar-small" 
+                                                                style={{ width: `${Math.max(10, (count / Math.max(...Object.values(analytics.signupsByDate || {}), 1)) * 100)}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <span className="text-karl-light-green font-semibold w-12 text-right">{formatNumber(count)}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="card card-padding-xl">
+                                        <h2 className="text-xl font-bold mb-4">
+                                            <i className="fas fa-sitemap icon-spacing icon-color"></i>
+                                            Page Distribution
+                                        </h2>
+                                        <div className="space-y-3">
+                                            {Object.entries(analytics.pageVisitCounts || {})
+                                                .sort((a, b) => b[1] - a[1])
+                                                .map(([page, count]) => {
+                                                    const percentage = analytics.summary?.totalPageVisits > 0 ? 
+                                                        (count / analytics.summary.totalPageVisits * 100) : 0;
+                                                    return (
+                                                        <div key={page}>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className=" text-sm">{page.replace('.html', '')}</span>
+                                                                <span className="text-karl-light-green font-semibold text-sm">{formatNumber(count)} ({percentage.toFixed(1)}%)</span>
+                                                            </div>
+                                                            <div className="w-full rounded-full progress-bar-small progress-bar-container">
+                                                                <div 
+                                                                    className="progress-bar progress-bar-small" 
+                                                                    style={{ width: `${percentage}%` }}
+                                                                ></div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Detailed Activity Logs (Collapsible) */}
+                                <div className="card card-padding-xl">
+                                    <details className="cursor-pointer">
+                                        <summary className="text-xl font-bold  mb-4 list-none">
+                                            <div className="flex justify-between items-center">
+                                                <span>Detailed Activity Logs</span>
+                                                <span className="text-sm text-secondary font-normal">(Click to expand)</span>
+                                            </div>
+                                        </summary>
+                                        <div className="mt-4 flex flex-col gap-lg">
+                                            <div>
+                                                <h3 className="text-lg font-semibold  mb-3">Recent Signups (Last 50)</h3>
+                                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                    {analytics.recentSignups?.map((signup, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center py-2 border-b border-primary text-sm">
+                                                            <span className="text-secondary">{formatDate(signup.timestamp)}</span>
+                                                            <span className=" font-mono text-xs">{signup.userHash?.substring(0, 16)}...</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <h3 className="text-lg font-semibold  mb-3">Recent Round Events (Last 100)</h3>
+                                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                    {analytics.recentRoundEvents?.map((event, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center py-2 border-b border-primary text-sm">
+                                                            <div className="flex gap-4">
+                                                                <span className="text-secondary">{formatDate(event.timestamp)}</span>
+                                                                <span className={`px-2 py-1 rounded text-xs ${
+                                                                    event.eventType === 'save' ? 'bg-green-600' :
+                                                                    event.eventType === 'start' ? 'bg-blue-600' :
+                                                                    'bg-red-600'
+                                                                }`}>
+                                                                    {event.eventType}
+                                                                </span>
+                                                                <span className="">{event.roundType}</span>
+                                                                {event.holesCount > 0 && (
+                                                                    <span className="text-secondary">{event.holesCount} holes</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </details>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center py-12">
+                                <div className=" text-xl">No analytics data available</div>
+                            </div>
+                        )}
+
+                        {/* Delete User Confirmation Modal */}
+                        {deleteModalOpen && (
+                            <div
+                                style={{
+                                    position: 'fixed',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    zIndex: 10000,
+                                    padding: '1rem'
+                                }}
+                                onClick={() => !isDeletingUser && setDeleteModalOpen(false)}
+                            >
+                                <div
+                                    className="card"
+                                    style={{
+                                        maxWidth: '500px',
+                                        width: '100%',
+                                        padding: '2rem',
+                                        backgroundColor: 'var(--color-bg-primary)',
+                                        border: '2px solid var(--border-primary)'
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <h2 className="text-xl font-bold mb-4" style={{ color: '#FCA5A5' }}>
+                                        <i className="fas fa-exclamation-triangle" style={{ marginRight: '0.5rem' }}></i>
+                                        Delete User?
+                                    </h2>
+                                    <p className="mb-4">
+                                        Are you sure you want to delete this user? This action cannot be undone.
+                                    </p>
+                                    {userToDelete && (
+                                        <div className="mb-6 p-3 rounded-lg" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                                            <div className="font-semibold mb-1">
+                                                {userToDelete.email || `User ID: ${userToDelete.userHash?.substring(0, 20)}...`}
+                                            </div>
+                                            <div className="text-sm text-secondary">
+                                                {userToDelete.roundsCount || 0} rounds •
+                                                Signup: {userToDelete.signupDate ? formatDate(userToDelete.signupDate) : 'N/A'}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="flex gap-3 justify-end">
+                                        <button
+                                            onClick={() => setDeleteModalOpen(false)}
+                                            disabled={isDeletingUser}
+                                            className="btn"
+                                            style={{
+                                                padding: '0.75rem 1.5rem',
+                                                backgroundColor: 'var(--color-interactive)',
+                                                border: '2px solid var(--border-primary)',
+                                                opacity: isDeletingUser ? 0.5 : 1
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={confirmDeleteUser}
+                                            disabled={isDeletingUser}
+                                            className="btn"
+                                            style={{
+                                                padding: '0.75rem 1.5rem',
+                                                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                                                border: '2px solid rgba(239, 68, 68, 0.5)',
+                                                color: '#FCA5A5',
+                                                opacity: isDeletingUser ? 0.5 : 1
+                                            }}
+                                        >
+                                            {isDeletingUser ? (
+                                                <>
+                                                    <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
+                                                    Deleting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="fas fa-trash" style={{ marginRight: '0.5rem' }}></i>
+                                                    Delete User
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* User Stats Modal */}
+                        {selectedUser && (
+                            <div
+                                style={{
+                                    position: 'fixed',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    zIndex: 10000,
+                                    padding: '1rem',
+                                    overflowY: 'auto'
+                                }}
+                                onClick={() => setSelectedUser(null)}
+                            >
+                                <div
+                                    className="card"
+                                    style={{
+                                        maxWidth: '800px',
+                                        width: '100%',
+                                        padding: '2rem',
+                                        backgroundColor: 'var(--color-bg-primary)',
+                                        border: '2px solid var(--border-primary)',
+                                        margin: '2rem auto',
+                                        maxHeight: '90vh',
+                                        overflowY: 'auto'
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div>
+                                            <h2 className="text-2xl font-bold mb-2">
+                                                <i className="fas fa-user-circle" style={{ marginRight: '0.5rem', color: 'var(--color-karl-light-green)' }}></i>
+                                                User Statistics
+                                            </h2>
+                                            <p className="text-secondary">
+                                                {selectedUser.email || `User ID: ${selectedUser.userHash?.substring(0, 30)}...`}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setSelectedUser(null)}
+                                            className="icon-button"
+                                            style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                backgroundColor: 'var(--color-interactive)',
+                                                border: '2px solid var(--border-primary)'
+                                            }}
+                                        >
+                                            <i className="fas fa-times"></i>
+                                        </button>
+                                    </div>
+
+                                    {isLoadingUserStats ? (
+                                        <div className="text-center py-12">
+                                            <div className="loading mx-auto"></div>
+                                            <p className="text-secondary mt-4">Loading user stats...</p>
+                                        </div>
+                                    ) : userStats ? (
+                                        <div>
+                                            {/* User Info */}
+                                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                                <div className="p-4 rounded-lg border border-primary">
+                                                    <div className="text-secondary text-sm mb-1">Signup Date</div>
+                                                    <div className="font-semibold">
+                                                        {userStats.user.signupDate ? formatDate(userStats.user.signupDate) : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="p-4 rounded-lg border border-primary">
+                                                    <div className="text-secondary text-sm mb-1">Last Activity</div>
+                                                    <div className="font-semibold">
+                                                        {userStats.user.lastActivity ? formatDate(userStats.user.lastActivity) : 'Never'}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Key Stats */}
+                                            <h3 className="text-lg font-bold mb-3">
+                                                <i className="fas fa-chart-bar" style={{ marginRight: '0.5rem', color: 'var(--color-karl-light-green)' }}></i>
+                                                Performance Stats
+                                            </h3>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                                                <div className="p-4 rounded-lg border border-primary text-center">
+                                                    <div className="text-secondary text-sm mb-1">Total Rounds</div>
+                                                    <div className="text-2xl font-bold text-karl-light-green">
+                                                        {userStats.stats.totalRounds}
+                                                    </div>
+                                                </div>
+                                                <div className="p-4 rounded-lg border border-primary text-center">
+                                                    <div className="text-secondary text-sm mb-1">Total Holes</div>
+                                                    <div className="text-2xl font-bold text-karl-light-green">
+                                                        {userStats.stats.totalHoles}
+                                                    </div>
+                                                </div>
+                                                <div className="p-4 rounded-lg border border-primary text-center">
+                                                    <div className="text-secondary text-sm mb-1">GIR %</div>
+                                                    <div className="text-2xl font-bold text-karl-light-green">
+                                                        {userStats.stats.girPercentage}%
+                                                    </div>
+                                                </div>
+                                                <div className="p-4 rounded-lg border border-primary text-center">
+                                                    <div className="text-secondary text-sm mb-1">Fairway %</div>
+                                                    <div className="text-2xl font-bold text-karl-light-green">
+                                                        {userStats.stats.fairwayPercentage}%
+                                                    </div>
+                                                </div>
+                                                <div className="p-4 rounded-lg border border-primary text-center">
+                                                    <div className="text-secondary text-sm mb-1">Avg Putts/Hole</div>
+                                                    <div className="text-2xl font-bold text-karl-light-green">
+                                                        {userStats.stats.avgPuttsPerHole}
+                                                    </div>
+                                                </div>
+                                                <div className="p-4 rounded-lg border border-primary text-center">
+                                                    <div className="text-secondary text-sm mb-1">Avg Score to Par</div>
+                                                    <div className="text-2xl font-bold" style={{ color: userStats.stats.avgScoreToPar <= 0 ? 'var(--color-karl-light-green)' : '#FCA5A5' }}>
+                                                        {userStats.stats.avgScoreToPar > 0 ? '+' : ''}{userStats.stats.avgScoreToPar}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Courses Played */}
+                                            {Object.keys(userStats.courses).length > 0 && (
+                                                <div className="mb-6">
+                                                    <h3 className="text-lg font-bold mb-3">
+                                                        <i className="fas fa-golf-ball" style={{ marginRight: '0.5rem', color: 'var(--color-karl-light-green)' }}></i>
+                                                        Courses Played
+                                                    </h3>
+                                                    <div className="space-y-2">
+                                                        {Object.entries(userStats.courses).map(([course, count]) => (
+                                                            <div key={course} className="flex justify-between items-center p-3 rounded-lg border border-primary">
+                                                                <span className="font-semibold">{course}</span>
+                                                                <span className="text-karl-light-green">{count} {count === 1 ? 'round' : 'rounds'}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Recent Rounds */}
+                                            {userStats.rounds && userStats.rounds.length > 0 && (
+                                                <div>
+                                                    <h3 className="text-lg font-bold mb-3">
+                                                        <i className="fas fa-history" style={{ marginRight: '0.5rem', color: 'var(--color-karl-light-green)' }}></i>
+                                                        Recent Rounds
+                                                    </h3>
+                                                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                        {userStats.rounds.slice(0, 10).map((round, idx) => (
+                                                            <div key={idx} className="flex justify-between items-center p-3 rounded-lg border border-primary">
+                                                                <div>
+                                                                    <div className="font-semibold">{round.courseName}</div>
+                                                                    <div className="text-xs text-secondary">
+                                                                        {round.date ? new Date(round.date).toLocaleDateString() : 'No date'}
+                                                                    </div>
+                                                                </div>
+                                                                <span className="text-secondary">{round.holeCount} holes</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-secondary">No stats available</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+        
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AdminDashboard />);
+    </script>
+</body>
+</html>
+
+

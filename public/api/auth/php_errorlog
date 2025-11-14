@@ -1,0 +1,8 @@
+[11-Nov-2025 18:55:32 UTC] {"timestamp":"2025-11-11 18:55:32","level":"INFO","message":"User logged in","context":{"email":"baileypc@gmail.com"},"user":"baileypc@gmail.com","request":{"method":"POST","uri":"\/api\/auth\/login.php?action=login","ip":"172.59.78.149"}}
+
+[11-Nov-2025 18:55:35 UTC] {"timestamp":"2025-11-11 18:55:35","level":"INFO","message":"User logged out","context":[],"user":"baileypc@gmail.com","request":{"method":"POST","uri":"\/api\/auth\/login.php?action=logout","ip":"172.59.78.149"}}
+
+[11-Nov-2025 23:18:08 UTC] {"timestamp":"2025-11-11 23:18:08","level":"INFO","message":"User logged in","context":{"email":"baileypc@gmail.com"},"user":"baileypc@gmail.com","request":{"method":"POST","uri":"\/api\/auth\/login.php?action=login","ip":"172.59.79.24"}}
+
+[11-Nov-2025 23:18:13 UTC] {"timestamp":"2025-11-11 23:18:13","level":"INFO","message":"User logged out","context":[],"user":"baileypc@gmail.com","request":{"method":"POST","uri":"\/api\/auth\/login.php?action=logout","ip":"172.59.79.24"}}
+

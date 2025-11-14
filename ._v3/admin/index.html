@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self' https://unpkg.com https://cdnjs.cloudflare.com;">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Admin Dashboard - Karl's GIR</title>
+    <link rel="icon" href="data:,">
+    
+    <!-- Force no-cache on page load -->
+    <script>
+        // Prevent any caching
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href.split('?')[0] + '?nocache=' + Date.now());
+        }
+    </script>
+    
+    <!-- Admin Dashboard Styles - Cache busted with timestamp -->
+    <link rel="stylesheet" href="./admin-styles.css?v=9.5.1&t=" id="admin-styles">
+    <script>
+        // Force cache bust on every load
+        (function() {
+            var link = document.getElementById('admin-styles');
+            if (link) {
+                link.href = './admin-styles.css?v=9.5.1&t=' + Date.now();
+            }
+        })();
+    </script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- React and ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel Standalone for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Fix Font Awesome SVG icon colors (FA6 uses inline SVGs with hardcoded fill)
+        function fixIconColors() {
+            // Refresh button icons - dark color on light background
+            const refreshIcons = document.querySelectorAll('.btn-refresh-users i svg, .btn-refresh-users i path');
+            refreshIcons.forEach(icon => {
+                icon.setAttribute('fill', '#0a140a');
+            });
+            
+            // Logout button icons - light color on dark background
+            const logoutIcons = document.querySelectorAll('.btn-logout i svg, .btn-logout i path');
+            logoutIcons.forEach(icon => {
+                icon.setAttribute('fill', '#FCA5A5');
+            });
+        }
+        
+        // Run after DOM and Font Awesome load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(fixIconColors, 100);
+                // Also run after a delay to catch dynamically loaded icons
+                setTimeout(fixIconColors, 500);
+            });
+        } else {
+            setTimeout(fixIconColors, 100);
+            setTimeout(fixIconColors, 500);
+        }
+        
+        // Admin Dashboard Component
+        function AdminDashboard() {
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [isLoading, setIsLoading] = useState(true);
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [loginError, setLoginError] = useState('');
+            const [isLoggingIn, setIsLoggingIn] = useState(false);
+            const [analytics, setAnalytics] = useState(null);
+            const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+            const [users, setUsers] = useState(null);
+            const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+            
+            // Check authentication on mount
+            useEffect(() => {
+                // Force fresh data on every mount
+                checkAuth();
+            }, []);
+            
+            // Force refresh on component mount to prevent stale cache
+            useEffect(() => {
+                // Add timestamp to prevent caching
+                const timestamp = Date.now();
+                console.log('%c✅✅✅ NEW VERSION 9.0.0 LOADED ✅✅✅', 'background: #DDEDD2; color: #000; font-size: 24px; font-weight: bold; padding: 20px;');
+                console.log('Admin Dashboard loaded at:', new Date(timestamp).toISOString());
+                console.log('If you see this message, the NEW version is loading!');
+                console.log('%cIf you do NOT see this green banner, you are viewing the OLD cached version!', 'background: red; color: white; font-size: 16px; padding: 10px;');
+            }, []);
+            
+            // Load analytics and users when authenticated
+            useEffect(() => {
+                if (isAuthenticated) {
+                    loadAnalytics();
+                    loadUsers();
+                }
+            }, [isAuthenticated]);
+            
+            // Fix icon colors after render (Font Awesome 6 uses inline SVGs with hardcoded fill)
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    fixIconColors();
+                }, 100);
+                return () => clearTimeout(timer);
+            });
+            
+            // Fix icon colors when users data changes (refresh icon is conditionally rendered)
+            useEffect(() => {
+                if (users !== null) {
+                    const timer = setTimeout(() => {
+                        fixIconColors();
+                    }, 100);
+                    return () => clearTimeout(timer);
+                }
+            }, [users, isLoadingUsers]);
+            
+            const checkAuth = async () => {
+                try {
+                    const response = await fetch('../api/admin/auth.php?action=check');
+                    const data = await response.json();
+                    setIsAuthenticated(data.loggedIn || false);
+                    if (data.loggedIn) {
+                        setUsername(data.username || 'admin');
+                    }
+                } catch (error) {
+                    console.error('Auth check error:', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                setIsLoggingIn(true);
+                setLoginError('');
+                
+                try {
+                    const response = await fetch('../api/admin/auth.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'login',
+                            username: username,
+                            password: password
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        setIsAuthenticated(true);
+                        setPassword('');
+                    } else {
+                        setLoginError(data.message || 'Login failed');
+                    }
+                } catch (error) {
+                    setLoginError('Network error. Please try again.');
+                    console.error('Login error:', error);
+                } finally {
+                    setIsLoggingIn(false);
+                }
+            };
+            
+            const handleLogout = async () => {
+                try {
+                    await fetch('../api/admin/auth.php?action=logout');
+                    setIsAuthenticated(false);
+                    setUsername('');
+                    setPassword('');
+                    setAnalytics(null);
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            };
+            
+            const loadAnalytics = async () => {
+                setIsLoadingAnalytics(true);
+                try {
+                    const response = await fetch('../api/admin/analytics.php');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        setAnalytics(data);
+                    }
+                } catch (error) {
+                    console.error('Analytics load error:', error);
+                } finally {
+                    setIsLoadingAnalytics(false);
+                }
+            };
+            
+            const loadUsers = async () => {
+                setIsLoadingUsers(true);
+                try {
+                    const response = await fetch('../api/admin/users.php');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        setUsers(data);
+                    }
+                } catch (error) {
+                    console.error('Users load error:', error);
+                } finally {
+                    setIsLoadingUsers(false);
+                }
+            };
+            
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            };
+            
+            const downloadUsersCSV = () => {
+                if (!users || !users.users || users.users.length === 0) return;
+                
+                // Filter to only include users with email addresses (signed-up users, not trial users)
+                const signedUpUsers = users.users.filter(user => user.email);
+                
+                if (signedUpUsers.length === 0) {
+                    alert('No signed-up users with email addresses found.');
+                    return;
+                }
+                
+                // Create CSV content
+                const headers = ['Email', 'Rounds', 'Signup Date', 'Last Activity'];
+                const rows = signedUpUsers.map(user => {
+                    const email = user.email;
+                    const rounds = user.roundsCount || 0;
+                    const signup = user.signupDate ? formatDate(user.signupDate) : 'N/A';
+                    const activity = user.lastActivity ? formatDate(user.lastActivity) : 'Never';
+                    return [email, rounds, signup, activity];
+                });
+                
+                // Build CSV string
+                let csvContent = headers.join(',') + '\\n';
+                rows.forEach(row => {
+                    // Escape commas and quotes in email addresses
+                    const escapedRow = row.map(cell => {
+                        const cellStr = String(cell);
+                        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\\n')) {
+                            return `"${cellStr.replace(/"/g, '""')}"`;
+                        }
+                        return cellStr;
+                    });
+                    csvContent += escapedRow.join(',') + '\\n';
+                });
+                
+                // Create download link
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `karls-gir-users-${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+            
+            const formatNumber = (num) => {
+                return num ? num.toLocaleString() : '0';
+            };
+            
+            if (isLoading) {
+                return (
+                    <div className="min-h-screen  flex items-center justify-center">
+                        <div className=" text-xl">Loading...</div>
+                    </div>
+                );
+            }
+            
+            if (!isAuthenticated) {
+                return (
+                    <div className="min-h-screen  flex items-center justify-center p-4">
+                        <div className="card rounded-lg p-8 w-full max-w-md border border-primary">
+                            <div className="text-center mb-6">
+                                <h1 className="text-2xl font-bold  mb-2">Admin Dashboard</h1>
+                                <p className="text-secondary text-sm">Karl's GIR Analytics</p>
+                            </div>
+                            
+                            <form onSubmit={handleLogin}>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium mb-2">
+                                        Username
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+                                
+                                <div className="mb-6">
+                                    <label className="block text-sm font-medium mb-2">
+                                        Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                
+                                {loginError && (
+                                    <div className="mb-4 p-3 bg-red-900/30 border border-red-500 rounded-lg text-red-300 text-sm">
+                                        {loginError}
+                                    </div>
+                                )}
+                                
+                                <button
+                                    type="submit"
+                                    disabled={isLoggingIn}
+                                    className="btn btn-login w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isLoggingIn ? 'Logging in...' : 'Login'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+            
+            return (
+                <div className="min-h-screen admin-dashboard-container">
+                    <div className="max-w-7xl mx-auto admin-content-wrapper">
+                        {/* Enhanced Header - Mobile First */}
+                        <div className="card mb-4 card-padding-md">
+                            <div className="flex justify-between items-center gap-3">
+                                <div className="admin-header-flex">
+                                    <img 
+                                        src={"./images/karls_gir.png?t=" + Date.now()} 
+                                        alt="Karl's GIR" 
+                                        className="admin-logo"
+                                    />
+                                    <div className="admin-header-text-wrapper">
+                                        <h1 className="text-2xl font-bold mb-1 text-karl-light-green admin-title">
+                                            Karl's GIR Admin
+                                        </h1>
+                                        <p className="text-secondary text-xs admin-version">
+                                            v9.5.1 · {new Date().toLocaleTimeString()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleLogout}
+                                    className="icon-button btn-logout"
+                                    title="Logout"
+                                >
+                                    <i className="fas fa-sign-out-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {isLoadingAnalytics && !analytics ? (
+                            <div className="text-center py-12">
+                                <div className=" text-xl">Loading analytics...</div>
+                            </div>
+                        ) : analytics ? (
+                            <>
+                                {/* MUST HAVE #1: Registered Users Table - TOP PRIORITY */}
+                                <div className="card card-margin-lg card-padding-md">
+                                    <div className="flex justify-between items-center mb-4 section-header">
+                                        <h2 className="text-xl font-bold section-title">
+                                            <i className="fas fa-users icon-spacing icon-color"></i>
+                                            <span className="section-title-span">Users ({users?.totalUsers || 0})</span>
+                                        </h2>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={downloadUsersCSV}
+                                                disabled={!users || users.users.length === 0}
+                                                className="icon-button"
+                                                style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    backgroundColor: 'var(--color-interactive)',
+                                                    border: '2px solid var(--border-primary)',
+                                                    opacity: (!users || users.users.length === 0) ? 0.5 : 1
+                                                }}
+                                                title="Download CSV"
+                                            >
+                                                <i className="fas fa-download"></i>
+                                            </button>
+                                            <button
+                                                onClick={loadUsers}
+                                                disabled={isLoadingUsers}
+                                                className="icon-button btn-refresh-users"
+                                                title="Refresh Users"
+                                            >
+                                                {isLoadingUsers ? (
+                                                    <i className="fas fa-spinner fa-spin"></i>
+                                                ) : (
+                                                    <i className="fas fa-sync-alt"></i>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    {isLoadingUsers ? (
+                                        <div className="text-center py-8">
+                                            <div className="loading mx-auto"></div>
+                                            <p className="text-secondary mt-4 loading-text">Loading users...</p>
+                                        </div>
+                                    ) : users && users.users && users.users.length > 0 ? (
+                                        <div className="overflow-x-auto admin-table-wrapper">
+                                            <table className="w-full admin-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th className="text-left admin-table-header">
+                                                            Email
+                                                        </th>
+                                                        <th className="text-center admin-table-header admin-table-header-width-60">
+                                                            Rounds
+                                                        </th>
+                                                        <th className="text-left admin-table-header admin-table-header-hidden">
+                                                            Signup
+                                                        </th>
+                                                        <th className="text-left admin-table-header admin-table-header-hidden">
+                                                            Activity
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {users.users.map((user, idx) => (
+                                                        <tr 
+                                                            key={idx} 
+                                                            className="admin-table-row"
+                                                        >
+                                                            <td className="admin-table-cell">
+                                                                {user.email ? (
+                                                                    <div>
+                                                                        <span className="font-semibold text-email">
+                                                                            {user.email}
+                                                                        </span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div>
+                                                                        <span className="text-user-id">
+                                                                            User ID: {user.userHash ? user.userHash.substring(0, 20) + '...' : 'N/A'}
+                                                                        </span>
+                                                                        <div className="text-user-note">
+                                                                            (email not stored - user signed up without email)
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td className="admin-table-cell text-center-cell">
+                                                                <span className={user.roundsCount > 0 ? 'text-rounds-count' : 'text-rounds-zero'}>
+                                                                    {user.roundsCount || 0}
+                                                                </span>
+                                                            </td>
+                                                            <td className="admin-table-cell admin-table-cell-hidden">
+                                                                {user.signupDate ? (
+                                                                    <div className="text-xs">{formatDate(user.signupDate)}</div>
+                                                                ) : (
+                                                                    <span className="italic opacity-60">N/A</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="admin-table-cell admin-table-cell-hidden">
+                                                                {user.lastActivity ? (
+                                                                    <div className="text-xs">{formatDate(user.lastActivity)}</div>
+                                                                ) : (
+                                                                    <span className="italic opacity-60">Never</span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                            <div className="admin-table-footer">
+                                                {users.totalUsers} {users.totalUsers === 1 ? 'user' : 'users'}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <i className="fas fa-users empty-state-icon"></i>
+                                            <p className="text-secondary empty-state-text">No users found</p>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* MUST HAVE #2: Usage Metrics - SECOND PRIORITY */}
+                                <div className="card card-margin-lg card-padding-md">
+                                    <h2 className="text-xl font-bold mb-4 section-title">
+                                        <i className="fas fa-chart-line icon-spacing icon-color"></i>
+                                        Usage Metrics
+                                    </h2>
+                                    <div className="usage-metrics-grid">
+                                        <div className="card metric-card">
+                                            <div className="metric-label">
+                                                Total Page Visits
+                                            </div>
+                                            <div className="metric-value">
+                                                {formatNumber(analytics.summary?.totalPageVisits || 0)}
+                                            </div>
+                                        </div>
+                                        <div className="card metric-card">
+                                            <div className="metric-label">
+                                                Active Users
+                                            </div>
+                                            <div className="metric-value">
+                                                {users?.users?.filter(u => u.roundsCount > 0).length || 0}
+                                            </div>
+                                        </div>
+                                        <div className="card metric-card">
+                                            <div className="metric-label">
+                                                Rounds Started
+                                            </div>
+                                            <div className="metric-value">
+                                                {formatNumber(analytics.roundStats?.totalStarts || 0)}
+                                            </div>
+                                        </div>
+                                        <div className="card metric-card">
+                                            <div className="metric-label">
+                                                Rounds Completed
+                                            </div>
+                                            <div className="metric-value">
+                                                {formatNumber(analytics.roundStats?.totalSaves || 0)}
+                                            </div>
+                                        </div>
+                                        <div className="card metric-card">
+                                            <div className="metric-label">
+                                                Completion Rate
+                                            </div>
+                                            <div className="metric-value">
+                                                {analytics.roundStats?.completionRate || 0}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Market Research Insights - Moved below must-haves */}
+                                <div className="card card-margin-xl card-padding-xl">
+                                    <h2 className="text-2xl font-bold mb-4">
+                                        <i className="fas fa-chart-bar icon-spacing icon-color"></i>
+                                        Market Research Insights for App Promotion
+                                    </h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">User Acquisition</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {formatNumber(analytics.summary?.totalSignups || 0)}
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                {analytics.summary?.totalPageVisits > 0 ? 
+                                                    Math.round((analytics.summary.totalSignups / analytics.summary.totalPageVisits) * 100) : 0}% conversion rate
+                                            </div>
+                                            {analytics.marketStats?.growthRate !== undefined && (
+                                                <div className="text-xs mt-2">
+                                                    <span className={analytics.marketStats.growthRate >= 0 ? 'text-karl-light-green' : 'text-color-error'}>
+                                                        {analytics.marketStats.growthRate >= 0 ? '↑' : '↓'} {Math.abs(analytics.marketStats.growthRate)}% growth
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">Daily Active Users</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {formatNumber(analytics.marketStats?.dailyActiveUsers || 0)}
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                Users active in last 24 hours
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">Weekly Active Users</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {formatNumber(analytics.marketStats?.weeklyActiveUsers || 0)}
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                Users active in last 7 days
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">Engagement Score</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {analytics.marketStats?.engagementScore || 0}/100
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                Based on completion, activity & rounds
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">Retention Rate</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {analytics.marketStats?.retentionRate || 0}%
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                Users returning after 7 days
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-lg border border-primary bg-karl-bg-secondary">
+                                            <div className="text-secondary text-sm mb-1">Avg Rounds/User</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {analytics.marketStats?.averageRoundsPerUser || 0}
+                                            </div>
+                                            <div className="text-xs text-secondary">
+                                                Average rounds per registered user
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Acquisition Trend Chart */}
+                                    {analytics.acquisitionTrend && Object.keys(analytics.acquisitionTrend).length > 0 && (
+                                        <div className="mt-6">
+                                            <h3 className="text-lg font-semibold mb-3">
+                                                <i className="fas fa-chart-bar icon-spacing icon-color"></i>
+                                                User Acquisition Trend (Last 30 Days)
+                                            </h3>
+                                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                {Object.entries(analytics.acquisitionTrend).slice(-14).map(([date, count]) => {
+                                                    const maxCount = Math.max(...Object.values(analytics.acquisitionTrend), 1);
+                                                    return (
+                                                        <div key={date} className="flex items-center gap-3">
+                                                            <span className="text-sm text-secondary w-24">{date}</span>
+                                                            <div className="progress-bar-container">
+                                                                <div 
+                                                                    className="progress-bar"
+                                                                    style={{ width: `${Math.max(5, (count / maxCount) * 100)}%` }}
+                                                                ></div>
+                                                            </div>
+                                                            <span className="text-karl-light-green font-semibold w-12 text-right text-sm">{count}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Engagement & Drop-off */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                    <div className="card card-padding-xl">
+                                        <h2 className="text-xl font-bold mb-4">
+                                            <i className="fas fa-chart-area icon-spacing icon-color"></i>
+                                            Engagement & Drop-off
+                                        </h2>
+                                        <div className="flex flex-col gap-lg">
+                                            <div className="p-4  rounded-lg border border-primary">
+                                                <div className="text-secondary text-sm mb-2">Round Completion Rate</div>
+                                                <div className="text-2xl font-bold  mb-1">
+                                                    {analytics.roundStats?.completionRate || 0}%
+                                                </div>
+                                                <div className="text-xs text-secondary">
+                                                    {analytics.roundStats?.totalSaves || 0} of {analytics.roundStats?.totalStarts || 0} rounds completed
+                                                </div>
+                                            </div>
+                                            <div className="p-4  rounded-lg border border-primary">
+                                                <div className="text-secondary text-sm mb-2">Abandonment Pattern</div>
+                                                <div className="text-2xl font-bold  mb-1">
+                                                    {analytics.roundStats?.averageHolesBeforeAbandon || 0} holes
+                                                </div>
+                                                <div className="text-xs text-secondary">
+                                                    Average holes before users abandon rounds
+                                                </div>
+                                            </div>
+                                            <div className="p-4  rounded-lg border border-primary">
+                                                <div className="text-secondary text-sm mb-2">Abandonment Rate</div>
+                                                <div className="text-2xl font-bold text-red-400 mb-1">
+                                                    {analytics.roundStats?.totalStarts > 0 ? 
+                                                        Math.round((analytics.roundStats.totalAbandons / analytics.roundStats.totalStarts) * 100) : 0}%
+                                                </div>
+                                                <div className="text-xs text-secondary">
+                                                    {analytics.roundStats?.totalAbandons || 0} rounds abandoned
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Feature Adoption: Live vs Registered */}
+                                <div className="card card-margin-xl card-padding-xl">
+                                    <h2 className="text-xl font-bold mb-4">
+                                        <i className="fas fa-balance-scale icon-spacing icon-color"></i>
+                                        Live vs Registered Comparison
+                                    </h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="p-4  rounded-lg border border-primary">
+                                            <h3 className="text-lg font-semibold  mb-3">Live Version (No Signup)</h3>
+                                            <div className="space-y-2 mb-4">
+                                                <div className="flex justify-between">
+                                                    <span className="text-secondary text-sm">Total Visits</span>
+                                                    <span className=" font-semibold">
+                                                        {formatNumber(analytics.summary?.liveVersionUsage?.totalVisits || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-secondary text-sm">Rounds Started</span>
+                                                    <span className=" font-semibold">
+                                                        {formatNumber(analytics.roundStats?.liveStarts || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-secondary text-sm">Rounds Completed</span>
+                                                    <span className="text-green-400 font-semibold">
+                                                        {formatNumber(analytics.roundStats?.liveSaves || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-secondary text-sm">Completion Rate</span>
+                                                    <span className=" font-semibold">
+                                                        {analytics.roundStats?.liveStarts > 0 ? 
+                                                            Math.round((analytics.roundStats.liveSaves / analytics.roundStats.liveStarts) * 100) : 0}%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-secondary italic">
+                                                Users prefer quick access without registration
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="p-4  rounded-lg border border-primary">
+                                            <h3 className="text-lg font-semibold  mb-3">Registered Users</h3>
+                                            <div className="space-y-2 mb-4">
+                                                <div className="flex justify-between">
+                                                    <span className="text-secondary text-sm">Total Signups</span>
+                                                    <span className=" font-semibold">
+                                                        {formatNumber(analytics.summary?.totalSignups || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-secondary text-sm">Rounds Started</span>
+                                                    <span className=" font-semibold">
+                                                        {formatNumber(analytics.roundStats?.registeredStarts || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-secondary text-sm">Rounds Completed</span>
+                                                    <span className="text-green-400 font-semibold">
+                                                        {formatNumber(analytics.roundStats?.registeredSaves || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-secondary text-sm">Completion Rate</span>
+                                                    <span className=" font-semibold">
+                                                        {analytics.roundStats?.registeredStarts > 0 ? 
+                                                            Math.round((analytics.roundStats.registeredSaves / analytics.roundStats.registeredStarts) * 100) : 0}%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-secondary italic">
+                                                Committed users who create accounts
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Actionable Insights */}
+                                <div className="card card-margin-xl card-padding-xl">
+                                    <h2 className="text-xl font-bold mb-4">
+                                        <i className="fas fa-lightbulb icon-spacing icon-color"></i>
+                                        Actionable Insights
+                                    </h2>
+                                    <div className="space-y-3">
+                                        {analytics.roundStats?.averageHolesBeforeAbandon > 0 && analytics.roundStats.averageHolesBeforeAbandon < 9 && (
+                                            <div className="p-3 bg-yellow-900/30 border border-yellow-600 rounded-lg">
+                                                <div className="text-yellow-300 font-semibold mb-1">
+                                                    <i className="fas fa-exclamation-triangle icon-spacing"></i>
+                                                    Early Drop-off Pattern
+                                                </div>
+                                                <div className="text-yellow-200 text-sm">
+                                                    Users are abandoning rounds early (avg {analytics.roundStats.averageHolesBeforeAbandon} holes). 
+                                                    Consider simplifying the initial experience or adding engagement hooks.
+                                                </div>
+                                            </div>
+                                        )}
+                                        {analytics.summary?.liveVersionUsage?.totalVisits > (analytics.summary?.totalSignups || 0) * 2 && (
+                                            <div className="p-3 bg-blue-900/30 border border-blue-600 rounded-lg">
+                                                <div className="text-blue-300 font-semibold mb-1">
+                                                    <i className="fas fa-lightbulb icon-spacing"></i>
+                                                    Signup Barrier Identified
+                                                </div>
+                                                <div className="text-blue-200 text-sm">
+                                                    Live version usage significantly exceeds signups. Users prefer no-signup experience. 
+                                                    Consider making signup optional or highlighting benefits of registration.
+                                                </div>
+                                            </div>
+                                        )}
+                                        {analytics.roundStats?.completionRate < 50 && analytics.roundStats.completionRate > 0 && (
+                                            <div className="p-3 bg-red-900/30 border border-red-600 rounded-lg">
+                                                <div className="text-red-300 font-semibold mb-1">
+                                                    <i className="fas fa-exclamation-circle icon-spacing"></i>
+                                                    Low Completion Rate
+                                                </div>
+                                                <div className="text-red-200 text-sm">
+                                                    Only {analytics.roundStats.completionRate}% of started rounds are completed. 
+                                                    Investigate friction points in the round tracking flow.
+                                                </div>
+                                            </div>
+                                        )}
+                                        {analytics.roundStats?.liveStarts > 0 && 
+                                         analytics.roundStats.liveSaves / analytics.roundStats.liveStarts > 
+                                         (analytics.roundStats.registeredSaves || 1) / (analytics.roundStats.registeredStarts || 1) && (
+                                            <div className="p-3 bg-green-900/30 border border-green-600 rounded-lg">
+                                                <div className="text-green-300 font-semibold mb-1">
+                                                    <i className="fas fa-check-circle icon-spacing"></i>
+                                                    Live Version Success
+                                                </div>
+                                                <div className="text-green-200 text-sm">
+                                                    Live version has higher completion rate than registered. 
+                                                    The no-signup experience is working well for user engagement.
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                {/* Growth Trends */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                    <div className="card card-padding-xl">
+                                        <h2 className="text-xl font-bold mb-4">
+                                        <i className="fas fa-chart-line icon-spacing icon-color"></i>
+                                        Signup Trend (Last 14 Days)
+                                    </h2>
+                                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                                            {Object.entries(analytics.signupsByDate || {}).slice(-14).map(([date, count]) => (
+                                                <div key={date} className="flex justify-between items-center py-2 border-b border-primary">
+                                                    <span className="">{date}</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-32 rounded-full progress-bar-small progress-bar-container">
+                                                            <div 
+                                                                className="progress-bar progress-bar-small" 
+                                                                style={{ width: `${Math.max(10, (count / Math.max(...Object.values(analytics.signupsByDate || {}), 1)) * 100)}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <span className="text-karl-light-green font-semibold w-12 text-right">{formatNumber(count)}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="card card-padding-xl">
+                                        <h2 className="text-xl font-bold mb-4">
+                                            <i className="fas fa-sitemap icon-spacing icon-color"></i>
+                                            Page Distribution
+                                        </h2>
+                                        <div className="space-y-3">
+                                            {Object.entries(analytics.pageVisitCounts || {})
+                                                .sort((a, b) => b[1] - a[1])
+                                                .map(([page, count]) => {
+                                                    const percentage = analytics.summary?.totalPageVisits > 0 ? 
+                                                        (count / analytics.summary.totalPageVisits * 100) : 0;
+                                                    return (
+                                                        <div key={page}>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className=" text-sm">{page.replace('.html', '')}</span>
+                                                                <span className="text-karl-light-green font-semibold text-sm">{formatNumber(count)} ({percentage.toFixed(1)}%)</span>
+                                                            </div>
+                                                            <div className="w-full rounded-full progress-bar-small progress-bar-container">
+                                                                <div 
+                                                                    className="progress-bar progress-bar-small" 
+                                                                    style={{ width: `${percentage}%` }}
+                                                                ></div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Detailed Activity Logs (Collapsible) */}
+                                <div className="card card-padding-xl">
+                                    <details className="cursor-pointer">
+                                        <summary className="text-xl font-bold  mb-4 list-none">
+                                            <div className="flex justify-between items-center">
+                                                <span>Detailed Activity Logs</span>
+                                                <span className="text-sm text-secondary font-normal">(Click to expand)</span>
+                                            </div>
+                                        </summary>
+                                        <div className="mt-4 flex flex-col gap-lg">
+                                            <div>
+                                                <h3 className="text-lg font-semibold  mb-3">Recent Signups (Last 50)</h3>
+                                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                    {analytics.recentSignups?.map((signup, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center py-2 border-b border-primary text-sm">
+                                                            <span className="text-secondary">{formatDate(signup.timestamp)}</span>
+                                                            <span className=" font-mono text-xs">{signup.userHash?.substring(0, 16)}...</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <h3 className="text-lg font-semibold  mb-3">Recent Round Events (Last 100)</h3>
+                                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                    {analytics.recentRoundEvents?.map((event, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center py-2 border-b border-primary text-sm">
+                                                            <div className="flex gap-4">
+                                                                <span className="text-secondary">{formatDate(event.timestamp)}</span>
+                                                                <span className={`px-2 py-1 rounded text-xs ${
+                                                                    event.eventType === 'save' ? 'bg-green-600' :
+                                                                    event.eventType === 'start' ? 'bg-blue-600' :
+                                                                    'bg-red-600'
+                                                                }`}>
+                                                                    {event.eventType}
+                                                                </span>
+                                                                <span className="">{event.roundType}</span>
+                                                                {event.holesCount > 0 && (
+                                                                    <span className="text-secondary">{event.holesCount} holes</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </details>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center py-12">
+                                <div className=" text-xl">No analytics data available</div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+        
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AdminDashboard />);
+    </script>
+</body>
+</html>
+
+

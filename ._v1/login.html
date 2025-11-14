@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://unpkg.com https://cdn.tailwindcss.com;">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Login - Karl's GIR</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#16a34a">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="images/karls_gir.png">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #000000;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Pre-script: Force immediate localStorage check before any rendering -->
+    <script>
+        // Force localStorage check immediately - ensures we know login state before page renders
+        (function() {
+            const stored = localStorage.getItem('karlsGIR_isLoggedIn');
+            window.__karlsGIR_initialLoginState = stored === 'true';
+            console.log('Login Page Pre-script: Initial login state =', window.__karlsGIR_initialLoginState);
+            
+            // If already logged in, redirect to home page immediately
+            if (window.__karlsGIR_initialLoginState) {
+                window.location.replace('index.html?t=' + Date.now());
+            }
+        })();
+    </script>
+    
+    <div class="min-h-screen bg-gradient-to-b from-black to-black flex items-center justify-center p-4">
+        <div class="bg-[#050a05] rounded-lg p-6 sm:p-8 w-full max-w-md border border-[#1a2e1a]">
+            <div class="text-center mb-6">
+                <a href="index.html" onclick="this.href='index.html?t='+Date.now(); return true;" class="inline-block">
+                    <img src="images/karls_gir.png" alt="Karl's GIR Logo" class="w-16 h-16 rounded-lg mx-auto mb-4 hover:opacity-80 transition" />
+                </a>
+                <h1 class="text-3xl font-bold text-[#DDEDD2] mb-2">Karl's GIR</h1>
+                <p class="text-[#d1fae5]">Track your golf performance</p>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <h2 class="text-xl font-bold text-white mb-4">Login</h2>
+                <form id="loginFormElement" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-white mb-2">Email</label>
+                        <input
+                            type="email"
+                            id="loginEmail"
+                            required
+                            placeholder="your@email.com"
+                            class="w-full px-4 py-3 bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-green-500 placeholder-[#3d5a3d]"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-white mb-2">Password</label>
+                        <div class="relative">
+                            <input
+                                type="password"
+                                id="loginPassword"
+                                required
+                                placeholder="Enter password"
+                                class="w-full px-4 py-3 pr-12 bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-green-500 placeholder-[#3d5a3d]"
+                            />
+                            <button
+                                type="button"
+                                id="toggleLoginPassword"
+                                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#a7f3d0] hover:text-[#0a140a] transition"
+                                aria-label="Toggle password visibility"
+                            >
+                                <svg id="loginPasswordEye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                <svg id="loginPasswordEyeSlash" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="loginError" class="text-red-400 text-sm hidden"></div>
+                    <div class="text-right">
+                        <button type="button" id="showForgotPassword" class="text-sm text-[#DDEDD2] hover:text-[#DDEDD2] font-semibold">
+                            Forgot Password?
+                        </button>
+                    </div>
+                    <button
+                        type="submit"
+                        class="w-full bg-[#DDEDD2] text-[#0a140a] py-3 rounded-lg font-bold hover:bg-[#DDEDD2] transition shadow-lg"
+                    >
+                        Login
+                    </button>
+                </form>
+                <p class="text-center text-[#a7f3d0] mt-4">
+                    Don't have an account? 
+                    <button id="showRegister" class="text-[#DDEDD2] hover:text-[#DDEDD2] font-semibold">Register</button>
+                </p>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="hidden">
+                <h2 class="text-xl font-bold text-white mb-4">Create Account</h2>
+                <form id="registerFormElement" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-white mb-2">Email</label>
+                        <input
+                            type="email"
+                            id="registerEmail"
+                            required
+                            placeholder="your@email.com"
+                            class="w-full px-4 py-3 bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-green-500 placeholder-[#3d5a3d]"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-white mb-2">Password</label>
+                        <div class="relative">
+                            <input
+                                type="password"
+                                id="registerPassword"
+                                required
+                                minlength="6"
+                                placeholder="Minimum 6 characters"
+                                class="w-full px-4 py-3 pr-12 bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-green-500 placeholder-[#3d5a3d]"
+                            />
+                            <button
+                                type="button"
+                                id="toggleRegisterPassword"
+                                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#a7f3d0] hover:text-[#0a140a] transition"
+                                aria-label="Toggle password visibility"
+                            >
+                                <svg id="registerPasswordEye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                <svg id="registerPasswordEyeSlash" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-white mb-2">Confirm Password</label>
+                        <div class="relative">
+                            <input
+                                type="password"
+                                id="registerPasswordConfirm"
+                                required
+                                placeholder="Re-enter password"
+                                class="w-full px-4 py-3 pr-12 bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-green-500 placeholder-[#3d5a3d]"
+                            />
+                            <button
+                                type="button"
+                                id="toggleRegisterPasswordConfirm"
+                                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#a7f3d0] hover:text-[#0a140a] transition"
+                                aria-label="Toggle password visibility"
+                            >
+                                <svg id="registerPasswordConfirmEye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                <svg id="registerPasswordConfirmEyeSlash" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="registerError" class="text-red-400 text-sm hidden"></div>
+                    <button
+                        type="submit"
+                        class="w-full bg-[#DDEDD2] text-[#0a140a] py-3 rounded-lg font-bold hover:bg-[#DDEDD2] transition shadow-lg"
+                    >
+                        Create Account
+                    </button>
+                </form>
+                <p class="text-center text-[#a7f3d0] mt-4">
+                    Already have an account? 
+                    <button id="showLogin" class="text-[#DDEDD2] hover:text-[#DDEDD2] font-semibold">Login</button>
+                </p>
+            </div>
+
+            <!-- Forgot Password Form -->
+            <div id="forgotPasswordForm" class="hidden">
+                <h2 class="text-xl font-bold text-white mb-4">Reset Password</h2>
+                <p class="text-[#d1fae5] mb-4 text-sm">Enter your email address and we'll send you a link to reset your password.</p>
+                <form id="forgotPasswordFormElement" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-white mb-2">Email</label>
+                        <input
+                            type="email"
+                            id="forgotPasswordEmail"
+                            required
+                            placeholder="your@email.com"
+                            class="w-full px-4 py-3 bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-green-500 placeholder-[#3d5a3d]"
+                        />
+                    </div>
+                    <div id="forgotPasswordError" class="text-red-400 text-sm hidden"></div>
+                    <div id="forgotPasswordSuccess" class="text-[#DDEDD2] text-sm hidden"></div>
+                    <button
+                        type="submit"
+                        class="w-full bg-[#DDEDD2] text-[#0a140a] py-3 rounded-lg font-bold hover:bg-[#DDEDD2] transition shadow-lg"
+                    >
+                        Send Reset Link
+                    </button>
+                </form>
+                <p class="text-center text-[#a7f3d0] mt-4">
+                    Remember your password? 
+                    <button id="showLoginFromForgot" class="text-[#DDEDD2] hover:text-[#DDEDD2] font-semibold">Login</button>
+                </p>
+            </div>
+
+            <!-- Back to App Link -->
+            <div class="mt-6 text-center">
+                <a href="index.html" onclick="this.href='index.html?t='+Date.now(); return true;" class="text-[#a7f3d0] hover:text-[#d1fae5] text-sm">Continue without account</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle between login, register, and forgot password forms
+        document.getElementById('showRegister').addEventListener('click', () => {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+            document.getElementById('forgotPasswordForm').classList.add('hidden');
+        });
+
+        document.getElementById('showLogin').addEventListener('click', () => {
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('forgotPasswordForm').classList.add('hidden');
+        });
+
+        document.getElementById('showForgotPassword').addEventListener('click', () => {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('forgotPasswordForm').classList.remove('hidden');
+        });
+
+        document.getElementById('showLoginFromForgot').addEventListener('click', () => {
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('forgotPasswordForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+        });
+
+        // Forgot password form handler
+        document.getElementById('forgotPasswordFormElement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorDiv = document.getElementById('forgotPasswordError');
+            const successDiv = document.getElementById('forgotPasswordSuccess');
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+            
+            const email = document.getElementById('forgotPasswordEmail').value.trim();
+
+            try {
+                const response = await fetch('auth.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'forgot-password',
+                        email: email
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    successDiv.textContent = 'Password reset link sent! Check your email.';
+                    successDiv.classList.remove('hidden');
+                    document.getElementById('forgotPasswordEmail').value = '';
+                } else {
+                    errorDiv.textContent = result.message || 'Failed to send reset link';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Error connecting to server';
+                errorDiv.classList.remove('hidden');
+            }
+        });
+
+        // Register form handler
+        document.getElementById('registerFormElement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorDiv = document.getElementById('registerError');
+            errorDiv.classList.add('hidden');
+            
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
+
+            if (password !== passwordConfirm) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (password.length < 6) {
+                errorDiv.textContent = 'Password must be at least 6 characters';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch('auth.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'register',
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Check if there's pending round data to restore
+                    const pendingData = localStorage.getItem('karlsGIR_pendingRegistration');
+                    if (pendingData) {
+                        // Keep the pending data - index.html will restore it
+                        // The flag will be cleared after successful restore
+                    }
+                    // Store login state in localStorage as backup (auto-login after registration)
+                    localStorage.setItem('karlsGIR_isLoggedIn', 'true');
+                    // Use replace to avoid back button issues, and force a full page load
+                    // This ensures the session cookie is sent with the request
+                    window.location.replace('index.html?t=' + Date.now());
+                } else {
+                    errorDiv.textContent = result.message || 'Registration failed';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Error connecting to server';
+                errorDiv.classList.remove('hidden');
+            }
+        });
+
+        // Login form handler
+        document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.classList.add('hidden');
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('auth.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'login',
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Check if there's pending round data to restore
+                    const pendingData = localStorage.getItem('karlsGIR_pendingLogin');
+                    if (pendingData) {
+                        // Keep the pending data - index.html will restore it
+                        // The flag will be cleared after successful restore
+                    }
+                    // Store login state in localStorage as backup
+                    localStorage.setItem('karlsGIR_isLoggedIn', 'true');
+                    // Use replace to avoid back button issues, and force a full page load
+                    // This ensures the session cookie is sent with the request
+                    window.location.replace('index.html?t=' + Date.now());
+                } else {
+                    errorDiv.textContent = result.message || 'Login failed';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Error connecting to server';
+                errorDiv.classList.remove('hidden');
+            }
+        });
+
+        // Password visibility toggles
+        function setupPasswordToggle(toggleId, inputId, eyeId, eyeSlashId) {
+            const toggle = document.getElementById(toggleId);
+            const input = document.getElementById(inputId);
+            const eye = document.getElementById(eyeId);
+            const eyeSlash = document.getElementById(eyeSlashId);
+            
+            toggle.addEventListener('click', () => {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    eye.classList.add('hidden');
+                    eyeSlash.classList.remove('hidden');
+                } else {
+                    input.type = 'password';
+                    eye.classList.remove('hidden');
+                    eyeSlash.classList.add('hidden');
+                }
+            });
+        }
+
+        // Setup password toggles
+        setupPasswordToggle('toggleLoginPassword', 'loginPassword', 'loginPasswordEye', 'loginPasswordEyeSlash');
+        setupPasswordToggle('toggleRegisterPassword', 'registerPassword', 'registerPasswordEye', 'registerPasswordEyeSlash');
+        setupPasswordToggle('toggleRegisterPasswordConfirm', 'registerPasswordConfirm', 'registerPasswordConfirmEye', 'registerPasswordConfirmEyeSlash');
+
+        // Check if already logged in
+        fetch('auth.php?action=check')
+            .then(res => res.json())
+            .then(data => {
+                if (data.loggedIn) {
+                    // Ensure localStorage is set before redirect
+                    localStorage.setItem('karlsGIR_isLoggedIn', 'true');
+                    window.location.replace('index.html?t=' + Date.now());
+                } else {
+                    // Check if we should show register form (from Join button)
+                    if (sessionStorage.getItem('showRegister') === 'true') {
+                        sessionStorage.removeItem('showRegister');
+                        document.getElementById('loginForm').classList.add('hidden');
+                        document.getElementById('registerForm').classList.remove('hidden');
+                        document.getElementById('forgotPasswordForm').classList.add('hidden');
+                    }
+                }
+            });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://unpkg.com https://cdn.tailwindcss.com;">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Dashboard - Karl's GIR</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="assets/css/main.css">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#16a34a">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/images/karls_gir.png">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #000000;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <!-- JavaScript Modules (load order matters) -->
+    <script src="assets/js/utils/analytics.js"></script>
+    
+    <!-- Pre-script: Force immediate localStorage check before any rendering -->
+    <script>
+        // Force localStorage check immediately - ensures login state is known before page renders
+        (function() {
+            const stored = localStorage.getItem('karlsGIR_isLoggedIn');
+            window.__karlsGIR_initialLoginState = stored === 'true';
+            console.log('Dashboard Pre-script: Initial login state =', window.__karlsGIR_initialLoginState);
+            
+            // Track page visit
+            if (typeof Analytics !== 'undefined') {
+                Analytics.trackPageVisit('dashboard.html');
+            }
+        })();
+    </script>
+    
+    <div class="min-h-screen bg-karl-bg-primary p-2 sm:p-4 pb-20 md:pb-4 content-with-bottom-nav">
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-karl-bg-secondary rounded-lg p-2 sm:p-4">
+                <!-- Header -->
+                <div class="sticky-header -mx-2 sm:-mx-4 mb-4 sm:mb-6">
+                    <div class="flex items-center justify-between gap-2">
+                        <!-- Logo - Left Aligned -->
+                        <a href="index.html" onclick="this.href='index.html?t='+Date.now(); return true;" class="touch-target">
+                            <img src="assets/images/karls_gir.png" alt="Karl's GIR Logo" class="w-12 h-12 sm:w-16 sm:h-16 rounded-lg" />
+                        </a>
+                        
+                        <!-- Desktop Navigation (Tablet+) -->
+                        <div class="desktop-nav">
+                            <a href="track-round.html" onclick="this.href='track-round.html?t='+Date.now(); return true;" class="touch-target btn-secondary text-sm">
+                                Rounds
+                            </a>
+                            <button id="logoutBtnDesktop" class="touch-target btn-error text-sm">
+                                Logout
+                            </button>
+                        </div>
+                        
+                        <!-- Hamburger Menu (Mobile) -->
+                        <button id="hamburgerBtn" class="hamburger-button" aria-label="Menu">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Mobile Menu Overlay -->
+                <div id="mobileMenuOverlay" class="mobile-menu-overlay">
+                    <div class="mobile-menu-panel">
+                        <div class="mobile-menu-header">
+                            <img src="assets/images/karls_gir.png" alt="Karl's GIR Logo" />
+                            <button id="mobileMenuClose" class="mobile-menu-close" aria-label="Close menu">
+                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <a href="track-round.html" onclick="this.href='track-round.html?t='+Date.now(); closeMobileMenu(); return true;" class="mobile-menu-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            <span>Rounds</span>
+                        </a>
+                        
+                        <a href="dashboard.html" onclick="this.href='dashboard.html?t='+Date.now(); closeMobileMenu(); return true;" class="mobile-menu-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            <span>Stats</span>
+                        </a>
+                        
+                        <button id="logoutBtnMobile" class="mobile-menu-item danger" onclick="closeMobileMenu();">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loading" class="text-center py-12">
+                    <div class="loading-spinner mx-auto mb-4"></div>
+                    <p class="text-karl-text-primary">Loading stats...</p>
+                </div>
+
+                <!-- No Data State -->
+                <div id="noData" class="hidden text-center py-8 sm:py-12">
+                    <div class="card max-w-md mx-auto">
+                        <p class="text-karl-text-primary mb-2 text-lg font-semibold">No Rounds Saved Yet</p>
+                        <p class="text-karl-text-primary mb-4 text-sm">Complete at least one hole and click the "Save Round" button to track your progress here.</p>
+                        <p class="text-karl-text-muted mb-6 text-xs">Note: You can save rounds with any number of holes. Rounds will appear on your dashboard once saved.</p>
+                        <a href="track-round.html" onclick="this.href='track-round.html?t='+Date.now(); localStorage.setItem('karlsGIR_isLoggedIn', 'true'); return true;" class="touch-target btn-primary inline-block">
+                            Start Tracking Rounds
+                        </a>
+                    </div>
+                    
+                    <!-- Reset Button (in case there's data but not showing) -->
+                    <div class="mt-6">
+                        <button id="resetDashboardBtnNoData" class="touch-target btn-error">
+                            Reset Dashboard
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Not Logged In -->
+                <div id="notLoggedIn" class="hidden text-center py-12">
+                    <p class="text-karl-text-primary mb-4">Please log in to view your dashboard.</p>
+                    <a href="login.html" onclick="this.href='login.html?t='+Date.now(); return true;" class="touch-target btn-primary inline-block">
+                        Login
+                    </a>
+                </div>
+
+                <!-- Dashboard Content -->
+                <div id="dashboardContent" class="hidden pb-16">
+                    <!-- Current Round (In Progress) -->
+                    <div id="currentRoundSection" class="mb-8"></div>
+                    
+                    <!-- Cumulative Stats -->
+                    <div id="cumulativeStats" class="mb-8"></div>
+
+                    <!-- 10-Round Groups -->
+                    <div id="roundGroups" class="space-y-6 mb-8"></div>
+                    
+                    <!-- Reset Dashboard Button (at bottom of dashboard content) -->
+                    <div class="flex justify-center pt-4 pb-4 mt-8 border-t border-karl-border-secondary">
+                        <button id="resetDashboardBtn" class="touch-target btn-error">
+                            Reset Dashboard
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Custom Confirmation Modal -->
+                <div id="confirmModal" class="hidden modal-overlay">
+                    <div class="modal-container">
+                        <div class="modal-header">
+                            <h3 id="confirmModalTitle" class="modal-title"></h3>
+                        </div>
+                        <div class="modal-body">
+                            <p id="confirmModalMessage"></p>
+                        </div>
+                        <div class="modal-footer">
+                            <button id="confirmModalCancel" class="touch-target btn-secondary flex-1 sm:flex-initial">
+                                Cancel
+                            </button>
+                            <button id="confirmModalConfirm" class="touch-target btn-error flex-1 sm:flex-initial">
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Navigation (Mobile) - Contextual: Show Rounds button since we're on Stats page -->
+        <nav class="bottom-nav">
+            <a href="track-round.html" onclick="this.href='track-round.html?t='+Date.now(); return true;" class="bottom-nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                <span>Rounds</span>
+            </a>
+            <button id="bottomNavLogout" class="bottom-nav-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+                <span>Logout</span>
+            </button>
+        </nav>
+    </div>
+
+    <script>
+        // Store interval ID for cleanup
+        let dashboardCheckInterval = null;
+        
+        // Check login status from localStorage first (immediate fallback)
+        const checkLocalStorageLogin = () => {
+            return localStorage.getItem('karlsGIR_isLoggedIn') === 'true';
+        };
+        
+        // Check login status and load stats
+        async function initDashboard(retryCount = 0) {
+            const maxRetries = 10;
+            const retryDelay = 200;
+            
+            // Check localStorage first - if logged in there, try loading stats immediately
+            const localStorageLoggedIn = checkLocalStorageLogin();
+            if (localStorageLoggedIn && retryCount === 0) {
+                // User is logged in according to localStorage, try loading stats immediately
+                loadStatsDirectly();
+            }
+            
+            let isLoggedIn = false;
+            
+            // Check authentication
+            try {
+                const authCheck = await fetch('api/auth/login.php?action=check&_=' + Date.now(), {
+                    credentials: 'include',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (!authCheck.ok) {
+                    console.error('Auth check failed:', authCheck.status, authCheck.statusText);
+                    // If localStorage says logged in, continue anyway
+                    if (!localStorageLoggedIn) {
+                        document.getElementById('loading').classList.add('hidden');
+                        document.getElementById('notLoggedIn').classList.remove('hidden');
+                        return;
+                    }
+                    isLoggedIn = true; // Use localStorage as fallback
+                } else {
+                    const text = await authCheck.text();
+                    if (!text || text.trim() === '') {
+                        console.error('Empty response from api/auth/login.php');
+                        if (!localStorageLoggedIn) {
+                            document.getElementById('loading').classList.add('hidden');
+                            document.getElementById('notLoggedIn').classList.remove('hidden');
+                            return;
+                        }
+                        isLoggedIn = true; // Use localStorage as fallback
+                    } else {
+                        let authData;
+                        try {
+                            authData = JSON.parse(text);
+                            isLoggedIn = authData.loggedIn === true;
+                            console.log('Dashboard auth check result:', authData);
+                        } catch (e) {
+                            console.error('Invalid JSON response:', text);
+                            if (!localStorageLoggedIn) {
+                                document.getElementById('loading').classList.add('hidden');
+                                document.getElementById('notLoggedIn').classList.remove('hidden');
+                                return;
+                            }
+                            isLoggedIn = true; // Use localStorage as fallback
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking login status:', error);
+                // On error, trust localStorage if it says logged in
+                if (!localStorageLoggedIn) {
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('notLoggedIn').classList.remove('hidden');
+                    return;
+                }
+                isLoggedIn = true; // Use localStorage as fallback
+            }
+            
+            // Determine if we should load stats
+            const shouldLoadStats = isLoggedIn || localStorageLoggedIn;
+            
+            if (!shouldLoadStats) {
+                if (localStorageLoggedIn && retryCount < 3) {
+                    // localStorage says logged in but server doesn't - retry
+                    console.log(`localStorage says logged in, retrying... (${retryCount + 1}/3)`);
+                    setTimeout(() => {
+                        initDashboard(retryCount + 1);
+                    }, retryDelay);
+                    return;
+                }
+                // Not logged in, show login message
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('notLoggedIn').classList.remove('hidden');
+                return;
+            }
+            
+            try {
+                const response = await fetch('api/stats/load.php?_=' + Date.now(), {
+                    credentials: 'include',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error('api/stats/load.php failed:', response.status, response.statusText);
+                    // Check if dashboard content is already shown (from direct load)
+                    if (!document.getElementById('dashboardContent').classList.contains('hidden')) {
+                        // Already showing content from direct load, don't change it
+                        document.getElementById('loading').classList.add('hidden');
+                        return;
+                    }
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('noData').classList.remove('hidden');
+                    return;
+                }
+                
+                const data = await response.json();
+                console.log('Dashboard data loaded (main flow):', data);
+
+                // Check if dashboard is already rendered (from direct load)
+                if (!document.getElementById('dashboardContent').classList.contains('hidden')) {
+                    console.log('Dashboard already rendered from direct load, skipping re-render');
+                    document.getElementById('loading').classList.add('hidden');
+                    return;
+                }
+
+                document.getElementById('loading').classList.add('hidden');
+
+                if (!data.success) {
+                    console.log('Stats load unsuccessful:', data.message || 'Unknown error');
+                    document.getElementById('noData').classList.remove('hidden');
+                    return;
+                }
+
+                // Check if we have any rounds - handle both totalRounds and rounds array length
+                const totalRounds = data.totalRounds !== undefined ? data.totalRounds : (data.rounds ? data.rounds.length : 0);
+                const hasRounds = totalRounds > 0 || (data.rounds && data.rounds.length > 0);
+                
+                // Check if we have current round or saved rounds
+                // Load current round first to see if there's an in-progress round
+                loadCurrentRound().then(hasCurrentRound => {
+                    if (!hasRounds && !hasCurrentRound) {
+                        // No saved rounds AND no current round - show "no data" message
+                        console.log('No rounds found - totalRounds:', totalRounds, 'rounds.length:', data.rounds ? data.rounds.length : 'N/A');
+                        document.getElementById('notLoggedIn').classList.add('hidden');
+                        document.getElementById('noData').classList.remove('hidden');
+                        document.getElementById('dashboardContent').classList.add('hidden');
+                        return;
+                    }
+                    
+                    // We have either saved rounds or current round - show dashboard
+                    console.log('Rendering dashboard with', totalRounds, 'saved rounds');
+                    document.getElementById('notLoggedIn').classList.add('hidden');
+                    document.getElementById('noData').classList.add('hidden');
+                    document.getElementById('dashboardContent').classList.remove('hidden');
+                    
+                    // Render saved rounds
+                    if (hasRounds) {
+                        renderDashboard(data);
+                    }
+                    
+                    // Set up periodic login check every 2 seconds to catch navigation changes
+                    if (dashboardCheckInterval) {
+                        clearInterval(dashboardCheckInterval);
+                    }
+                    dashboardCheckInterval = setInterval(() => {
+                        // Re-check login status periodically
+                        fetch('api/auth/login.php?action=check&_=' + Date.now(), {
+                            credentials: 'include',
+                            cache: 'no-store'
+                        })
+                        .then(res => res.text())
+                        .then(text => {
+                            try {
+                                const data = JSON.parse(text);
+                                if (!data.loggedIn) {
+                                    // User logged out, redirect to home with cache-busting
+                                    localStorage.setItem('karlsGIR_isLoggedIn', 'false');
+                                    window.location.replace('track-round.html?t=' + Date.now());
+                                }
+                            } catch (e) {
+                                console.error('Error parsing auth check:', e);
+                            }
+                        })
+                        .catch(err => console.error('Error checking login:', err));
+                    }, 2000);
+                });
+                
+                // Return early - continuation happens in loadCurrentRound promise
+                return;
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                // Check if dashboard content is already shown (from direct load)
+                if (!document.getElementById('dashboardContent').classList.contains('hidden')) {
+                    // Already showing content from direct load, just hide loading
+                    document.getElementById('loading').classList.add('hidden');
+                    return;
+                }
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('noData').classList.remove('hidden');
+            }
+        }
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (dashboardCheckInterval) {
+                clearInterval(dashboardCheckInterval);
+            }
+        });
+        
+        // Check login on pageshow (back button navigation)
+        window.addEventListener('pageshow', (e) => {
+            // If page was loaded from cache (bfcache), force a full reload
+            if (e.persisted) {
+                window.location.reload();
+                return;
+            }
+            // Always re-check login when page is shown
+            setTimeout(() => {
+                initDashboard(0);
+            }, 100);
+        });
+        
+        // Also check on focus (when navigating back to this tab)
+        window.addEventListener('focus', () => {
+            // Re-check login state when window gains focus
+            const isLoggedIn = localStorage.getItem('karlsGIR_isLoggedIn') === 'true';
+            if (isLoggedIn) {
+                // Force re-initialization to refresh data
+                setTimeout(() => {
+                    initDashboard(0);
+                }, 100);
+            }
+        });
+        
+        // Listen for localStorage changes (from other tabs/windows)
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'karlsGIR_isLoggedIn') {
+                // Login state changed in another tab, reload dashboard
+                setTimeout(() => {
+                    initDashboard(0);
+                }, 100);
+            }
+        });
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+
+        function renderDashboard(data) {
+            console.log('renderDashboard called with:', data);
+            
+            // Render cumulative stats
+            if (data.cumulative) {
+                const cumulativeDiv = document.getElementById('cumulativeStats');
+                if (cumulativeDiv) {
+                    cumulativeDiv.innerHTML = `
+                        <div class="bg-gradient-to-r from-karl-bg-card to-karl-bg-hover rounded-lg p-4 sm:p-6 border border-karl-border-secondary">
+                            <h2 class="text-lg sm:text-xl font-bold text-karl-text-primary mb-4">Cumulative Statistics (All ${escapeHtml(data.totalRounds)} Rounds)</h2>
+                            ${renderStatsGrid(data.cumulative)}
+                            <div class="mt-4 flex justify-end">
+                                <button 
+                                    onclick="exportCumulativeStats()" 
+                                    class="touch-target btn-secondary text-sm flex items-center gap-2"
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor">
+                                        <path d="M288 32c0-17.7-14.3-32-32-32s-32 14.3-32 32V274.7l-73.4-73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l128 128c12.5 12.5 32.8 12.5 45.3 0l128-128c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L288 274.7V32zM64 352c-35.3 0-64 28.7-64 64v32c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V416c0-35.3-28.7-64-64-64H214.6l-45.3 45.3c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L169.4 352H64zm368 56a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"/>
+                                    </svg>
+                                    Export CSV
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    console.error('cumulativeStats div not found');
+                }
+            } else {
+                console.log('No cumulative stats to render');
+            }
+            
+            // Store all rounds data globally for cumulative export
+            if (data.groups && data.groups.length > 0) {
+                // Collect all rounds from all groups
+                window.allRoundsData = [];
+                data.groups.forEach(group => {
+                    if (group.rounds && group.rounds.length > 0) {
+                        window.allRoundsData = window.allRoundsData.concat(group.rounds);
+                    }
+                });
+                console.log('Stored', window.allRoundsData.length, 'rounds for cumulative export');
+            }
+
+            // Render individual round cards (one per round, collapsible)
+            const groupsDiv = document.getElementById('roundGroups');
+            if (groupsDiv) {
+                if (data.groups && data.groups.length > 0) {
+                    groupsDiv.innerHTML = data.groups.map((group, index) => {
+                        const isNewest = group.isNewest === true;
+                        const isExpanded = isNewest; // Newest round expanded by default, others collapsed
+                        const cardId = `roundCard_${index}`;
+                        const contentId = `roundContent_${index}`;
+                        
+                        return `
+                        <div class="bg-karl-bg-card border border-karl-border-secondary rounded-lg overflow-hidden">
+                            <div class="flex items-center gap-3 p-4 cursor-pointer transition" onclick="toggleRoundCard('${contentId}', '${cardId}')">
+                                <svg id="${cardId}_icon" class="w-5 h-5 text-karl-text-primary transition-transform ${isExpanded ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <h3 class="text-lg sm:text-xl font-bold text-karl-text-primary">${escapeHtml(group.range)}</h3>
+                                    ${group.courseName ? `<span class="text-karl-text-secondary text-sm">${escapeHtml(group.courseName)}</span>` : ''}
+                                </div>
+                                ${isNewest ? '<span class="px-2 py-1 bg-karl-green text-karl-dark text-xs rounded font-semibold">New</span>' : ''}
+                            </div>
+                            <div id="${contentId}" class="transition-all duration-300 overflow-hidden ${isExpanded ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'}">
+                                <div class="p-4 pt-0 border-t border-karl-border-secondary">
+                                    ${renderStatsGrid(group.stats)}
+                                    <div class="mt-4 flex justify-end">
+                                        <button 
+                                            onclick="event.stopPropagation(); exportRoundGroup(${index});" 
+                                            class="touch-target btn-secondary text-sm flex items-center gap-2"
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor">
+                                                <path d="M288 32c0-17.7-14.3-32-32-32s-32 14.3-32 32V274.7l-73.4-73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l128 128c12.5 12.5 32.8 12.5 45.3 0l128-128c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L288 274.7V32zM64 352c-35.3 0-64 28.7-64 64v32c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V416c0-35.3-28.7-64-64-64H214.6l-45.3 45.3c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L169.4 352H64zm368 56a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"/>
+                                            </svg>
+                                            Export CSV
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                    console.log('Rendered', data.groups.length, 'individual round cards');
+                    
+                    // Store groups data globally for export function
+                    window.dashboardGroups = data.groups;
+                } else {
+                    console.log('No round groups to render');
+                    groupsDiv.innerHTML = '<p class="text-[#DDEDD2] text-center">No round groups available</p>';
+                }
+            } else {
+                console.error('roundGroups div not found');
+            }
+        }
+        
+        // Toggle round card expand/collapse
+        function toggleRoundCard(contentId, cardId) {
+            const content = document.getElementById(contentId);
+            const icon = document.getElementById(cardId + '_icon');
+            if (!content || !icon) {
+                console.error('Toggle error: content or icon not found', contentId, cardId);
+                return;
+            }
+            
+            const isExpanded = content.classList.contains('max-h-[5000px]');
+            if (isExpanded) {
+                content.classList.remove('max-h-[5000px]', 'opacity-100');
+                content.classList.add('max-h-0', 'opacity-0');
+                icon.classList.remove('rotate-90');
+            } else {
+                content.classList.remove('max-h-0', 'opacity-0');
+                content.classList.add('max-h-[5000px]', 'opacity-100');
+                icon.classList.add('rotate-90');
+            }
+        }
+        
+        // Export function for cumulative statistics (all rounds)
+        function exportCumulativeStats() {
+            if (!window.allRoundsData || window.allRoundsData.length === 0) {
+                alert('No round data available for export');
+                return;
+            }
+            
+            // Combine all holes from all rounds
+            let allHoles = [];
+            let courseInfo = [];
+            
+            window.allRoundsData.forEach((round) => {
+                const courseName = round.courseName || 'Unnamed Course';
+                const date = round.date || '';
+                const roundInfo = `${courseName}${date ? ' (' + date + ')' : ''} - Round ${round.roundNumber || 'N/A'}`;
+                courseInfo.push(roundInfo);
+                
+                if (round.holes && Array.isArray(round.holes)) {
+                    round.holes.forEach(hole => {
+                        allHoles.push({
+                            ...hole,
+                            roundNumber: round.roundNumber || 0,
+                            courseName: courseName,
+                            date: date
+                        });
+                    });
+                }
+            });
+            
+            if (allHoles.length === 0) {
+                alert('No hole data to export');
+                return;
+            }
+            
+            // Generate CSV (same format as index.html export)
+            const csv = allHoles.map(h => {
+                const toPar = h.score - h.par;
+                const toParStr = toPar === 0 ? 'E' : (toPar > 0 ? `+${toPar}` : `-${Math.abs(toPar)}`);
+                const scrambled = !h.gir && h.score <= h.par;
+                return `${h.roundNumber},${h.holeNumber},${h.par},${h.score},${toParStr},${h.gir ? 'Yes' : 'No'},${h.putts},${h.fairway !== null ? (h.fairway ? 'Yes' : 'No') : 'N/A'},${h.approachDistance || ''},${h.penalty || 'None'},${scrambled ? 'Yes' : 'No'},${h.courseName || 'Unnamed Course'},${h.date || ''}`;
+            }).join('\n');
+            
+            const header = 'Round,Hole,Par,Score,To Par,GIR,Putts,Fairway,Approach Dist (ft),Penalty,Scrambled,Course,Date\n';
+            
+            // Calculate summary stats
+            const totalPar = allHoles.reduce((sum, h) => sum + h.par, 0);
+            const totalScore = allHoles.reduce((sum, h) => sum + h.score, 0);
+            const totalToPar = totalScore - totalPar;
+            const girsHit = allHoles.filter(h => h.gir).length;
+            const fairwaysHit = allHoles.filter(h => h.fairway && h.par !== 3).length;
+            const eligibleFairways = allHoles.filter(h => h.par !== 3).length;
+            const totalPutts = allHoles.reduce((sum, h) => sum + h.putts, 0);
+            const penalties = allHoles.filter(h => h.penalty && h.penalty !== '').length;
+            const totalPenaltyStrokes = allHoles.reduce((sum, h) => {
+                if (h.penalty === 'wrong') return sum + 2;
+                if (h.penalty && h.penalty !== '') return sum + 1;
+                return sum;
+            }, 0);
+            
+            const missedGirs = allHoles.filter(h => !h.gir);
+            const scrambles = missedGirs.filter(h => h.score <= h.par).length;
+            
+            const girHoles = allHoles.filter(h => h.gir);
+            const puttsOnGIR = girHoles.reduce((sum, h) => sum + h.putts, 0);
+            const puttsPerGIR = girHoles.length > 0 ? (puttsOnGIR / girHoles.length).toFixed(2) : 0;
+            
+            const allApproaches = allHoles.filter(h => h.approachDistance);
+            const avgProximity = allApproaches.length > 0 
+                ? (allApproaches.reduce((sum, h) => sum + h.approachDistance, 0) / allApproaches.length).toFixed(1)
+                : 0;
+            
+            // Get unique rounds count
+            const uniqueRounds = new Set(allHoles.map(h => h.roundNumber));
+            const totalRounds = uniqueRounds.size;
+            
+            const summary = `\n\nCUMULATIVE STATISTICS (All ${totalRounds} Rounds)\n` +
+                `Courses: ${[...new Set(courseInfo)].join('; ')}\n` +
+                `Total Holes Played,${allHoles.length}\n` +
+                `Total Rounds,${totalRounds}\n` +
+                `Total Score,${totalScore}\n` +
+                `Total Par,${totalPar}\n` +
+                `To Par,${totalToPar === 0 ? 'E' : (totalToPar > 0 ? `+${totalToPar}` : `-${Math.abs(totalToPar)}`)}\n` +
+                `GIR,${girsHit}/${allHoles.length} (${((girsHit/allHoles.length)*100).toFixed(1)}%)\n` +
+                `Putts per GIR,${puttsPerGIR}\n` +
+                `Avg Proximity,${avgProximity} feet\n` +
+                `Fairways,${fairwaysHit}/${eligibleFairways} (${eligibleFairways > 0 ? ((fairwaysHit/eligibleFairways)*100).toFixed(1) : 0}%)\n` +
+                `Total Putts,${totalPutts} (${(totalPutts/allHoles.length).toFixed(2)} avg)\n` +
+                `Scrambling,${scrambles}/${missedGirs.length} (${missedGirs.length > 0 ? ((scrambles/missedGirs.length)*100).toFixed(1) : 0}%)\n` +
+                `Penalties,${totalPenaltyStrokes} stroke${totalPenaltyStrokes !== 1 ? 's' : ''} (${penalties} hole${penalties !== 1 ? 's' : ''})\n` +
+                `Export Date,${new Date().toISOString().split('T')[0]}`;
+            
+            const blob = new Blob([header + csv + summary], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `karls_gir_cumulative_stats_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        // Export function for round groups
+        function exportRoundGroup(groupIndex) {
+            if (!window.dashboardGroups || !window.dashboardGroups[groupIndex]) {
+                alert('Round data not available');
+                return;
+            }
+            
+            const group = window.dashboardGroups[groupIndex];
+            if (!group.rounds || group.rounds.length === 0) {
+                alert('No rounds to export');
+                return;
+            }
+            
+            // Combine all rounds in the group
+            let allHoles = [];
+            let courseInfo = [];
+            
+            group.rounds.forEach((round, idx) => {
+                const courseName = round.courseName || 'Unnamed Course';
+                const date = round.date || '';
+                courseInfo.push(`${courseName}${date ? ' (' + date + ')' : ''}`);
+                
+                if (round.holes && Array.isArray(round.holes)) {
+                    round.holes.forEach(hole => {
+                        allHoles.push({
+                            ...hole,
+                            roundNumber: round.roundNumber || (group.startRound + idx),
+                            courseName: courseName,
+                            date: date
+                        });
+                    });
+                }
+            });
+            
+            if (allHoles.length === 0) {
+                alert('No hole data to export');
+                return;
+            }
+            
+            // Generate CSV (same format as index.html export)
+            const csv = allHoles.map(h => {
+                const toPar = h.score - h.par;
+                const toParStr = toPar === 0 ? 'E' : (toPar > 0 ? `+${toPar}` : `-${Math.abs(toPar)}`);
+                const scrambled = !h.gir && h.score <= h.par;
+                return `${h.holeNumber},${h.par},${h.score},${toParStr},${h.gir ? 'Yes' : 'No'},${h.putts},${h.fairway !== null ? (h.fairway ? 'Yes' : 'No') : 'N/A'},${h.approachDistance || ''},${h.penalty || 'None'},${scrambled ? 'Yes' : 'No'}`;
+            }).join('\n');
+            
+            const header = 'Hole,Par,Score,To Par,GIR,Putts,Fairway,Approach Dist (ft),Penalty,Scrambled\n';
+            
+            // Calculate summary stats
+            const totalPar = allHoles.reduce((sum, h) => sum + h.par, 0);
+            const totalScore = allHoles.reduce((sum, h) => sum + h.score, 0);
+            const totalToPar = totalScore - totalPar;
+            const girsHit = allHoles.filter(h => h.gir).length;
+            const fairwaysHit = allHoles.filter(h => h.fairway && h.par !== 3).length;
+            const eligibleFairways = allHoles.filter(h => h.par !== 3).length;
+            const totalPutts = allHoles.reduce((sum, h) => sum + h.putts, 0);
+            const penalties = allHoles.filter(h => h.penalty && h.penalty !== '').length;
+            const totalPenaltyStrokes = allHoles.reduce((sum, h) => {
+                if (h.penalty === 'wrong') return sum + 2;
+                if (h.penalty && h.penalty !== '') return sum + 1;
+                return sum;
+            }, 0);
+            
+            const missedGirs = allHoles.filter(h => !h.gir);
+            const scrambles = missedGirs.filter(h => h.score <= h.par).length;
+            
+            const girHoles = allHoles.filter(h => h.gir);
+            const puttsOnGIR = girHoles.reduce((sum, h) => sum + h.putts, 0);
+            const puttsPerGIR = girHoles.length > 0 ? (puttsOnGIR / girHoles.length).toFixed(2) : 0;
+            
+            const allApproaches = allHoles.filter(h => h.approachDistance);
+            const avgProximity = allApproaches.length > 0 
+                ? (allApproaches.reduce((sum, h) => sum + h.approachDistance, 0) / allApproaches.length).toFixed(1)
+                : 0;
+            
+            const summary = `\n\nROUND SUMMARY (Rounds ${group.range})\n` +
+                `Courses: ${courseInfo.join(', ')}\n` +
+                `Holes Played,${allHoles.length}\n` +
+                `Total Score,${totalScore}\n` +
+                `Total Par,${totalPar}\n` +
+                `To Par,${totalToPar === 0 ? 'E' : (totalToPar > 0 ? `+${totalToPar}` : `-${Math.abs(totalToPar)}`)}\n` +
+                `GIR,${girsHit}/${allHoles.length} (${((girsHit/allHoles.length)*100).toFixed(1)}%)\n` +
+                `Putts per GIR,${puttsPerGIR}\n` +
+                `Avg Proximity,${avgProximity} feet\n` +
+                `Fairways,${fairwaysHit}/${eligibleFairways} (${eligibleFairways > 0 ? ((fairwaysHit/eligibleFairways)*100).toFixed(1) : 0}%)\n` +
+                `Total Putts,${totalPutts} (${(totalPutts/allHoles.length).toFixed(2)} avg)\n` +
+                `Scrambling,${scrambles}/${missedGirs.length} (${missedGirs.length > 0 ? ((scrambles/missedGirs.length)*100).toFixed(1) : 0}%)\n` +
+                `Penalties,${totalPenaltyStrokes} stroke${totalPenaltyStrokes !== 1 ? 's' : ''} (${penalties} hole${penalties !== 1 ? 's' : ''})\n`;
+            
+            const blob = new Blob([header + csv + summary], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `karls_gir_rounds_${group.range}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function renderStatsGrid(stats) {
+            // Mobile-first: 2 columns per row
+            // Desktop: 3 columns per row
+            return `
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    <div class="bg-karl-bg-secondary rounded-lg p-4 sm:p-4 border border-karl-border-secondary w-full">
+                        <div class="text-xs text-karl-text-secondary mb-1">Scoring Average</div>
+                        <div class="text-xl sm:text-2xl font-bold text-karl-text-primary">${stats.avgScore}</div>
+                        <div class="text-xs text-karl-text-secondary mt-1">${stats.totalScore} strokes / ${stats.totalHoles} holes</div>
+                    </div>
+                    <div class="bg-karl-bg-secondary rounded-lg p-4 sm:p-4 border border-karl-border-secondary w-full">
+                        <div class="text-xs text-karl-text-secondary mb-1">GIR %</div>
+                        <div class="text-xl sm:text-2xl font-bold text-karl-gold">${stats.girPct}%</div>
+                        <div class="text-xs text-karl-text-secondary mt-1">${stats.girsHit} / ${stats.totalHoles}</div>
+                    </div>
+                    <div class="bg-karl-bg-secondary rounded-lg p-4 sm:p-4 border border-karl-border-secondary w-full">
+                        <div class="text-xs text-karl-text-secondary mb-1">Fairways Hit %</div>
+                        <div class="text-xl sm:text-2xl font-bold text-karl-brown">${stats.fairwayPct}%</div>
+                        <div class="text-xs text-karl-text-secondary mt-1">${stats.fairwaysHit} / ${stats.eligibleFairways}</div>
+                    </div>
+                    <div class="bg-karl-bg-secondary rounded-lg p-4 sm:p-4 border border-karl-border-secondary w-full">
+                        <div class="text-xs text-karl-text-secondary mb-1">Putts per GIR</div>
+                        <div class="text-xl sm:text-2xl font-bold text-karl-cream">${stats.puttsPerGIR}</div>
+                        <div class="text-xs text-karl-text-secondary mt-1">${stats.girsHit} GIR holes</div>
+                    </div>
+                    <div class="bg-karl-bg-secondary rounded-lg p-4 sm:p-4 border border-karl-border-secondary w-full">
+                        <div class="text-xs text-karl-text-secondary mb-1">Scrambling %</div>
+                        <div class="text-xl sm:text-2xl font-bold text-karl-green">${stats.scramblingPct}%</div>
+                        <div class="text-xs text-karl-text-secondary mt-1">${stats.scrambles} / ${stats.missedGirs}</div>
+                    </div>
+                    <div class="bg-karl-bg-secondary rounded-lg p-4 sm:p-4 border border-karl-border-secondary w-full">
+                        <div class="text-xs text-karl-text-secondary mb-1">Penalties</div>
+                        <div class="text-xl sm:text-2xl font-bold text-karl-brown">${stats.penalties}</div>
+                        <div class="text-xs text-karl-text-secondary mt-1">${stats.totalPenaltyStrokes} strokes</div>
+                    </div>
+                    ${stats.avgProximity > 0 ? `
+                    <div class="bg-karl-bg-secondary rounded-lg p-4 sm:p-4 border border-karl-border-secondary w-full">
+                        <div class="text-xs text-karl-text-secondary mb-1">Approach Proximity</div>
+                        <div class="text-xl sm:text-2xl font-bold text-karl-text-primary">${stats.avgProximity}'</div>
+                        <div class="text-xs text-karl-text-secondary mt-1">Overall average</div>
+                    </div>
+                    ${stats.avgProximityGIR > 0 ? `
+                    <div class="bg-karl-bg-secondary rounded-lg p-4 sm:p-4 border border-karl-border-secondary w-full">
+                        <div class="text-xs text-karl-text-secondary mb-1">On GIR</div>
+                        <div class="text-lg sm:text-xl font-bold text-karl-gold">${stats.avgProximityGIR}'</div>
+                    </div>
+                    ` : ''}
+                    ${stats.avgProximityMissed > 0 ? `
+                    <div class="bg-karl-bg-secondary rounded-lg p-4 sm:p-4 border border-karl-border-secondary w-full">
+                        <div class="text-xs text-karl-text-secondary mb-1">Missed GIR</div>
+                        <div class="text-lg sm:text-xl font-bold text-karl-brown">${stats.avgProximityMissed}'</div>
+                    </div>
+                    ` : ''}
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Mobile Menu Functions
+        function openMobileMenu() {
+            document.getElementById('mobileMenuOverlay').classList.add('active');
+            document.getElementById('hamburgerBtn').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeMobileMenu() {
+            document.getElementById('mobileMenuOverlay').classList.remove('active');
+            document.getElementById('hamburgerBtn').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // Hamburger menu handlers
+        document.getElementById('hamburgerBtn').addEventListener('click', openMobileMenu);
+        document.getElementById('mobileMenuClose').addEventListener('click', closeMobileMenu);
+        document.getElementById('mobileMenuOverlay').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('mobileMenuOverlay')) {
+                closeMobileMenu();
+            }
+        });
+        
+        // Logout handler function (shared)
+        async function handleLogout() {
+            try {
+                // IMPORTANT: Check if there's any unsaved round data to preserve
+                // Note: Dashboard doesn't have access to current round data, but we can check localStorage
+                const currentRound = localStorage.getItem('karlsGIR_currentRound');
+                if (currentRound) {
+                    try {
+                        const data = JSON.parse(currentRound);
+                        // If there are holes, make sure it's saved with logout flag
+                        if (data.holes && data.holes.length > 0) {
+                            localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
+                                ...data,
+                                savedOnLogout: true,
+                                lastUpdated: new Date().toISOString()
+                            }));
+                            console.log('Preserved', data.holes.length, 'unsaved holes before logout');
+                        }
+                    } catch (e) {
+                        console.error('Error preserving round data on logout:', e);
+                    }
+                }
+                
+                // Clear login state
+                localStorage.setItem('karlsGIR_isLoggedIn', 'false');
+                
+                // Call logout endpoint with credentials
+                await fetch('api/auth/login.php?action=logout', {
+                    credentials: 'include',
+                    cache: 'no-store'
+                });
+                
+                // Redirect to home page with cache-busting to force fresh load
+                window.location.replace('index.html?t=' + Date.now());
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Even if logout fails, preserve any round data and clear login state
+                const currentRound = localStorage.getItem('karlsGIR_currentRound');
+                if (currentRound) {
+                    try {
+                        const data = JSON.parse(currentRound);
+                        if (data.holes && data.holes.length > 0) {
+                            localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
+                                ...data,
+                                savedOnLogout: true,
+                                lastUpdated: new Date().toISOString()
+                            }));
+                        }
+                    } catch (e) {
+                        // Ignore errors
+                    }
+                }
+                localStorage.setItem('karlsGIR_isLoggedIn', 'false');
+                window.location.replace('index.html?t=' + Date.now());
+            }
+        }
+        
+        // Attach logout handlers
+        document.getElementById('logoutBtnDesktop').addEventListener('click', handleLogout);
+        document.getElementById('logoutBtnMobile').addEventListener('click', handleLogout);
+        
+        // Bottom nav logout handler
+        document.getElementById('bottomNavLogout').addEventListener('click', () => {
+            handleLogout();
+        });
+
+        // Custom Confirmation Modal Functions
+        function showConfirmModal(title, message, confirmText, onConfirm, confirmClass = 'bg-red-600  text-white') {
+            const modal = document.getElementById('confirmModal');
+            const titleEl = document.getElementById('confirmModalTitle');
+            const messageEl = document.getElementById('confirmModalMessage');
+            const confirmBtn = document.getElementById('confirmModalConfirm');
+            const cancelBtn = document.getElementById('confirmModalCancel');
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            confirmBtn.textContent = confirmText;
+            // Use the confirmClass as-is (it should already include text color)
+            confirmBtn.className = `px-6 py-2 ${confirmClass} rounded-lg transition font-semibold shadow-md`;
+            
+            // Clear previous listeners
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+            
+            // Add new listeners
+            document.getElementById('confirmModalConfirm').addEventListener('click', () => {
+                hideConfirmModal();
+                onConfirm();
+            });
+            
+            document.getElementById('confirmModalCancel').addEventListener('click', hideConfirmModal);
+            
+            // Close on backdrop click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    hideConfirmModal();
+                }
+            });
+            
+            modal.classList.remove('hidden');
+        }
+        
+        function hideConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+        }
+        
+        // Reset Dashboard Handler (for both buttons)
+        function setupResetHandler(buttonId) {
+            const btn = document.getElementById(buttonId);
+            if (!btn) return;
+            
+            btn.addEventListener('click', async () => {
+            // First confirmation
+            showConfirmModal(
+                'Reset Dashboard?',
+                'Are you sure you want to reset your dashboard? This will delete ALL saved rounds and cannot be undone.',
+                'Continue',
+                () => {
+                    // Second confirmation
+                    showConfirmModal(
+                        'Final Warning',
+                        'This action is PERMANENT. All your saved rounds will be deleted. Are you absolutely sure?',
+                        'Yes, Delete All Rounds',
+                        async () => {
+                            try {
+                                const response = await fetch('api/auth/login.php?action=reset-dashboard', {
+                                    method: 'POST',
+                                    credentials: 'include',
+                                    cache: 'no-store',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    }
+                                });
+                                
+                                const result = await response.json();
+                                
+                                if (result.success) {
+                                    showConfirmModal(
+                                        'Success',
+                                        'Dashboard reset successfully. All rounds have been deleted.',
+                                        'OK',
+                                        () => {
+                                            hideConfirmModal();
+                                            window.location.replace('dashboard.html?t=' + Date.now());
+                                        },
+                                        'bg-[#DDEDD2] text-[#0a140a] font-semibold'
+                                    );
+                                } else {
+                                    showConfirmModal(
+                                        'Error',
+                                        'Error resetting dashboard: ' + (result.message || 'Unknown error'),
+                                        'OK',
+                                        hideConfirmModal,
+                                        'bg-red-600  text-white font-semibold'
+                                    );
+                                }
+                            } catch (error) {
+                                console.error('Reset dashboard error:', error);
+                                showConfirmModal(
+                                    'Error',
+                                    'Error resetting dashboard. Please try again.',
+                                    'OK',
+                                    hideConfirmModal,
+                                    'bg-red-600  text-white font-semibold'
+                                );
+                            }
+                        },
+                        'bg-red-600 '
+                    );
+                },
+                'bg-[#2d4a2d] '
+            );
+            });
+        }
+        
+        // Setup reset handlers for both buttons
+        setupResetHandler('resetDashboardBtn');
+        setupResetHandler('resetDashboardBtnNoData');
+
+        // Load current in-progress round
+        async function loadCurrentRound() {
+            try {
+                const response = await fetch('api/rounds/sync.php?action=get&_=' + Date.now(), {
+                    credentials: 'include',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.log('Failed to load current round:', response.status);
+                    document.getElementById('currentRoundSection').innerHTML = '';
+                    return false;
+                }
+                
+                const data = await response.json();
+                console.log('Current round data:', data);
+                
+                // Show current round if: we have holes OR round is started (even with 0 holes)
+                const hasHoles = data.holes && data.holes.length > 0;
+                const roundStarted = data.roundStarted || false;
+                const hasCourseName = data.courseName && data.courseName.trim() !== '';
+                
+                if (data.success && (hasHoles || (roundStarted && hasCourseName))) {
+                    // We have a current round - display it
+                    const courseName = data.courseName || 'Unnamed Course';
+                    const holeCount = data.holes ? data.holes.length : 0;
+                    
+                    // Calculate basic stats for current round (only if we have holes)
+                    let totalScore = 0;
+                    let totalPar = 0;
+                    let girsHit = 0;
+                    let totalPutts = 0;
+                    
+                    if (holeCount > 0 && data.holes && Array.isArray(data.holes)) {
+                        totalScore = data.holes.reduce((sum, h) => sum + (h.score || 0), 0);
+                        totalPar = data.holes.reduce((sum, h) => sum + (h.par || 0), 0);
+                        girsHit = data.holes.filter(h => h.gir).length;
+                        totalPutts = data.holes.reduce((sum, h) => sum + (h.putts || 0), 0);
+                    }
+                    
+                    const toPar = totalScore - totalPar;
+                    
+                    const toParStr = toPar === 0 ? 'E' : (toPar > 0 ? `+${toPar}` : `${toPar}`);
+                    
+                    const currentRoundHtml = `
+                        <div class="bg-gradient-to-r from-karl-bg-hover to-karl-bg-card rounded-lg p-4 sm:p-6 border-2 border-karl-green shadow-lg">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+                                <div>
+                                    <h2 class="text-lg sm:text-xl font-bold text-karl-text-primary mb-1">Current Round ${roundStarted ? '' : '(Not Started)'}</h2>
+                                    <p class="text-base sm:text-lg text-karl-text-primary">${escapeHtml(courseName)}</p>
+                                </div>
+                                <a href="track-round.html" onclick="this.href='track-round.html?t='+Date.now(); return true;" class="touch-target btn-primary">
+                                    Continue Round
+                                </a>
+                            </div>
+                            ${holeCount > 0 ? `
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-4">
+                                <div class="bg-karl-bg-secondary rounded-lg p-3 sm:p-4 border border-karl-border-secondary">
+                                    <div class="text-xs text-karl-text-secondary mb-1">Holes Recorded</div>
+                                    <div class="text-xl sm:text-2xl font-bold text-karl-text-primary">${holeCount}</div>
+                                    <div class="text-xs text-karl-text-secondary mt-1">of 18</div>
+                                </div>
+                                <div class="bg-karl-bg-secondary rounded-lg p-3 sm:p-4 border border-karl-border-secondary">
+                                    <div class="text-xs text-karl-text-secondary mb-1">Total Score</div>
+                                    <div class="text-xl sm:text-2xl font-bold text-karl-text-primary">${totalScore}</div>
+                                    <div class="text-xs text-karl-text-secondary mt-1">${toParStr} to par</div>
+                                </div>
+                                <div class="bg-karl-bg-secondary rounded-lg p-3 sm:p-4 border border-karl-border-secondary">
+                                    <div class="text-xs text-karl-text-secondary mb-1">GIR</div>
+                                    <div class="text-xl sm:text-2xl font-bold text-karl-gold">${girsHit}/${holeCount}</div>
+                                    <div class="text-xs text-karl-text-secondary mt-1">${holeCount > 0 ? Math.round((girsHit / holeCount) * 100) : 0}%</div>
+                                </div>
+                                <div class="bg-karl-bg-secondary rounded-lg p-3 sm:p-4 border border-karl-border-secondary">
+                                    <div class="text-xs text-karl-text-secondary mb-1">Total Putts</div>
+                                    <div class="text-xl sm:text-2xl font-bold text-karl-cream">${totalPutts}</div>
+                                    <div class="text-xs text-karl-text-secondary mt-1">${holeCount > 0 ? (totalPutts / holeCount).toFixed(1) : 0} avg</div>
+                                </div>
+                            </div>
+                            ` : `
+                            <div class="mt-4 p-4 bg-karl-bg-secondary rounded-lg border border-karl-border-secondary text-center">
+                                <p class="text-karl-text-primary text-base sm:text-lg font-semibold mb-2">Round Started</p>
+                                <p class="text-karl-text-primary text-sm">No holes recorded yet. Go to the Rounds page to start recording your first hole.</p>
+                            </div>
+                            `}
+                        </div>
+                    `;
+                    
+                    document.getElementById('currentRoundSection').innerHTML = currentRoundHtml;
+                    return true;
+                } else {
+                    // No current round
+                    document.getElementById('currentRoundSection').innerHTML = '';
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error loading current round:', error);
+                document.getElementById('currentRoundSection').innerHTML = '';
+                return false;
+            }
+        }
+        
+        // Direct stats loading function (bypasses auth check if localStorage says logged in)
+        // This loads stats immediately but doesn't hide loading - let main flow handle that
+        async function loadStatsDirectly() {
+            try {
+                const response = await fetch('api/stats/load.php?_=' + Date.now(), {
+                    credentials: 'include',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.log('Direct stats load failed - not OK:', response.status);
+                    return; // Will be handled by main initDashboard
+                }
+                
+                const data = await response.json();
+                console.log('Direct stats load result:', data);
+                
+                if (data.success) {
+                    const totalRounds = data.totalRounds || 0;
+                    const hasRounds = totalRounds > 0 || (data.rounds && data.rounds.length > 0);
+                    
+                    if (hasRounds) {
+                        // We have data! Show it immediately
+                        document.getElementById('loading').classList.add('hidden');
+                        document.getElementById('notLoggedIn').classList.add('hidden');
+                        document.getElementById('noData').classList.add('hidden');
+                        document.getElementById('dashboardContent').classList.remove('hidden');
+                        
+                        // Load current round first
+                        loadCurrentRound();
+                        
+                        // Then render saved rounds
+                        renderDashboard(data);
+                        console.log('Stats loaded directly from localStorage check - showing dashboard');
+                    } else {
+                        // No rounds yet - check for current round
+                        loadCurrentRound().then(hasCurrentRound => {
+                            if (hasCurrentRound) {
+                                // Show dashboard with current round
+                                document.getElementById('loading').classList.add('hidden');
+                                document.getElementById('notLoggedIn').classList.add('hidden');
+                                document.getElementById('noData').classList.add('hidden');
+                                document.getElementById('dashboardContent').classList.remove('hidden');
+                            } else {
+                                // No rounds yet - but don't show "No Data" yet, let main flow handle it
+                                // This prevents premature "No Data" display
+                                console.log('Direct stats load: No rounds found, waiting for main flow');
+                            }
+                        });
+                    }
+                } else {
+                    // Not successful, let main flow handle it
+                    console.log('Direct stats load: success=false, letting main flow handle');
+                    return;
+                }
+            } catch (error) {
+                // Ignore errors - main initDashboard will handle it
+                console.log('Direct stats load failed, will use main flow:', error);
+            }
+        }
+
+        // Initialize dashboard immediately
+        initDashboard();
+        
+        // Also force refresh if URL has cache-busting parameter
+        if (window.location.search.includes('t=')) {
+            // This ensures we have the latest version
+            console.log('Dashboard loaded with cache-busting parameter');
+        }
+    </script>
+</body>
+</html>
+

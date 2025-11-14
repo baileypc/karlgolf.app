@@ -1,0 +1,75 @@
+# Karl's GIR - Production .htaccess v3.1
+# Ensures React Router works correctly in production
+# Includes security headers and HTTPS enforcement
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Force HTTPS in production (skip for localhost and .test domains)
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP_HOST} !^localhost [NC]
+  RewriteCond %{HTTP_HOST} !\.test$ [NC]
+  RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Exclude /admin directory from React Router (standalone admin panel)
+  RewriteCond %{REQUEST_URI} !^/admin
+
+  # Don't rewrite files or directories that exist
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Rewrite everything else to index.html to allow React Router to handle routing
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Security Headers
+<IfModule mod_headers.c>
+  # Content Security Policy
+  # Allow self, inline styles/scripts (needed for React), and CDN resources (for admin dashboard)
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob:; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self' https://unpkg.com https://cdnjs.cloudflare.com;"
+
+  # Prevent clickjacking
+  Header set X-Frame-Options "SAMEORIGIN"
+
+  # XSS Protection
+  Header set X-XSS-Protection "1; mode=block"
+
+  # Prevent MIME type sniffing
+  Header set X-Content-Type-Options "nosniff"
+
+  # Referrer Policy
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # Permissions Policy (restrict access to sensitive APIs)
+  Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+  # HSTS - Force HTTPS for 1 year (only set in production with HTTPS)
+  # Uncomment the line below after confirming HTTPS works correctly
+  # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# Cache busting for assets
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+</IfModule>
+
+# Protect sensitive files
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql|json)$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Prevent directory browsing
+Options -Indexes
+
+# PHP Configuration (if mod_php is available)
+<IfModule mod_php.c>
+  php_value session.cookie_httponly 1
+  php_value session.use_only_cookies 1
+  # session.cookie_secure is handled in session.php based on HTTPS detection
+</IfModule>

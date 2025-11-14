@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://unpkg.com https://cdn.tailwindcss.com;">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Track Live Round - Karl's GIR</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#16a34a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Karl's GIR">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/images/karls_gir.png">
+    <link rel="apple-touch-icon" href="assets/images/karls_gir.png">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/main.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- JavaScript Modules (load order matters) -->
+    <script src="assets/js/db/storage.js"></script>
+    <script src="assets/js/utils/shared-utils.js"></script>
+    <script src="assets/js/utils/analytics.js"></script>
+    
+    <!-- React and ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel Standalone for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // SVG Icon Components
+        const Download = ({ size = 18, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 512 512" fill="currentColor" className={className}>
+                <path d="M288 32c0-17.7-14.3-32-32-32s-32 14.3-32 32V274.7l-73.4-73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l128 128c12.5 12.5 32.8 12.5 45.3 0l128-128c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L288 274.7V32zM64 352c-35.3 0-64 28.7-64 64v32c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V416c0-35.3-28.7-64-64-64H214.6l-45.3 45.3c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L169.4 352H64zm368 56a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"/>
+            </svg>
+        );
+        
+        const RotateCcw = ({ size = 18, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 512 512" fill="currentColor" className={className}>
+                <path d="M463.5 224H472c13.3 0 24-10.7 24-24V72c0-9.7-5.8-18.5-14.8-22.2s-19.3-1.7-26.2 5.2L413.4 96.6c-87.6-86.5-228.7-86.2-315.8 1c-87.5 87.5-87.5 229.3 0 316.8s229.3 87.5 316.8 0c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0c-62.5 62.5-163.8 62.5-226.3 0s-62.5-163.8 0-226.3c62.2-62.2 162.7-62.5 225.3-1L327 183c-6.9 6.9-8.9 17.2-5.2 26.2s12.5 14.8 22.2 14.8H463.5z"/>
+            </svg>
+        );
+        
+        const Edit = ({ size = 18, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 512 512" fill="currentColor" className={className}>
+                <path d="M471.6 21.7c-21.9-21.9-57.3-21.9-79.2 0L362.3 51.7l97.9 97.9 30.1-30.1c21.9-21.9 21.9-57.3 0-79.2L471.6 21.7zm-299.2 220c-6.1 6.1-10.8 13.6-13.5 21.9l-29.6 88.8c-2.9 8.6-.6 18.1 5.8 24.6s15.9 8.7 24.6 5.8l88.8-29.6c8.2-2.7 15.7-7.4 21.9-13.5L437.7 172.3 339.7 74.3 172.4 241.7zM96 64C43 64 0 107 0 160V416c0 53 43 96 96 96H352c53 0 96-43 96-96V320c0-17.7-14.3-32-32-32s-32 14.3-32 32v96c0 17.7-14.3 32-32 32H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h96c17.7 0 32-14.3 32-32s-14.3-32-32-32H96z"/>
+            </svg>
+        );
+        
+        const Chart = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 512 512" fill="currentColor" className={className}>
+                <path d="M64 64c0-17.7-14.3-32-32-32S0 46.3 0 64V400c0 44.2 35.8 80 80 80H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H80c-8.8 0-16-7.2-16-16V64zm96 288H448c17.7 0 32-14.3 32-32V251.8c0-7.6-2.7-15-7.7-20.8l-65.8-76.8c-12.1-14.2-33.7-15-46.9-1.8l-90.5 90.5c-10.3 10.3-27.1 10.3-37.4 0L131.1 192.9c-14.4-14.4-37.5-14.4-51.9 0L48 214.1V320c0 17.7 14.3 32 32 32z"/>
+            </svg>
+        );
+        
+        // Main App Component for Live Round (No Login Required)
+        function TrackLiveRound() {
+            const [holes, setHoles] = useState([]);
+            const [currentHole, setCurrentHole] = useState(1);
+            const [showResetModal, setShowResetModal] = useState(false);
+            const [showValidationModal, setShowValidationModal] = useState(false);
+            const [validationMessage, setValidationMessage] = useState('Please fill in all required fields before submitting.');
+            const [roundName, setRoundName] = useState('');
+            const [showRoundNameModal, setShowRoundNameModal] = useState(false);
+            const [roundStarted, setRoundStarted] = useState(false);
+            const [editingHoleIndex, setEditingHoleIndex] = useState(null);
+            const [showEditModal, setShowEditModal] = useState(false);
+            const [showHomeWarningModal, setShowHomeWarningModal] = useState(false);
+            const [showMobileMenu, setShowMobileMenu] = useState(false);
+            
+            // Track page visit on mount
+            useEffect(() => {
+                if (typeof Analytics !== 'undefined') {
+                    Analytics.trackPageVisit('track-live.html');
+                    Analytics.trackLiveVersionVisit();
+                }
+            }, []);
+            
+            // Load data from localStorage on mount
+            useEffect(() => {
+                const saved = Storage.getLiveRound();
+                if (saved) {
+                    try {
+                        const data = saved;
+                        if (data.holes && data.holes.length > 0) {
+                            setHoles(data.holes || []);
+                            setCurrentHole(data.currentHole || 1);
+                            if (data.roundName) {
+                                setRoundName(data.roundName);
+                                setRoundStarted(true);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error loading saved live round:', e);
+                    }
+                }
+            }, []);
+            
+            
+            // Save to localStorage whenever holes change
+            useEffect(() => {
+                if (holes.length > 0 || roundStarted) {
+                    Storage.saveLiveRound({
+                        holes,
+                        currentHole,
+                        roundName: roundName || '',
+                        roundStarted
+                    });
+                } else {
+                    Storage.clearLiveRound();
+                }
+            }, [holes, currentHole, roundStarted, roundName]);
+            
+            // Close mobile menu when clicking outside or on navigation
+            useEffect(() => {
+                if (showMobileMenu) {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = '';
+                }
+                return () => {
+                    document.body.style.overflow = '';
+                };
+            }, [showMobileMenu]);
+            
+            const addHole = (data) => {
+                const newHole = { holeNumber: currentHole, ...data };
+                const newHoles = [...holes, newHole];
+                const nextHole = currentHole + 1;
+                
+                setHoles(newHoles);
+                setCurrentHole(nextHole);
+                
+                // If round not started, show modal after first hole
+                if (!roundStarted && newHoles.length === 1) {
+                    setShowRoundNameModal(true);
+                }
+                
+                // Check if user just completed hole 9 or 18
+                if (currentHole === 9 || currentHole === 18) {
+                    // Could show a completion message here if needed
+                }
+                
+                console.log('Hole added. Round started:', roundStarted, 'New holes count:', newHoles.length);
+            };
+            
+            const handleStartRound = () => {
+                const enteredRoundName = roundName.trim();
+                if (!enteredRoundName) {
+                    alert('Please enter a round name');
+                    return;
+                }
+                
+                setRoundName(enteredRoundName);
+                setRoundStarted(true);
+                setShowRoundNameModal(false);
+                
+                // Track round start
+                if (typeof Analytics !== 'undefined') {
+                    Analytics.trackRoundEvent('start', 'live', null, holes.length, false);
+                }
+                
+                console.log('Live round started:', enteredRoundName);
+            };
+            
+            const editHole = (index) => {
+                setEditingHoleIndex(index);
+                setShowEditModal(true);
+            };
+            
+            const saveEditedHole = (editedHoleData) => {
+                if (editingHoleIndex !== null && editingHoleIndex >= 0 && editingHoleIndex < holes.length) {
+                    const updatedHoles = [...holes];
+                    updatedHoles[editingHoleIndex] = {
+                        ...holes[editingHoleIndex],
+                        ...editedHoleData
+                    };
+                    setHoles(updatedHoles);
+                    setShowEditModal(false);
+                    setEditingHoleIndex(null);
+                }
+            };
+            
+            const confirmReset = () => {
+                setHoles([]);
+                setCurrentHole(1);
+                setRoundStarted(false);
+                setRoundName('');
+                localStorage.removeItem('karlsGIR_liveRound');
+                setShowResetModal(false);
+            };
+            
+            const exportData = () => {
+                exportToCSV(holes, roundName || 'Live Round');
+                
+                // Track round save/completion (exporting is considered completion for live rounds)
+                if (typeof Analytics !== 'undefined') {
+                    const completed = holes.length >= 9; // Consider 9+ holes as completed
+                    Analytics.trackRoundEvent('save', 'live', null, holes.length, completed);
+                }
+            };
+            
+            return (
+                <div className="min-h-screen bg-karl-bg-primary p-2 sm:p-4 pb-20 md:pb-4 content-with-bottom-nav">
+                    <div className="max-w-2xl mx-auto">
+                        <div className="bg-karl-bg-secondary rounded-lg p-2 sm:p-4">
+                            {/* Header */}
+                            <div className="sticky-header -mx-2 sm:-mx-4 mb-4 sm:mb-6">
+                                <div className="flex items-center justify-between gap-2">
+                                    {/* Logo - Left Aligned */}
+                                    <a href="index.html" onClick={(e) => { 
+                                        e.preventDefault(); 
+                                        if (holes.length > 0) {
+                                            setShowHomeWarningModal(true);
+                                        } else {
+                                            Storage.setTrackingMode(null);
+                                            window.location.href = 'index.html?t=' + Date.now();
+                                        }
+                                    }} className="touch-target">
+                                        <img src="assets/images/karls_gir.png" alt="Karl's GIR Logo" className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg" />
+                                    </a>
+                                    
+                                    {/* Desktop Navigation (Tablet+) */}
+                                    <div className="desktop-nav">
+                                        <a href="login.html" onClick={(e) => { e.preventDefault(); window.location.href = 'login.html?t=' + Date.now(); return false; }} className="touch-target btn-secondary text-sm">
+                                            Log In
+                                        </a>
+                                        <a href="login.html" onClick={(e) => { 
+                                            e.preventDefault(); 
+                                            sessionStorage.setItem('showRegister', 'true');
+                                            window.location.href = 'login.html?t=' + Date.now(); 
+                                            return false; 
+                                        }} className="touch-target btn-primary text-sm">
+                                            Create Account
+                                        </a>
+                                    </div>
+                                    
+                                    {/* Hamburger Menu (Mobile) */}
+                                    <button 
+                                        id="hamburgerBtn" 
+                                        className={`hamburger-button ${showMobileMenu ? 'active' : ''}`}
+                                        onClick={() => setShowMobileMenu(!showMobileMenu)}
+                                        aria-label="Menu"
+                                    >
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {/* Mobile Menu Overlay */}
+                            {showMobileMenu && (
+                                <div 
+                                    className="mobile-menu-overlay active"
+                                    onClick={(e) => {
+                                        if (e.target.className.includes('mobile-menu-overlay')) {
+                                            setShowMobileMenu(false);
+                                        }
+                                    }}
+                                >
+                                    <div className="mobile-menu-panel">
+                                        <div className="mobile-menu-header">
+                                            <img src="assets/images/karls_gir.png" alt="Karl's GIR Logo" />
+                                            <button 
+                                                className="mobile-menu-close" 
+                                                onClick={() => setShowMobileMenu(false)}
+                                                aria-label="Close menu"
+                                            >
+                                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        
+                                        <a 
+                                            href="index.html" 
+                                            onClick={(e) => { 
+                                                e.preventDefault(); 
+                                                setShowMobileMenu(false);
+                                                if (holes.length > 0) {
+                                                    setShowHomeWarningModal(true);
+                                                } else {
+                                                    Storage.setTrackingMode(null);
+                                                    window.location.href = 'index.html?t=' + Date.now();
+                                                }
+                                                return false;
+                                            }} 
+                                            className="mobile-menu-item"
+                                        >
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                                            </svg>
+                                            <span>Home</span>
+                                        </a>
+                                        
+                                        <a 
+                                            href="login.html" 
+                                            onClick={(e) => { 
+                                                e.preventDefault(); 
+                                                setShowMobileMenu(false);
+                                                window.location.href = 'login.html?t=' + Date.now(); 
+                                                return false; 
+                                            }} 
+                                            className="mobile-menu-item"
+                                        >
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                                            </svg>
+                                            <span>Log In</span>
+                                        </a>
+                                        
+                                        <a 
+                                            href="login.html" 
+                                            onClick={(e) => { 
+                                                e.preventDefault(); 
+                                                setShowMobileMenu(false);
+                                                sessionStorage.setItem('showRegister', 'true');
+                                                window.location.href = 'login.html?t=' + Date.now(); 
+                                                return false; 
+                                            }} 
+                                            className="mobile-menu-item"
+                                        >
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                                            </svg>
+                                            <span>Create Account</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Round Name Display */}
+                            {roundName && (
+                                <div className="mb-4 text-center">
+                                    <p className="text-base sm:text-lg font-semibold text-karl-text-primary">Round: {roundName}</p>
+                                </div>
+                            )}
+                            
+                            {/* Current Hole Display */}
+                            <div className="mb-6 text-center">
+                                <h1 className="text-lg sm:text-xl font-bold text-karl-text-primary">
+                                    {currentHole <= 18 ? `Hole ${currentHole}` : 'Round Complete!'}
+                                </h1>
+                                {currentHole > 18 && (
+                                    <p className="text-karl-text-primary mt-2 opacity-70">You've completed all 18 holes!</p>
+                                )}
+                            </div>
+                            
+                            {/* Total Strokes - Top Stats */}
+                            {holes.length > 0 && (
+                                <div className="mb-6">
+                                    <TotalStrokesCard holes={holes} />
+                                </div>
+                            )}
+                            
+                            {/* Hole Form */}
+                            {currentHole <= 18 && (
+                                <HoleForm 
+                                    onSubmit={addHole} 
+                                    holeNumber={currentHole} 
+                                    onValidationError={() => setShowValidationModal(true)}
+                                    onRoundRequired={() => {
+                                        setRoundName('');
+                                        setShowRoundNameModal(true);
+                                    }}
+                                    roundStarted={roundStarted}
+                                />
+                            )}
+                            
+                            {/* Recorded Holes List */}
+                            <div className="mt-8">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+                                    <h2 className="text-lg sm:text-xl font-bold text-karl-text-primary">Recorded Holes</h2>
+                                    {holes.length >= 9 && (
+                                        <button
+                                            onClick={exportData}
+                                            className="touch-target btn-primary flex items-center gap-2 text-sm"
+                                        >
+                                            <Download size={18} />
+                                            Export {holes.length >= 18 ? '18' : '9'} Holes CSV
+                                        </button>
+                                    )}
+                                </div>
+                                {holes.length === 0 ? (
+                                    <p className="text-karl-text-primary text-center py-8">No holes recorded yet</p>
+                                ) : (
+                                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                                        {holes.map((hole, idx) => {
+                                            const toPar = hole.score - hole.par;
+                                            const scoreColor = toPar < 0 ? 'text-karl-gold' : toPar === 0 ? 'text-karl-text-primary' : toPar === 1 ? 'text-karl-brown' : 'text-karl-brown';
+                                            return (
+                                                <div key={idx} className="card p-3 sm:p-4">
+                                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                                                        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                                                            <div className="text-base sm:text-lg font-bold text-karl-text-primary">Hole {hole.holeNumber}</div>
+                                                            <div className={`text-lg sm:text-xl font-bold ${scoreColor}`}>
+                                                                {hole.score} ({hole.par === hole.score ? 'Par' : hole.score < hole.par ? `-${hole.par - hole.score}` : `+${hole.score - hole.par}`})
+                                                            </div>
+                                                            <div className="text-xs sm:text-sm text-karl-text-secondary">
+                                                                GIR: {hole.gir ? 'Yes' : 'No'} | Putts: {hole.putts}
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => editHole(idx)}
+                                                            className="touch-target text-karl-brown"
+                                                            title="Edit hole"
+                                                        >
+                                                            <Edit size={20} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Quick Round Metrics - Below Recorded Holes */}
+                            {holes.length > 0 && (
+                                <div className="mt-6">
+                                    <QuickRoundMetrics holes={holes} />
+                                </div>
+                            )}
+                            
+                            {/* Reset Button */}
+                            {holes.length > 0 && (
+                                <div className="flex justify-center mt-8 mb-6">
+                                    <button
+                                        onClick={() => setShowResetModal(true)}
+                                        className="touch-target btn-error flex items-center gap-2"
+                                    >
+                                        <RotateCcw size={18} />
+                                        Reset
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <>
+                        {/* Modals - Outside content wrapper */}
+                        {/* Round Name Modal */}
+                    {showRoundNameModal && (
+                        <div className="modal-overlay">
+                            <div className="modal-container">
+                                <div className="modal-header">
+                                    <h3 className="modal-title">Start Round</h3>
+                                </div>
+                                <div className="modal-body">
+                                    <div>
+                                        <label className="block text-base font-semibold text-karl-text-primary mb-2">
+                                            Round Name <span className="text-karl-brown">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={roundName}
+                                            onChange={(e) => setRoundName(e.target.value)}
+                                            placeholder="e.g., Pebble Beach, Practice Round"
+                                            className="form-input"
+                                            onKeyPress={(e) => {
+                                                if (e.key === 'Enter' && roundName.trim()) {
+                                                    handleStartRound();
+                                                }
+                                            }}
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button
+                                        onClick={() => {
+                                            setShowRoundNameModal(false);
+                                            setRoundName('');
+                                        }}
+                                        className="touch-target btn-secondary flex-1 sm:flex-initial"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleStartRound}
+                                        disabled={!roundName.trim()}
+                                        className="touch-target btn-primary flex-1 sm:flex-initial disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Start Round
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Validation Modal */}
+                    {showValidationModal && (
+                        <div className="modal-overlay">
+                            <div className="modal-container">
+                                <div className="modal-header">
+                                    <h3 className="modal-title">Missing Information</h3>
+                                </div>
+                                <div className="modal-body">
+                                    <p>{validationMessage}</p>
+                                </div>
+                                <div className="modal-footer">
+                                    <button
+                                        onClick={() => {
+                                            setShowValidationModal(false);
+                                            setValidationMessage('Please fill in all required fields before submitting.');
+                                        }}
+                                        className="touch-target btn-primary w-full sm:w-auto"
+                                    >
+                                        OK
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Edit Hole Modal */}
+                    {showEditModal && editingHoleIndex !== null && holes[editingHoleIndex] && (
+                        <EditHoleModal
+                            hole={holes[editingHoleIndex]}
+                            onSave={saveEditedHole}
+                            onCancel={() => {
+                                setShowEditModal(false);
+                                setEditingHoleIndex(null);
+                            }}
+                        />
+                    )}
+                    
+                    {/* Reset Confirmation Modal */}
+                    {showResetModal && (
+                        <div className="modal-overlay">
+                            <div className="modal-container">
+                                <div className="modal-header">
+                                    <h3 className="modal-title">Reset All Data?</h3>
+                                </div>
+                                <div className="modal-body">
+                                    <p>Are you sure you want to reset all data? This will clear all recorded holes and cannot be undone.</p>
+                                </div>
+                                <div className="modal-footer">
+                                    <button
+                                        onClick={() => setShowResetModal(false)}
+                                        className="touch-target btn-secondary flex-1 sm:flex-initial"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={confirmReset}
+                                        className="touch-target btn-error flex-1 sm:flex-initial"
+                                    >
+                                        Reset All
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Home Navigation Warning Modal */}
+                    {showHomeWarningModal && (
+                        <div className="modal-overlay">
+                            <div className="modal-container">
+                                <div className="modal-header">
+                                    <h3 className="modal-title">Leave Live Round?</h3>
+                                </div>
+                                <div className="modal-body">
+                                    <p className="mb-2">
+                                        You have {holes.length} hole{holes.length !== 1 ? 's' : ''} recorded in this round.
+                                    </p>
+                                    <p className="text-sm opacity-90">
+                                        <strong>Your data is safe!</strong> All your holes will be saved and you can return to this round anytime by clicking "Track a Live Round" from the home page.
+                                    </p>
+                                </div>
+                                <div className="modal-footer">
+                                    <button
+                                        onClick={() => setShowHomeWarningModal(false)}
+                                        className="touch-target btn-secondary flex-1 sm:flex-initial"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            Storage.setTrackingMode(null);
+                                            window.location.href = 'index.html?t=' + Date.now();
+                                        }}
+                                        className="touch-target btn-primary flex-1 sm:flex-initial"
+                                    >
+                                        Go to Home
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Bottom Navigation (Mobile) */}
+                    <nav className="bottom-nav">
+                        <a href="index.html" onClick={(e) => { 
+                            e.preventDefault(); 
+                            if (holes.length > 0) {
+                                setShowHomeWarningModal(true);
+                            } else {
+                                Storage.setTrackingMode(null);
+                                window.location.href = 'index.html?t=' + Date.now();
+                            }
+                            return false;
+                        }} className="bottom-nav-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                            </svg>
+                            <span>Home</span>
+                        </a>
+                        <a href="login.html" onClick={(e) => { 
+                            e.preventDefault(); 
+                            sessionStorage.setItem('showRegister', 'true');
+                            window.location.href = 'login.html?t=' + Date.now(); 
+                            return false; 
+                        }} className="bottom-nav-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                            </svg>
+                            <span>Sign Up</span>
+                        </a>
+                    </nav>
+                    </>
+                </div>
+            );
+        }
+        
+        // Total Strokes Card Component - For top of page (after Hole title, before Par buttons)
+        function TotalStrokesCard({ holes }) {
+            const stats = calculateRoundStats(holes);
+            const totalHoles = holes.length;
+            
+            if (totalHoles === 0) return null;
+            
+            return (
+                <div className="bg-[#F2D1A4] rounded-lg p-4 border-2 border-[#F2D1A4] shadow-lg">
+                    <h2 className="text-xl font-bold mb-2 text-center text-[#0a140a]">Total Strokes</h2>
+                    <div className="text-center">
+                        <div className="text-5xl font-bold text-[#0a140a]">{stats.totalScore}</div>
+                        <div className="text-xl mt-1 text-[#0a140a]">
+                            ({stats.toPar === 0 ? 'Even' : stats.toPar > 0 ? `+${stats.toPar}` : stats.toPar})
+                        </div>
+                        <div className="text-sm mt-2 text-[#0a140a] opacity-70">{totalHoles} holes</div>
+                    </div>
+                </div>
+            );
+        }
+        
+        // Quick Round Metrics Component - For below recorded holes
+        function QuickRoundMetrics({ holes }) {
+            const stats = calculateRoundStats(holes);
+            const totalHoles = holes.length;
+            
+            if (totalHoles === 0) return null;
+            
+            return (
+                <div className="bg-[#0a140a] rounded-lg p-4 border-2 border-[#DDEDD2]">
+                    <h3 className="text-xl font-bold text-[#DDEDD2] mb-4 text-center flex items-center justify-center gap-2">
+                        <Chart /> Quick Round Metrics
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-[#0a140a] rounded-lg p-4 shadow border-2 border-[#DDEDD2] text-center">
+                            <div className="text-xs text-[#DDEDD2] mb-1 font-semibold">GIR</div>
+                            <div className="text-3xl font-bold text-[#DDEDD2]">{(stats.girPct !== undefined && stats.girPct !== null ? stats.girPct : 0).toFixed(1)}%</div>
+                            <div className="text-sm text-[#DDEDD2] mt-1 opacity-70">{(stats.girsHit || 0)}/{totalHoles}</div>
+                        </div>
+                        
+                        <div className="bg-[#0a140a] rounded-lg p-4 shadow border-2 border-[#DDEDD2] text-center">
+                            <div className="text-xs text-[#DDEDD2] mb-1 font-semibold">Fairways</div>
+                            <div className="text-3xl font-bold text-[#DDEDD2]">
+                                {(stats.fairwayPct !== undefined && stats.fairwayPct !== null ? stats.fairwayPct : 0).toFixed(1)}%
+                            </div>
+                            <div className="text-sm text-[#DDEDD2] mt-1 opacity-70">{(stats.fairwaysHit || 0)}/{holes.filter(h => h.par !== 3).length}</div>
+                        </div>
+                        
+                        <div className="bg-[#0a140a] rounded-lg p-4 shadow border-2 border-[#DDEDD2] text-center">
+                            <div className="text-xs text-[#DDEDD2] mb-1 font-semibold">Putts per GIR</div>
+                            <div className="text-3xl font-bold text-[#DDEDD2]">
+                                {stats.puttsPerGIR !== undefined && stats.puttsPerGIR !== null ? stats.puttsPerGIR.toFixed(2) : '0.00'}
+                            </div>
+                        </div>
+                        
+                        <div className="bg-[#0a140a] rounded-lg p-4 shadow border-2 border-[#DDEDD2] text-center">
+                            <div className="text-xs text-[#DDEDD2] mb-1 font-semibold">Scrambling</div>
+                            <div className="text-3xl font-bold text-[#DDEDD2]">
+                                {(stats.scramblingPct !== undefined && stats.scramblingPct !== null ? stats.scramblingPct : 0).toFixed(1)}%
+                            </div>
+                            <div className="text-sm text-[#DDEDD2] mt-1 opacity-70">{(stats.scrambles || 0)}/{Math.max(0, totalHoles - (stats.girsHit || 0))}</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        // Edit Hole Modal Component
+        function EditHoleModal({ hole, onSave, onCancel }) {
+            const [par, setPar] = useState(hole.par || null);
+            const [gir, setGir] = useState(hole.gir ? 'y' : 'n');
+            const [putts, setPutts] = useState(hole.putts?.toString() || '');
+            const [puttDistances, setPuttDistances] = useState(hole.puttDistances?.map(d => d.toString()) || []);
+            const [fairway, setFairway] = useState(hole.par === 3 ? null : (hole.fairway ? 'y' : 'n'));
+            const [teeShotResult, setTeeShotResult] = useState(hole.teeShotResult || '');
+            const [shotsToGreen, setShotsToGreen] = useState(hole.shotsToGreen?.toString() || '');
+            const [penalty, setPenalty] = useState(hole.penalty || '');
+            const [validationError, setValidationError] = useState('');
+            
+            // Auto-set GIR to 'n' and shotsToGreen to 2 when penalty is selected on par 3
+            useEffect(() => {
+                if (par === 3 && penalty && penalty !== '') {
+                    setGir('n');
+                    if (!shotsToGreen || shotsToGreen === '') {
+                        setShotsToGreen('2');
+                    }
+                }
+            }, [par, penalty]);
+            
+            useEffect(() => {
+                // Sync putt distances when putts count changes
+                const puttsCount = putts === '' ? 0 : parseInt(putts);
+                if (!isNaN(puttsCount) && puttsCount > 0) {
+                    if (puttDistances.length < puttsCount) {
+                        const newDistances = [...puttDistances];
+                        while (newDistances.length < puttsCount) {
+                            newDistances.push('');
+                        }
+                        setPuttDistances(newDistances);
+                    } else if (puttDistances.length > puttsCount) {
+                        setPuttDistances(puttDistances.slice(0, puttsCount));
+                    }
+                } else if (puttsCount === 0) {
+                    setPuttDistances([]);
+                }
+            }, [putts]);
+            
+            const handleSave = () => {
+                setValidationError('');
+                
+                if (par === null || gir === null || !putts || putts === '' || isNaN(parseInt(putts))) {
+                    setValidationError('Please fill in all required fields.');
+                    return;
+                }
+                
+                if (puttDistances.length > 0 && (!puttDistances[0] || puttDistances[0] === '' || isNaN(parseFloat(puttDistances[0])))) {
+                    setValidationError('Please enter valid putt distances.');
+                    return;
+                }
+                
+                if (par !== 3 && fairway === null) {
+                    setValidationError('Please select fairway hit status.');
+                    return;
+                }
+                
+                if (par !== 3 && fairway !== 'y' && !teeShotResult) {
+                    setValidationError('Please select tee shot result.');
+                    return;
+                }
+                
+                if (gir === 'n' && (!shotsToGreen || shotsToGreen === '' || isNaN(parseInt(shotsToGreen)))) {
+                    setValidationError('Please enter shots to reach green.');
+                    return;
+                }
+                
+                if (gir === 'n' && par === 3 && parseInt(shotsToGreen) === 1) {
+                    setValidationError('For Par 3, shots to reach green cannot be 1.');
+                    return;
+                }
+                
+                const puttsCount = parseInt(putts);
+                if (puttsCount > 0 && puttDistances.length !== puttsCount) {
+                    setValidationError('Please enter all putt distances.');
+                    return;
+                }
+                
+                for (let i = 0; i < puttDistances.length; i++) {
+                    if (!puttDistances[i] || puttDistances[i] === '' || isNaN(parseFloat(puttDistances[i]))) {
+                        setValidationError('Please enter valid putt distances.');
+                        return;
+                    }
+                }
+                
+                const teeShotPenalty = (par !== 3 && (teeShotResult === 'ob' || teeShotResult === 'lost' || teeShotResult === 'water')) ? 1 : 0;
+                const par3Penalty = (par === 3 && penalty) ? (penalty === 'wrong' ? 2 : 1) : 0;
+                const totalPenaltyStrokes = teeShotPenalty + par3Penalty;
+                
+                let calculatedScore;
+                if (gir === 'y') {
+                    calculatedScore = par + (parseInt(putts) - 2) + totalPenaltyStrokes;
+                } else {
+                    calculatedScore = parseInt(shotsToGreen) + parseInt(putts) + totalPenaltyStrokes;
+                }
+                
+                const finalApproachDistance = puttDistances.length > 0 
+                    ? parseFloat(puttDistances[0]) 
+                    : 0;
+                
+                // For par 3 with penalty, GIR is always false
+                const isPar3WithPenalty = par === 3 && penalty && penalty !== '';
+                const finalGir = isPar3WithPenalty ? false : (gir === 'y');
+                
+                onSave({
+                    par: parseInt(par),
+                    score: calculatedScore,
+                    gir: finalGir,
+                    putts: parseInt(putts),
+                    puttDistances: puttDistances.map(d => parseFloat(d)),
+                    fairway: par === 3 ? null : fairway === 'y',
+                    teeShotResult: par !== 3 ? teeShotResult : null,
+                    approachDistance: finalApproachDistance,
+                    penalty: (par !== 3 && (teeShotResult === 'ob' || teeShotResult === 'lost' || teeShotResult === 'water')) ? teeShotResult : (par === 3 ? penalty : null),
+                    shotsToGreen: finalGir ? null : (isPar3WithPenalty ? 2 : (shotsToGreen ? parseInt(shotsToGreen) : null))
+                });
+            };
+            
+            return (
+                <div className="modal-overlay">
+                    <div className="modal-container large">
+                        <button
+                            onClick={onCancel}
+                            className="modal-close-button"
+                            aria-label="Close"
+                        >
+                            ×
+                        </button>
+                        <div className="modal-header">
+                            <h3 className="modal-title">Edit Hole {hole.holeNumber}</h3>
+                        </div>
+                        <div className="modal-body">
+                            {validationError && (
+                                <div className="mb-4 p-3 bg-[#F2D1A4] text-[#0a140a] rounded-lg">
+                                    {validationError}
+                                </div>
+                            )}
+                            <div className="space-y-5 max-h-[60vh] overflow-y-auto pr-2">
+                            {/* Par Selection */}
+                            <div>
+                                <label className="block text-xl font-bold text-[#DDEDD2] mb-3">Par</label>
+                                <div className="flex gap-3">
+                                    {[3, 4, 5].map(p => (
+                                        <button
+                                            key={p}
+                                            onClick={() => {
+                                                setPar(p);
+                                                if (p === 3) {
+                                                    setFairway(null);
+                                                    setTeeShotResult('');
+                                                } else if (fairway === null) {
+                                                    setFairway('y');
+                                                }
+                                            }}
+                                            className={`flex-1 py-4 text-lg rounded-lg font-bold transition cursor-pointer ${
+                                                par === p
+                                                    ? 'bg-[#DDEDD2] text-[#0a140a] shadow-lg ring-2 ring-[#DDEDD2]'
+                                                    : 'bg-[#DDEDD2] text-[#0a140a] '
+                                            }`}
+                                        >
+                                            Par {p}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {par !== null && (
+                                <>
+                                    {/* Fairway Hit - Only for par 4/5 */}
+                                    {par !== 3 && (
+                                        <div>
+                                            <label className="block text-base font-bold text-[#DDEDD2] mb-2">Fairway Hit?</label>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => setFairway('y')}
+                                                    className={`flex-1 py-4 text-lg rounded-lg font-bold transition cursor-pointer ${
+                                                        fairway === 'y'
+                                                            ? 'bg-[#DDEDD2] text-[#0a140a] shadow-lg ring-2 ring-[#DDEDD2]'
+                                                            : 'bg-[#0a140a] border-2 border-[#DDEDD2] text-[#DDEDD2] '
+                                                    }`}
+                                                >
+                                                    Yes
+                                                </button>
+                                                <button
+                                                    onClick={() => setFairway('n')}
+                                                    className={`flex-1 py-4 text-lg rounded-lg font-bold transition cursor-pointer ${
+                                                        fairway === 'n'
+                                                            ? 'bg-[#F2D1A4] text-[#0a140a] shadow-lg ring-2 ring-[#F2D1A4]'
+                                                            : 'bg-[#0a140a] border-2 border-[#DDEDD2] text-[#DDEDD2] '
+                                                    }`}
+                                                >
+                                                    No
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Tee Shot Result - Only if fairway not hit */}
+                                    {par !== 3 && fairway !== 'y' && (
+                                        <div>
+                                            <label className="block text-base font-bold text-[#DDEDD2] mb-2">Tee Shot Result</label>
+                                            <select
+                                                value={teeShotResult}
+                                                onChange={(e) => setTeeShotResult(e.target.value)}
+                                                className="w-full px-4 py-4 text-lg bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-[#F2D1A4]"
+                                            >
+                                                <option value="">Select where ball ended up</option>
+                                                <option value="left_fringe">Left Fringe</option>
+                                                <option value="right_fringe">Right Fringe</option>
+                                                <option value="left_rough">Left Rough</option>
+                                                <option value="right_rough">Right Rough</option>
+                                                <option value="rough">Rough (Center)</option>
+                                                <option value="bunker">Bunker</option>
+                                                <option value="trees">Trees</option>
+                                                <option value="ob">OB (Out of Bounds) (+1)</option>
+                                                <option value="water">Water Hazard (+1)</option>
+                                                <option value="lost">Lost Ball (+1)</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Penalty - Only for par 3s */}
+                                    {par === 3 && (
+                                        <div>
+                                            <label className="block text-base font-bold text-[#DDEDD2] mb-2">Penalty?</label>
+                                            <select
+                                                value={penalty}
+                                                onChange={(e) => {
+                                                    setPenalty(e.target.value);
+                                                    if (e.target.value && e.target.value !== '') {
+                                                        setGir('n');
+                                                    }
+                                                }}
+                                                className="w-full px-4 py-4 text-lg bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-[#F2D1A4]"
+                                            >
+                                                <option value="">No Penalty</option>
+                                                <option value="ob">OB (Out of Bounds) (+1)</option>
+                                                <option value="water">Water Hazard (+1)</option>
+                                                <option value="lost">Lost Ball (+1)</option>
+                                                <option value="moved">Moved Ball (+1)</option>
+                                                <option value="unplayable">Unplayable Lie (+1)</option>
+                                                <option value="wrong">Wrong Ball (+2)</option>
+                                                <option value="other">Other (+1)</option>
+                                            </select>
+                                        </div>
+                                    )}
+                                    
+                                    {/* GIR */}
+                                    <div>
+                                        <label className="block text-base font-bold text-[#DDEDD2] mb-3">Green in Regulation?</label>
+                                        {par === 3 && penalty && penalty !== '' && (
+                                            <p className="text-sm text-[#F2D1A4] mb-2">⚠️ GIR not possible with a penalty on par 3</p>
+                                        )}
+                                        {!(par === 3 && penalty && penalty !== '') && (
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => setGir('y')}
+                                                    className={`flex-1 py-4 text-lg rounded-lg font-bold transition ${
+                                                        gir === 'y'
+                                                            ? 'bg-[#DDEDD2] text-[#0a140a] shadow-lg ring-2 ring-[#DDEDD2] cursor-pointer'
+                                                            : 'bg-[#0a140a] border-2 border-[#DDEDD2] text-[#DDEDD2]  cursor-pointer'
+                                                    }`}
+                                                >
+                                                    Yes
+                                                </button>
+                                                <button
+                                                    onClick={() => setGir('n')}
+                                                    className={`flex-1 py-4 text-lg rounded-lg font-bold transition cursor-pointer ${
+                                                        gir === 'n'
+                                                            ? 'bg-[#F2D1A4] text-[#0a140a] shadow-lg ring-2 ring-[#F2D1A4]'
+                                                            : 'bg-[#0a140a] border-2 border-[#DDEDD2] text-[#DDEDD2] '
+                                                    }`}
+                                                >
+                                                    No
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Shots to Green - Only if GIR = No */}
+                                    {gir === 'n' && (
+                                        <div>
+                                            <label className="block text-base font-bold text-[#DDEDD2] mb-2">Shots to Reach Green</label>
+                                            <input
+                                                type="number"
+                                                value={shotsToGreen}
+                                                onWheel={(e) => e.target.blur()}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    const minValue = par === 3 ? 2 : 1;
+                                                    if (val === '' || (!isNaN(val) && parseInt(val) >= minValue)) {
+                                                        setShotsToGreen(val);
+                                                    }
+                                                }}
+                                                placeholder="Total shots before putting"
+                                                className="w-full px-4 py-4 text-lg bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-[#F2D1A4] placeholder-[#0a140a] opacity-70"
+                                                min={par === 3 ? 2 : 1}
+                                            />
+                                        </div>
+                                    )}
+                                    
+                                    {/* Putts */}
+                                    <div>
+                                        <label className="block text-base font-bold text-[#DDEDD2] mb-2">Number of Putts</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="10"
+                                            value={putts}
+                                            onWheel={(e) => e.target.blur()}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setPutts(val);
+                                            }}
+                                            placeholder="e.g., 2"
+                                            className="w-full px-4 py-4 text-lg bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-[#F2D1A4] placeholder-[#0a140a] opacity-70"
+                                        />
+                                    </div>
+                                    
+                                    {/* Putt Distances */}
+                                    {putts && parseInt(putts) > 0 && (
+                                        <div>
+                                            <label className="block text-base font-bold text-[#DDEDD2] mb-2">
+                                                Putt Distances (feet)
+                                            </label>
+                                            <div className="space-y-3">
+                                                {puttDistances.map((distance, index) => (
+                                                    <div key={index}>
+                                                        <label className="block text-sm text-[#DDEDD2] mb-1">
+                                                            {index === 0 ? 'First Putt' : index === puttDistances.length - 1 ? 'Last Putt' : `Putt ${index + 1}`}
+                                                            {index === puttDistances.length - 1 && parseInt(putts) > 1 && (
+                                                                <span className="text-xs ml-1">(e.g., 0.5 for half foot)</span>
+                                                            )}
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max="200"
+                                                            step={index === puttDistances.length - 1 ? "0.5" : "1"}
+                                                            value={distance}
+                                                            onWheel={(e) => e.target.blur()}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                const newDistances = [...puttDistances];
+                                                                newDistances[index] = val;
+                                                                setPuttDistances(newDistances);
+                                                            }}
+                                                            placeholder="Distance in feet"
+                                                            className="w-full px-4 py-4 text-lg bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-[#F2D1A4] placeholder-[#0a140a] opacity-70"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                onClick={onCancel}
+                                className="touch-target btn-secondary flex-1 sm:flex-initial"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                className="touch-target btn-primary flex-1 sm:flex-initial"
+                            >
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        // Hole Form Component - Same as track-round.html
+        function HoleForm({ onSubmit, holeNumber, onValidationError, onRoundRequired, roundStarted }) {
+            const [par, setPar] = useState(null);
+            const [gir, setGir] = useState(null);
+            const [putts, setPutts] = useState('');
+            const [puttDistances, setPuttDistances] = useState([]);
+            const [fairway, setFairway] = useState(null);
+            const [teeShotResult, setTeeShotResult] = useState('');
+            const [shotsToGreen, setShotsToGreen] = useState('');
+            const [penalty, setPenalty] = useState('');
+            
+            // Auto-set GIR to 'n' and shotsToGreen to 2 when penalty is selected on par 3
+            useEffect(() => {
+                if (par === 3 && penalty && penalty !== '') {
+                    setGir('n');
+                    if (!shotsToGreen || shotsToGreen === '') {
+                        setShotsToGreen('2');
+                    }
+                }
+            }, [par, penalty]);
+            
+            const handleSubmit = () => {
+                if (par === null || gir === null || !putts || putts === '' || isNaN(parseInt(putts))) {
+                    onValidationError();
+                    return;
+                }
+                
+                if (puttDistances.length > 0 && (!puttDistances[0] || puttDistances[0] === '' || isNaN(parseFloat(puttDistances[0])))) {
+                    onValidationError();
+                    return;
+                }
+                
+                if (par !== 3 && fairway === null) {
+                    onValidationError();
+                    return;
+                }
+                
+                if (par !== 3 && fairway !== 'y' && !teeShotResult) {
+                    onValidationError();
+                    return;
+                }
+                
+                if (gir === 'n' && (!shotsToGreen || shotsToGreen === '' || isNaN(parseInt(shotsToGreen)))) {
+                    onValidationError();
+                    return;
+                }
+                
+                if (gir === 'n' && par === 3 && parseInt(shotsToGreen) === 1) {
+                    onValidationError();
+                    return;
+                }
+                
+                const puttsCount = parseInt(putts);
+                if (puttsCount > 0 && puttDistances.length !== puttsCount) {
+                    onValidationError();
+                    return;
+                }
+                
+                for (let i = 0; i < puttDistances.length; i++) {
+                    if (!puttDistances[i] || puttDistances[i] === '' || isNaN(parseFloat(puttDistances[i]))) {
+                        onValidationError();
+                        return;
+                    }
+                }
+                
+                const teeShotPenalty = (par !== 3 && (teeShotResult === 'ob' || teeShotResult === 'lost' || teeShotResult === 'water')) ? 1 : 0;
+                const par3Penalty = (par === 3 && penalty) ? (penalty === 'wrong' ? 2 : 1) : 0;
+                const totalPenaltyStrokes = teeShotPenalty + par3Penalty;
+                
+                let calculatedScore;
+                if (gir === 'y') {
+                    calculatedScore = par + (parseInt(putts) - 2) + totalPenaltyStrokes;
+                } else {
+                    calculatedScore = parseInt(shotsToGreen) + parseInt(putts) + totalPenaltyStrokes;
+                }
+                
+                const finalApproachDistance = puttDistances.length > 0 
+                    ? parseFloat(puttDistances[0]) 
+                    : 0;
+                
+                // For par 3 with penalty, GIR is always false
+                const isPar3WithPenalty = par === 3 && penalty && penalty !== '';
+                const finalGir = isPar3WithPenalty ? false : (gir === 'y');
+                
+                onSubmit({
+                    par: parseInt(par),
+                    score: calculatedScore,
+                    gir: finalGir,
+                    putts: parseInt(putts),
+                    puttDistances: puttDistances.map(d => parseFloat(d)),
+                    fairway: par === 3 ? null : fairway === 'y',
+                    teeShotResult: par !== 3 ? teeShotResult : null,
+                    approachDistance: finalApproachDistance,
+                    penalty: (par !== 3 && (teeShotResult === 'ob' || teeShotResult === 'lost' || teeShotResult === 'water')) ? teeShotResult : (par === 3 ? penalty : null),
+                    shotsToGreen: finalGir ? null : (isPar3WithPenalty ? 2 : (shotsToGreen ? parseInt(shotsToGreen) : null))
+                });
+                
+                // Reset form
+                setPar(null);
+                setGir(null);
+                setPutts('');
+                setPuttDistances([]);
+                setFairway(null);
+                setTeeShotResult('');
+                setShotsToGreen('');
+                setPenalty('');
+            };
+            
+            return (
+                <div className="space-y-5">
+                    {/* Par Selection */}
+                    <div>
+                                    <label className="block text-xl font-bold text-[#DDEDD2] mb-3">Par</label>
+                        <div className="flex gap-3">
+                            {[3, 4, 5].map(p => (
+                                <button
+                                    key={p}
+                                    onClick={() => {
+                                        if (!roundStarted && onRoundRequired) {
+                                            onRoundRequired();
+                                            return;
+                                        }
+                                        setPar(p);
+                                    }}
+                                    className={`flex-1 py-4 text-lg rounded-lg font-bold transition cursor-pointer ${
+                                        par === p
+                                            ? 'bg-[#DDEDD2] text-[#0a140a] shadow-lg ring-2 ring-[#DDEDD2]'
+                                            : 'bg-[#DDEDD2] text-[#0a140a] '
+                                    }`}
+                                >
+                                    Par {p}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {par !== null && (
+                        <>
+                            {/* Fairway Hit - Only for par 4/5 */}
+                            {par !== 3 && (
+                                <div>
+                                    <label className="block text-base font-bold text-[#DDEDD2] mb-2">Fairway Hit?</label>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setFairway('y')}
+                                            className={`flex-1 py-4 text-lg rounded-lg font-bold transition cursor-pointer ${
+                                                fairway === 'y'
+                                                    ? 'bg-[#DDEDD2] text-[#0a140a] shadow-lg ring-2 ring-[#DDEDD2]'
+                                                    : 'bg-[#DDEDD2] text-[#0a140a] '
+                                            }`}
+                                        >
+                                            Yes
+                                        </button>
+                                        <button
+                                            onClick={() => setFairway('n')}
+                                            className={`flex-1 py-4 text-lg rounded-lg font-bold transition cursor-pointer ${
+                                                fairway === 'n'
+                                                    ? 'bg-[#F2D1A4] text-[#0a140a] shadow-lg ring-2 ring-[#F2D1A4]'
+                                                    : 'bg-[#DDEDD2] text-[#0a140a] '
+                                            }`}
+                                        >
+                                            No
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Tee Shot Result - Only if fairway not hit */}
+                            {par !== 3 && fairway !== 'y' && (
+                                <div>
+                                    <label className="block text-base font-bold text-[#DDEDD2] mb-2">Tee Shot Result</label>
+                                    <select
+                                        value={teeShotResult}
+                                        onChange={(e) => setTeeShotResult(e.target.value)}
+                                        className="w-full px-4 py-4 text-lg bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-[#F2D1A4]"
+                                    >
+                                        <option value="">Select where ball ended up</option>
+                                        <option value="left_fringe">Left Fringe</option>
+                                        <option value="right_fringe">Right Fringe</option>
+                                        <option value="left_rough">Left Rough</option>
+                                        <option value="right_rough">Right Rough</option>
+                                        <option value="rough">Rough (Center)</option>
+                                        <option value="bunker">Bunker</option>
+                                        <option value="trees">Trees</option>
+                                        <option value="ob">OB (Out of Bounds) (+1)</option>
+                                        <option value="water">Water Hazard (+1)</option>
+                                        <option value="lost">Lost Ball (+1)</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            )}
+                            
+                            {/* Penalty - Only for par 3s */}
+                            {par === 3 && (
+                                <div>
+                                    <label className="block text-base font-bold text-[#DDEDD2] mb-2">Penalty?</label>
+                                    <select
+                                        value={penalty}
+                                        onChange={(e) => {
+                                            setPenalty(e.target.value);
+                                            if (e.target.value && e.target.value !== '') {
+                                                setGir('n');
+                                            }
+                                        }}
+                                        className="w-full px-4 py-4 text-lg bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-[#F2D1A4]"
+                                    >
+                                        <option value="">No Penalty</option>
+                                        <option value="ob">OB (Out of Bounds) (+1)</option>
+                                        <option value="water">Water Hazard (+1)</option>
+                                        <option value="lost">Lost Ball (+1)</option>
+                                        <option value="moved">Moved Ball (+1)</option>
+                                        <option value="unplayable">Unplayable Lie (+1)</option>
+                                        <option value="wrong">Wrong Ball (+2)</option>
+                                        <option value="other">Other (+1)</option>
+                                    </select>
+                                </div>
+                            )}
+                            
+                            {/* GIR */}
+                            <div>
+                                <label className="block text-base font-bold text-[#DDEDD2] mb-3">Green in Regulation?</label>
+                                {par === 3 && penalty && penalty !== '' && (
+                                    <p className="text-sm text-[#F2D1A4] mb-2">⚠️ GIR not possible with a penalty on par 3</p>
+                                )}
+                                {!(par === 3 && penalty && penalty !== '') && (
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setGir('y')}
+                                            className={`flex-1 py-4 text-lg rounded-lg font-bold transition ${
+                                                gir === 'y'
+                                                    ? 'bg-[#DDEDD2] text-[#0a140a] shadow-lg ring-2 ring-[#DDEDD2] cursor-pointer'
+                                                    : 'bg-[#DDEDD2] text-[#0a140a]  cursor-pointer'
+                                            }`}
+                                        >
+                                            Yes
+                                        </button>
+                                        <button
+                                            onClick={() => setGir('n')}
+                                            className={`flex-1 py-4 text-lg rounded-lg font-bold transition cursor-pointer ${
+                                                gir === 'n'
+                                                    ? 'bg-[#F2D1A4] text-[#0a140a] shadow-lg ring-2 ring-[#F2D1A4]'
+                                                    : 'bg-[#DDEDD2] text-[#0a140a] '
+                                            }`}
+                                        >
+                                            No
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Shots to Green - Only if GIR = No */}
+                            {gir === 'n' && (
+                                <div>
+                                    <label className="block text-base font-bold text-[#DDEDD2] mb-2">Shots to Reach Green</label>
+                                    <input
+                                        type="number"
+                                        value={shotsToGreen}
+                                        onWheel={(e) => e.target.blur()}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const minValue = par === 3 ? 2 : 1;
+                                            if (val === '' || (!isNaN(val) && parseInt(val) >= minValue)) {
+                                                setShotsToGreen(val);
+                                            }
+                                        }}
+                                        placeholder="Total shots before putting"
+                                        className="w-full px-4 py-4 text-lg bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-[#F2D1A4] placeholder-[#0a140a] opacity-70"
+                                        min={par === 3 ? 2 : 1}
+                                    />
+                                </div>
+                            )}
+                            
+                            {/* Putts */}
+                            <div>
+                                <label className="block text-base font-bold text-[#DDEDD2] mb-2">Number of Putts</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    value={putts}
+                                    onWheel={(e) => e.target.blur()}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setPutts(val);
+                                        setTimeout(() => {
+                                            const puttsCount = val === '' ? 0 : parseInt(val);
+                                            if (isNaN(puttsCount)) {
+                                                setPuttDistances([]);
+                                                return;
+                                            }
+                                            if (puttsCount > 0) {
+                                                setPuttDistances(prev => {
+                                                    if (prev.length < puttsCount) {
+                                                        const newDistances = [...prev];
+                                                        while (newDistances.length < puttsCount) {
+                                                            newDistances.push('');
+                                                        }
+                                                        return newDistances;
+                                                    } else if (prev.length > puttsCount) {
+                                                        return prev.slice(0, puttsCount);
+                                                    }
+                                                    return prev;
+                                                });
+                                            } else {
+                                                setPuttDistances([]);
+                                            }
+                                        }, 0);
+                                    }}
+                                    placeholder="e.g., 2"
+                                    className="w-full px-4 py-4 text-lg bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-[#F2D1A4] placeholder-[#0a140a] opacity-70"
+                                />
+                            </div>
+                            
+                            {/* Putt Distances */}
+                            {putts && parseInt(putts) > 0 && (
+                                <div>
+                                    <label className="block text-base font-bold text-[#DDEDD2] mb-2">
+                                        Putt Distances (feet)
+                                    </label>
+                                    <div className="space-y-3">
+                                        {puttDistances.map((distance, index) => (
+                                            <div key={index}>
+                                                <label className="block text-sm text-[#DDEDD2] mb-1">
+                                                    {index === 0 ? 'First Putt' : index === puttDistances.length - 1 ? 'Last Putt' : `Putt ${index + 1}`}
+                                                    {index === puttDistances.length - 1 && parseInt(putts) > 1 && (
+                                                        <span className="text-xs ml-1">(e.g., 0.5 for half foot)</span>
+                                                    )}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="200"
+                                                    step={index === puttDistances.length - 1 ? "0.5" : "1"}
+                                                    value={distance}
+                                                    onWheel={(e) => e.target.blur()}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        if (val === '') {
+                                                            const newDistances = [...puttDistances];
+                                                            newDistances[index] = val;
+                                                            setPuttDistances(newDistances);
+                                                        } else {
+                                                            const numVal = parseFloat(val);
+                                                            if (!isNaN(numVal) && numVal >= 0 && numVal <= 200) {
+                                                                if (index === puttDistances.length - 1 || numVal % 1 === 0) {
+                                                                    const newDistances = [...puttDistances];
+                                                                    newDistances[index] = val;
+                                                                    setPuttDistances(newDistances);
+                                                                }
+                                                            }
+                                                        }
+                                                    }}
+                                                    placeholder={index === puttDistances.length - 1 && parseInt(putts) > 1 ? "e.g., 0.5 (half foot)" : index === 0 ? "e.g., 25 (distance from hole)" : "e.g., 25"}
+                                                    className="w-full px-4 py-4 text-lg bg-[#DDEDD2] text-[#0a140a] border-2 border-[#DDEDD2] rounded-lg focus:outline-none focus:border-[#F2D1A4] placeholder-[#0a140a] opacity-70"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Calculated Score Display */}
+                            {gir !== null && (
+                                <div className="bg-[#0a140a] rounded-lg p-4 border-2 border-[#DDEDD2]">
+                                    <div className="text-center">
+                                        <div className="text-xs text-[#DDEDD2] mb-1 opacity-70">Calculated Score</div>
+                                        <div className="text-4xl font-bold text-[#DDEDD2]">
+                                            {(() => {
+                                                const teeShotPenalty = (par !== 3 && (teeShotResult === 'ob' || teeShotResult === 'lost' || teeShotResult === 'water')) ? 1 : 0;
+                                                const par3Penalty = (par === 3 && penalty) ? (penalty === 'wrong' ? 2 : 1) : 0;
+                                                const totalPenaltyStrokes = teeShotPenalty + par3Penalty;
+                                                
+                                                if (gir === 'y' && par && putts) {
+                                                    return par + (parseInt(putts) - 2) + totalPenaltyStrokes;
+                                                } else if (gir === 'n' && shotsToGreen && putts) {
+                                                    return parseInt(shotsToGreen) + parseInt(putts) + totalPenaltyStrokes;
+                                                }
+                                                return '-';
+                                            })()}
+                                        </div>
+        </div>
+    </div>
+                            )}
+                            
+                            {/* Submit Button */}
+                            <button
+                                onClick={handleSubmit}
+                                className="w-full bg-[#DDEDD2] text-[#0a140a] py-4 text-lg rounded-lg font-bold transition shadow-lg mb-4 cursor-pointer active:scale-[0.98] border-2 border-[#DDEDD2]"
+                            >
+                                {(() => {
+                                    const teeShotPenalty = (par !== 3 && (teeShotResult === 'ob' || teeShotResult === 'lost' || teeShotResult === 'water')) ? 1 : 0;
+                                    const par3Penalty = (par === 3 && penalty) ? (penalty === 'wrong' ? 2 : 1) : 0;
+                                    const totalPenaltyStrokes = teeShotPenalty + par3Penalty;
+                                    
+                                    let displayScore = '';
+                                    if (par && gir !== null && putts) {
+                                        if (gir === 'y') {
+                                            displayScore = par + (parseInt(putts) - 2) + totalPenaltyStrokes;
+                                        } else if (gir === 'n' && shotsToGreen) {
+                                            displayScore = parseInt(shotsToGreen) + parseInt(putts) + totalPenaltyStrokes;
+                                        }
+                                    }
+                                    
+                                    return displayScore ? `Record Hole ${holeNumber} (Score: ${displayScore})` : `Record Hole ${holeNumber}`;
+                                })()}
+                            </button>
+                        </>
+                    )}
+                </div>
+            );
+        }
+        
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<TrackLiveRound />);
+        
+        // Handle page navigation (back/forward cache)
+        window.addEventListener('pageshow', (e) => {
+            // If page was loaded from cache (bfcache), force a reload to ensure fresh state
+            if (e.persisted) {
+                window.location.reload();
+                return;
+            }
+        });
+        
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
