@@ -127,6 +127,12 @@ npm run preview
 - **Lib:** Utility functions (API, stats, validation) in `/src/lib/`
 - **Types:** TypeScript type definitions in `/src/types/`
 
+### UI Standards
+
+- **Page Layout:** See [PAGE-LAYOUT-STANDARD.md](PAGE-LAYOUT-STANDARD.md)
+- **Button Styling:** See [BUTTON-STANDARDS.md](BUTTON-STANDARDS.md)
+- **Modal Component:** See [MODAL-COMPONENT-GUIDE.md](MODAL-COMPONENT-GUIDE.md)
+
 ---
 
 ## 📦 Dependencies

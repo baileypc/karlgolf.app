@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle, faExclamationTriangle, faPencil, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faCheckCircle, faExclamationTriangle, faPencil, faTrash, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { roundsAPI } from '@/lib/api';
 import { exportRoundToCSV } from '@/lib/csv-export';
 import type { Hole as APIHole } from '@/types';
@@ -1517,9 +1517,14 @@ export default function TrackRoundPage() {
                   width: '100%',
                   marginTop: '0.75rem',
                   fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
                 }}
               >
-                📥 Download Round as CSV
+                <FontAwesomeIcon icon={faDownload} />
+                Download Round as CSV
               </button>
             )}
             </>
@@ -1828,8 +1833,16 @@ export default function TrackRoundPage() {
                 accountPromptModal.close();
               }}
               className="btn btn-secondary"
-              style={{ width: '100%', marginBottom: '0.75rem' }}
+              style={{
+                width: '100%',
+                marginBottom: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+              }}
             >
+              <FontAwesomeIcon icon={faDownload} />
               Download CSV Instead
             </button>
             

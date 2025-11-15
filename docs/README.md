@@ -31,7 +31,8 @@ This directory contains all documentation for the Karl's GIR Golf Tracker applic
 12. **[LARAGON-SETUP.md](LARAGON-SETUP.md)** - Laragon local development setup
 13. **[MODAL-COMPONENT-GUIDE.md](MODAL-COMPONENT-GUIDE.md)** - Modal component usage guide
 14. **[PAGE-LAYOUT-STANDARD.md](PAGE-LAYOUT-STANDARD.md)** - UI/UX layout standards
-15. **[PWA-INSTALL-GUIDE.md](PWA-INSTALL-GUIDE.md)** - PWA installation guide
+15. **[BUTTON-STANDARDS.md](BUTTON-STANDARDS.md)** - Button styling and icon usage standards
+16. **[PWA-INSTALL-GUIDE.md](PWA-INSTALL-GUIDE.md)** - PWA installation guide
 
 ---
 
@@ -71,7 +72,8 @@ Read in this order:
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Local development setup
 - [LARAGON-SETUP.md](LARAGON-SETUP.md) - Laragon configuration
 - [MODAL-COMPONENT-GUIDE.md](MODAL-COMPONENT-GUIDE.md) - Component usage
-- [PAGE-LAYOUT-STANDARD.md](PAGE-LAYOUT-STANDARD.md) - UI standards
+- [PAGE-LAYOUT-STANDARD.md](PAGE-LAYOUT-STANDARD.md) - UI layout standards
+- [BUTTON-STANDARDS.md](BUTTON-STANDARDS.md) - Button styling standards
 
 ### **Deployment**
 - [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md) - Production deployment

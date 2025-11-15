@@ -109,6 +109,8 @@ This document defines the standard page layout for Karl's GIR PWA, optimized for
 
 ## Button Styling
 
+> **📘 See [BUTTON-STANDARDS.md](BUTTON-STANDARDS.md) for complete button styling guide**
+
 ### Touch Targets
 ```css
 /* From public/styles.css */
@@ -132,6 +134,8 @@ This document defines the standard page layout for Karl's GIR PWA, optimized for
 - **Min Height:** 52px
 - **Padding:** 14px vertical, 20px horizontal
 - **Use Case:** Secondary actions (Discard, Cancel)
+
+**Important:** Always use Font Awesome icons (not emoticons) and include text labels for clarity. See [BUTTON-STANDARDS.md](BUTTON-STANDARDS.md) for detailed patterns and examples.
 
 ---
 

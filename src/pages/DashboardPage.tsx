@@ -152,7 +152,7 @@ export default function DashboardPage() {
   return (
     <>
       <IconNav />
-      <div className="min-h-screen" style={{ padding: '0.25rem', paddingTop: '76px', maxWidth: '900px', margin: '0 auto' }}>
+      <div className="min-h-screen" style={{ padding: '0.25rem', paddingTop: '76px', paddingBottom: '3rem', maxWidth: '900px', margin: '0 auto' }}>
         <div className="container">
           {/* Header */}
           <div style={{
@@ -208,22 +208,20 @@ export default function DashboardPage() {
                   setRoundToDelete({ roundNumber: 0, courseName: incompleteRound.courseName, isIncompleteCard: true });
                   deleteSingleRoundModal.open();
                 }}
+                className="btn btn-secondary"
                 style={{
                   width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#ef4444',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
                   fontSize: '0.875rem',
-                  opacity: 0.8,
+                  borderColor: '#ef4444',
+                  color: '#ef4444',
                   display: 'flex',
-                  justifyContent: 'center',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
                 }}
-                title="Delete Round"
               >
                 <FontAwesomeIcon icon={faTrash} />
+                Delete Round
               </button>
             </div>
           )}
@@ -375,12 +373,12 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </div>
-                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-primary)', display: 'flex', gap: '0.75rem' }}>
+                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-primary)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                       {isIncomplete && (
                         <button
                           onClick={() => navigate('/track-round')}
                           className="btn btn-primary"
-                          style={{ flex: 1 }}
+                          style={{ width: '100%' }}
                         >
                           Continue Round
                         </button>
@@ -390,21 +388,20 @@ export default function DashboardPage() {
                           setRoundToDelete({ roundNumber: group.roundNumber, courseName: group.courseName });
                           deleteSingleRoundModal.open();
                         }}
+                        className="btn btn-secondary"
                         style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          padding: '0.5rem 0.75rem',
+                          width: '100%',
                           fontSize: '0.875rem',
-                          opacity: 0.8,
+                          borderColor: '#ef4444',
+                          color: '#ef4444',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          gap: '0.5rem',
                         }}
-                        title="Delete Round"
                       >
                         <FontAwesomeIcon icon={faTrash} />
+                        Delete Round
                       </button>
                     </div>
                   </div>
@@ -415,34 +412,13 @@ export default function DashboardPage() {
             {/* Admin Tools Footer - Only show when there ARE completed rounds */}
             {hasCompletedRounds && (
             <div style={{
-              display: 'flex', 
-              gap: '1.5rem', 
-              justifyContent: 'center', 
-              alignItems: 'center',
-              marginTop: '3rem', 
-              paddingTop: '1.5rem', 
-              borderTop: '1px solid rgba(221, 237, 210, 0.2)' 
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              marginTop: '3rem',
+              paddingTop: '1.5rem',
+              borderTop: '1px solid rgba(221, 237, 210, 0.2)'
             }}>
-              {/* Reset Data */}
-              <button
-                onClick={() => {
-                  deleteRoundsModal.open();
-                }}
-                disabled={isResetting}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#ef4444',
-                  cursor: isResetting ? 'not-allowed' : 'pointer',
-                  padding: '0.5rem',
-                  fontSize: '1.25rem',
-                  opacity: isResetting ? 0.5 : 1,
-                }}
-                title="Reset All Data (Testing)"
-              >
-                <FontAwesomeIcon icon={faTrash} />
-              </button>
-
               {/* Export Data */}
               <button
                 onClick={() => {
@@ -450,7 +426,7 @@ export default function DashboardPage() {
                     alert('No data to export');
                     return;
                   }
-                  
+
                   // Collect all rounds from groups
                   const allRounds: any[] = [];
                   statsData.groups.forEach((group: any) => {
@@ -458,7 +434,7 @@ export default function DashboardPage() {
                       allRounds.push(...group.rounds);
                     }
                   });
-                  
+
                   // Create export object
                   const exportData = {
                     exportDate: new Date().toISOString(),
@@ -466,7 +442,7 @@ export default function DashboardPage() {
                     cumulativeStats: statsData.cumulative || null,
                     rounds: allRounds,
                   };
-                  
+
                   // Create and download JSON file
                   const jsonStr = JSON.stringify(exportData, null, 2);
                   const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -479,17 +455,18 @@ export default function DashboardPage() {
                   document.body.removeChild(link);
                   URL.revokeObjectURL(url);
                 }}
+                className="btn btn-secondary"
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--color-interactive)',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  fontSize: '1.25rem',
+                  width: '100%',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
                 }}
-                title="Export All Data"
               >
                 <FontAwesomeIcon icon={faDownload} />
+                Export All Data
               </button>
 
               {/* Clear Cache */}
@@ -501,54 +478,58 @@ export default function DashboardPage() {
                   alert('✅ Cache cleared');
                   window.location.reload();
                 }}
+                className="btn btn-secondary"
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--color-interactive)',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  fontSize: '1.25rem',
+                  width: '100%',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
                 }}
-                title="Clear Cache"
               >
                 <FontAwesomeIcon icon={faRotateRight} />
+                Clear Cache
+              </button>
+
+              {/* Reset Data */}
+              <button
+                onClick={() => {
+                  deleteRoundsModal.open();
+                }}
+                disabled={isResetting}
+                className="btn btn-secondary"
+                style={{
+                  width: '100%',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  color: '#ef4444',
+                  opacity: isResetting ? 0.5 : 1,
+                  cursor: isResetting ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <FontAwesomeIcon icon={faTrash} />
+                Delete All Rounds
               </button>
             </div>
             )}
           </>
         )}
 
-          {/* Footer Icons - Show when no completed rounds (after stats cards) */}
+          {/* Footer Buttons - Show when no completed rounds (after stats cards) */}
           {!hasCompletedRounds && isLoggedIn && (
             <div style={{
               display: 'flex',
-              gap: '1.5rem',
-              justifyContent: 'center',
-              alignItems: 'center',
+              flexDirection: 'column',
+              gap: '0.75rem',
               marginTop: '3rem',
               paddingTop: '1.5rem',
               borderTop: '1px solid rgba(221, 237, 210, 0.2)'
             }}>
-              {/* Delete All Rounds */}
-              <button
-                onClick={() => {
-                  deleteRoundsModal.open();
-                }}
-                disabled={isResetting}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#ef4444',
-                  cursor: isResetting ? 'not-allowed' : 'pointer',
-                  padding: '0.5rem',
-                  fontSize: '1.25rem',
-                  opacity: isResetting ? 0.5 : 1,
-                }}
-                title="Delete All Rounds"
-              >
-                <FontAwesomeIcon icon={faTrash} />
-              </button>
-
               {/* Export Data */}
               <button
                 onClick={() => {
@@ -586,17 +567,42 @@ export default function DashboardPage() {
                   document.body.removeChild(link);
                   URL.revokeObjectURL(url);
                 }}
+                className="btn btn-secondary"
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--color-interactive)',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  fontSize: '1.25rem',
+                  width: '100%',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
                 }}
-                title="Export All Data"
               >
                 <FontAwesomeIcon icon={faDownload} />
+                Export All Data
+              </button>
+
+              {/* Delete All Rounds */}
+              <button
+                onClick={() => {
+                  deleteRoundsModal.open();
+                }}
+                disabled={isResetting}
+                className="btn btn-secondary"
+                style={{
+                  width: '100%',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  color: '#ef4444',
+                  opacity: isResetting ? 0.5 : 1,
+                  cursor: isResetting ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <FontAwesomeIcon icon={faTrash} />
+                Delete All Rounds
               </button>
 
               {/* Delete Account */}
@@ -604,18 +610,20 @@ export default function DashboardPage() {
                 onClick={() => {
                   deleteAccountModal.open();
                 }}
+                className="btn btn-secondary"
                 style={{
-                  background: 'transparent',
-                  border: 'none',
+                  width: '100%',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
                   color: '#ef4444',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  fontSize: '1.25rem',
-                  opacity: 1,
                 }}
-                title="Delete Account"
               >
                 <FontAwesomeIcon icon={faUserSlash} />
+                Delete Account
               </button>
             </div>
           )}

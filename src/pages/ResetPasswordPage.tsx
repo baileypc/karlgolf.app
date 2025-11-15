@@ -1,6 +1,8 @@
 // Karl's GIR - Reset Password Page
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { authAPI } from '@/lib/api';
 import IconNav from '@/components/IconNav';
 import Modal, { useModal } from '@/components/Modal';
@@ -224,7 +226,7 @@ export default function ResetPasswordPage() {
                       padding: '0.25rem',
                     }}
                   >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                   </button>
                 </div>
               </div>
@@ -266,7 +268,7 @@ export default function ResetPasswordPage() {
                       padding: '0.25rem',
                     }}
                   >
-                    {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                    <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
                   </button>
                 </div>
               </div>
