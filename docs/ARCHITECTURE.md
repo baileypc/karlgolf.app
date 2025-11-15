@@ -450,7 +450,7 @@ http://karlgolf.app.test/
 ### Production (SiteGround)
 
 ```
-https://karlsgolf.app/
+https://karlgolf.app/
 ├── Frontend: /public_html/ (static files)
 ├── Backend: /public_html/api/ (PHP)
 ├── Admin: /public_html/admin/

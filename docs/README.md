@@ -119,7 +119,7 @@ Output: /public/ folder (ready for deployment)
 
 ### **Environment Detection**
 - Local: `http://karlgolf.app.test/` (Laragon)
-- Production: `https://karlsgolf.app/` (SiteGround)
+- Production: `https://karlgolf.app/` (SiteGround)
 - Auto-detected by `api/common/environment.php`
 
 ---

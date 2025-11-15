@@ -71,12 +71,12 @@ export default function IconNav() {
             objectFit: 'contain'
           }} 
         />
-        <span style={{ 
-          fontSize: 'var(--font-lg)', 
-          fontWeight: 'bold', 
+        <span style={{
+          fontSize: 'var(--font-lg)',
+          fontWeight: 'bold',
           color: 'var(--text-primary)'
         }}>
-          Karl's GIR
+          Karl Golf GIR
         </span>
       </div>
 

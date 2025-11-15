@@ -57,7 +57,7 @@ function getEnvironment() {
  */
 function getDomain() {
     if (isProduction()) {
-        return 'karlsgolf.app';
+        return 'karlgolf.app';
     }
     
     // Development: use actual host or fallback to localhost

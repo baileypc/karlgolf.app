@@ -108,7 +108,7 @@ This creates the `/public/` folder with all production files ready for deploymen
 
 After first deployment:
 
-1. **Create a test account** at `https://karlsgolf.app/`
+1. **Create a test account** at `https://karlgolf.app/`
 2. **Check file structure via SFTP or File Manager:**
    - Look for `/home/yourusername/data/` (NOT in public_html)
    - You should see a folder with a hash name (your test user)
@@ -121,7 +121,7 @@ After first deployment:
 ### **Step 4: Test Everything**
 
 **Core Functionality:**
-- [ ] Visit `https://karlsgolf.app/`
+- [ ] Visit `https://karlgolf.app/`
 - [ ] Register a new account
 - [ ] Login (should redirect to /track-round)
 - [ ] Track a round (9+ holes)
@@ -131,7 +131,7 @@ After first deployment:
 - [ ] Password reset flow
 
 **Admin Dashboard:**
-- [ ] Visit `https://karlsgolf.app/admin/`
+- [ ] Visit `https://karlgolf.app/admin/`
 - [ ] Login with admin credentials
 - [ ] View analytics dashboard
 - [ ] View individual user stats
@@ -244,7 +244,7 @@ After deployment, verify:
 - Look for errors, warnings, or suspicious activity
 
 ### **Check Analytics:**
-- Login to admin dashboard: `https://karlsgolf.app/admin/`
+- Login to admin dashboard: `https://karlgolf.app/admin/`
 - View user signups, page visits, round events
 
 ---
@@ -280,7 +280,7 @@ If you encounter issues:
 
 ## ✅ Deployment Complete!
 
-Your app is now live at: **https://karlsgolf.app/** 🎉⛳
+Your app is now live at: **https://karlgolf.app/** 🎉⛳
 
 Remember:
 - User data is safe between deployments

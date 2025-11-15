@@ -41,21 +41,21 @@ export default function HomePage() {
           }}
         />
         <h1 className="font-bold" style={{ fontSize: 'var(--font-4xl)', marginBottom: 'var(--space-md)' }}>
-          Karl's GIR
+          Karl Golf GIR
         </h1>
-        <div 
+        <div
           className="mx-auto"
           style={{
             borderBottom: '2px solid var(--border-primary)',
             width: '80px',
             marginBottom: 'var(--space-md)'
-          }} 
+          }}
         />
         <p className="text-lg opacity-90" style={{ marginBottom: 'var(--space-sm)' }}>
           Track key averages for game improvement.
         </p>
         <p className="opacity-70">
-          GIR's, fairway's, putting, misses and average score.
+          GIR's, fairway's, putting, misses and average scores.
         </p>
       </div>
 
@@ -68,14 +68,19 @@ export default function HomePage() {
             padding: 'var(--space-lg) var(--space-xl)',
             fontSize: 'var(--font-2xl)',
             fontWeight: 'bold',
-            minHeight: '80px'
+            minHeight: '80px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem'
           }}
         >
-          Start Round
+          <span>Start Round</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 'normal', opacity: 0.8 }}>
+            Start now. Create account later.
+          </span>
         </button>
-        <p className="text-sm text-center mt-sm" style={{ opacity: 0.8, lineHeight: '1.6' }}>
-          Start now. Create account later.
-        </p>
       </div>
 
       {/* Secondary Action - Login */}
@@ -102,7 +107,7 @@ export default function HomePage() {
           Version 3.1.0
         </p>
         <p className="text-sm" style={{ fontSize: '0.75rem', opacity: 0.6 }}>
-          © 2025 Karl's GIR. All rights reserved.
+          © 2025 Karl Golf GIR. All rights reserved.
         </p>
       </div>
     </div>

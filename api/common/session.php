@@ -19,7 +19,7 @@ function initSession() {
                 (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
 
     // Set cookie domain to empty for both environments
-    // Empty domain = current domain only (works for karlsgolf.app)
+    // Empty domain = current domain only (works for karlgolf.app)
     $domain = '';
 
     session_set_cookie_params([

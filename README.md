@@ -2,7 +2,7 @@
 
 **Version:** 3.1.0 (Production)
 **Status:** ✅ **LIVE IN PRODUCTION**
-**Domain:** [https://karlsgolf.app](https://karlsgolf.app)
+**Domain:** [https://karlgolf.app](https://karlgolf.app)
 
 A Progressive Web App for tracking golf performance with college coach metrics. Built for high school and college golf students, and serious recreational golfers seeking data-driven improvement.
 
@@ -199,7 +199,7 @@ See **[Security Assessment](docs/SECURITY-ASSESSMENT.md)** for complete analysis
 1. **Build:** `npm run build`
 2. **Upload:** All files from `/public/` to production `/public_html/`
 3. **Create:** `/data/` directory outside public_html (755 permissions)
-4. **Test:** `https://karlsgolf.app`
+4. **Test:** `https://karlgolf.app`
 
 **Note:** Build output goes to `/public/` folder (not `/dist/`). The build process automatically copies all necessary files including API, admin dashboard, and static assets.
 
