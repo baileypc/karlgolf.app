@@ -176,7 +176,7 @@ export default function LoginPage() {
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <img
             src="./images/karls_gir.png"
-            alt="Karl's GIR Logo"
+            alt="Karl Golf GIR Logo"
             style={{ 
               width: '6rem', 
               height: '6rem', 

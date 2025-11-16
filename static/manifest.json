@@ -1,6 +1,6 @@
 {
-  "name": "Karl's GIR - Golf Tracker",
-  "short_name": "Karl's GIR",
+  "name": "Karl Golf GIR - Golf Tracker",
+  "short_name": "Karl Golf GIR",
   "description": "Track your golf performance with college coach metrics",
   "start_url": "./",
   "scope": "./",

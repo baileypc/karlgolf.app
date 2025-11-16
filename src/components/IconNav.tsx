@@ -9,6 +9,9 @@ export default function IconNav() {
   const location = useLocation();
   const { logout, isLoggedIn } = useAuth();
 
+  // Debug logging
+  console.log('🔍 IconNav - isLoggedIn:', isLoggedIn);
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -64,7 +67,7 @@ export default function IconNav() {
           >
         <img 
           src="./images/karls_gir.png" 
-          alt="Karl's GIR" 
+          alt="Karl Golf GIR" 
           style={{ 
             width: '40px', 
             height: '40px',

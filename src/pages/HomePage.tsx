@@ -31,7 +31,7 @@ export default function HomePage() {
       <div className="text-center mb-xl">
         <img
           src="./images/karls_gir.png"
-          alt="Karl's GIR Logo"
+          alt="Karl Golf GIR Logo"
           className="mx-auto block"
           style={{ 
             width: '10rem', 

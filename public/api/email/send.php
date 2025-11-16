@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $date = date('F j, Y');
     
     // Email subject
-    $subject = "Karl's GIR - {$roundTitle} - {$date}";
+    $subject = "Karl Golf GIR - {$roundTitle} - {$date}";
 
     // Build HTML email
     $htmlContent = buildHtmlEmail($roundTitle, $date, $holes, $stats);
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Email headers for HTML
     $headers = "MIME-Version: 1.0\r\n";
     $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $headers .= "From: Karl's GIR <noreply@karlgolf.app>\r\n";
+    $headers .= "From: Karl Golf GIR <noreply@karlgolf.app>\r\n";
     $headers .= "Reply-To: noreply@karlgolf.app\r\n";
     $headers .= "X-Mailer: PHP/" . phpversion();
 
@@ -80,31 +80,151 @@ function buildHtmlEmail($title, $date, $holes, $stats) {
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 30px; text-align: center; border-radius: 10px; margin-bottom: 30px; }
-        .header h1 { margin: 0; font-size: 28px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
-        .stat-card { background: #f9fafb; border: 2px solid #e5e7eb; border-radius: 8px; padding: 15px; text-align: center; }
-        .stat-value { font-size: 24px; font-weight: bold; color: #16a34a; }
-        .stat-label { font-size: 14px; color: #6b7280; margin-top: 5px; }
-        .hole-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        .hole-table th { background: #16a34a; color: white; padding: 10px; text-align: left; font-size: 14px; }
-        .hole-table td { padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
-        .hole-table tr:hover { background: #f9fafb; }
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin: 0 2px; }
-        .badge-gir { background: #dcfce7; color: #166534; }
-        .badge-penalty { background: #fee2e2; color: #991b1b; }
-        .badge-sand { background: #fef3c7; color: #92400e; }
-        .badge-chip { background: #e9d5ff; color: #6b21a8; }
-        .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; color: #6b7280; font-size: 14px; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #DDEDD2; 
+            background-color: #0a140a; 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .email-container {
+            background-color: #0a140a;
+            padding: 20px;
+        }
+        .header { 
+            background: rgba(221, 237, 210, 0.2); 
+            border: 2px solid #DDEDD2; 
+            color: #DDEDD2; 
+            padding: 30px; 
+            text-align: center; 
+            border-radius: 12px; 
+            margin-bottom: 30px; 
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 28px; 
+            font-weight: bold;
+            color: #DDEDD2;
+        }
+        .header p {
+            margin: 10px 0 0 0; 
+            font-size: 16px; 
+            color: #DDEDD2;
+            opacity: 0.9;
+        }
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 15px; 
+            margin: 20px 0; 
+        }
+        .stat-card { 
+            background: rgba(221, 237, 210, 0.2); 
+            border: 2px solid #DDEDD2; 
+            border-radius: 8px; 
+            padding: 20px; 
+            text-align: center; 
+        }
+        .stat-value { 
+            font-size: 28px; 
+            font-weight: bold; 
+            color: #DDEDD2; 
+            margin-bottom: 5px;
+        }
+        .stat-label { 
+            font-size: 13px; 
+            color: #DDEDD2; 
+            opacity: 0.8;
+            margin-top: 5px; 
+        }
+        .section-title {
+            color: #DDEDD2;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 30px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #DDEDD2;
+        }
+        .hole-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0; 
+            background: rgba(221, 237, 210, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .hole-table th { 
+            background: rgba(221, 237, 210, 0.3); 
+            color: #DDEDD2; 
+            padding: 12px; 
+            text-align: left; 
+            font-size: 14px; 
+            font-weight: bold;
+            border-bottom: 2px solid #DDEDD2;
+        }
+        .hole-table td { 
+            padding: 12px; 
+            border-bottom: 1px solid rgba(221, 237, 210, 0.2); 
+            font-size: 14px; 
+            color: #DDEDD2;
+        }
+        .hole-table tr:last-child td {
+            border-bottom: none;
+        }
+        .hole-table tr:hover { 
+            background: rgba(221, 237, 210, 0.15); 
+        }
+        .badge { 
+            display: inline-block; 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            font-size: 11px; 
+            font-weight: bold; 
+            margin: 2px; 
+        }
+        .badge-gir { 
+            background: rgba(221, 237, 210, 0.3); 
+            color: #DDEDD2; 
+            border: 1px solid #DDEDD2;
+        }
+        .badge-penalty { 
+            background: rgba(242, 209, 164, 0.3); 
+            color: #F2D1A4; 
+            border: 1px solid #F2D1A4;
+        }
+        .badge-chip { 
+            background: rgba(212, 165, 116, 0.3); 
+            color: #D4A574; 
+            border: 1px solid #D4A574;
+        }
+        .footer { 
+            text-align: center; 
+            margin-top: 40px; 
+            padding-top: 20px; 
+            border-top: 2px solid rgba(221, 237, 210, 0.3); 
+            color: #DDEDD2; 
+            font-size: 14px; 
+        }
+        .footer strong {
+            color: #DDEDD2;
+            font-size: 16px;
+        }
+        .footer p {
+            margin: 8px 0;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>⛳ {$title}</h1>
-        <p style="margin: 5px 0 0 0; font-size: 16px;">{$date}</p>
-    </div>
+    <div class="email-container">
+        <div class="header">
+            <h1>⛳ {$title}</h1>
+            <p>{$date}</p>
+        </div>
 
     <div class="stats-grid">
         <div class="stat-card">
@@ -137,7 +257,7 @@ function buildHtmlEmail($title, $date, $holes, $stats) {
         </div>
     </div>
 
-    <h2 style="color: #16a34a; margin-top: 30px;">Hole-by-Hole Breakdown</h2>
+        <h2 class="section-title">Hole-by-Hole Breakdown</h2>
     <table class="hole-table">
         <thead>
             <tr>
@@ -177,13 +297,14 @@ HTML;
 ROW;
     }
 
-    $html .= <<<HTML
+        $html .= <<<HTML
         </tbody>
     </table>
 
     <div class="footer">
-        <p><strong>Karl's GIR</strong> - Golf Performance Tracker</p>
+        <p><strong>Karl Golf GIR</strong> - Golf Performance Tracker</p>
         <p>Track your game. Improve your score. 🏌️‍♂️</p>
+    </div>
     </div>
 </body>
 </html>
@@ -199,7 +320,7 @@ function buildTextEmail($title, $date, $holes, $stats) {
     $fairwayPct = $stats['eligibleFairways'] > 0 ? number_format(($stats['fairwaysHit'] / $stats['eligibleFairways']) * 100, 1) : 0;
     
     $text = "===========================================\n";
-    $text .= "KARL'S GIR - {$title}\n";
+    $text .= "KARL GOLF GIR - {$title}\n";
     $text .= "{$date}\n";
     $text .= "===========================================\n\n";
     
@@ -236,7 +357,7 @@ function buildTextEmail($title, $date, $holes, $stats) {
     }
     
     $text .= "\n===========================================\n";
-    $text .= "Karl's GIR - Golf Performance Tracker\n";
+    $text .= "Karl Golf GIR - Golf Performance Tracker\n";
     $text .= "===========================================\n";
     
     return $text;

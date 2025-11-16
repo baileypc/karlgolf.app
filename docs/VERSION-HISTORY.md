@@ -20,6 +20,7 @@
 
 **Bug Fixes:**
 - **Session Cookie Fix** - Fixed production session cookie domain (empty string for current domain)
+- **Welcome Email Session Bug** - Fixed output before session_start() caused by closing PHP tag in welcome-email.php
 - **Scoring Calculation** - Fixed critical bug where tee shot wasn't counted when GIR = No
 - **Delete Hole Modal** - Fixed flickering and validation errors
 - **Dashboard Layout** - Stats cards now show even with incomplete rounds
@@ -27,6 +28,7 @@
 
 ### 🔧 Technical Changes
 - Updated session cookie configuration in `api/common/session.php`
+- Removed closing PHP tag from `api/auth/welcome-email.php` to prevent output before session_start()
 - Added toast notifications to `LoginPage.tsx` for better error feedback
 - Changed navigation flow to redirect to `/track-round` after auth
 - Added jsPDF library for PDF generation

@@ -12,14 +12,14 @@ function sendPasswordResetEmail($email, $token) {
     $resetUrl = $baseUrl . '/#/reset-password?token=' . urlencode($token) . '&email=' . urlencode($email);
     $expiresIn = '1 hour';
     
-    $subject = "Karl's GIR - Password Reset Request";
+    $subject = "Karl Golf GIR - Password Reset Request";
     
     $htmlContent = buildPasswordResetEmail($resetUrl, $expiresIn);
     
     // Email headers
     $headers = "MIME-Version: 1.0\r\n";
     $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $headers .= "From: Karl's GIR <noreply@karlgolf.app>\r\n";
+    $headers .= "From: Karl Golf GIR <noreply@karlgolf.app>\r\n";
     $headers .= "Reply-To: noreply@karlgolf.app\r\n";
     $headers .= "X-Mailer: PHP/" . phpversion();
     
@@ -37,43 +37,46 @@ function buildPasswordResetEmail($resetUrl, $expiresIn) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6; 
-            color: #e2e8f0; 
-            background-color: #0f172a;
+            color: #DDEDD2; 
+            background-color: #0a140a;
             margin: 0;
             padding: 20px;
         }
         .email-container {
             max-width: 600px;
             margin: 0 auto;
-            background-color: #1e293b;
+            background-color: #0a140a;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         }
         .header { 
-            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); 
-            color: white; 
+            background: rgba(221, 237, 210, 0.2); 
+            border: 2px solid #DDEDD2;
+            color: #DDEDD2; 
             padding: 40px 30px; 
             text-align: center; 
+            border-radius: 12px;
+            margin-bottom: 30px;
         }
         .header h1 { 
             margin: 0; 
             font-size: 32px; 
             font-weight: bold;
+            color: #DDEDD2;
         }
         .header p {
             margin: 10px 0 0 0;
             font-size: 16px;
-            opacity: 0.95;
+            opacity: 0.9;
         }
         .content {
             padding: 40px 30px;
-            background-color: #1e293b;
+            background-color: #0a140a;
         }
         .content p {
-            color: #e2e8f0;
+            color: #DDEDD2;
             font-size: 16px;
             margin: 0 0 20px 0;
             line-height: 1.6;
@@ -84,58 +87,65 @@ function buildPasswordResetEmail($resetUrl, $expiresIn) {
         }
         .reset-button {
             display: inline-block;
-            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-            color: white;
+            background: #DDEDD2;
+            color: #0a140a;
             padding: 16px 32px;
             text-decoration: none;
             border-radius: 8px;
             font-weight: bold;
             font-size: 16px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s;
+            border: 2px solid #DDEDD2;
+            transition: all 0.2s;
         }
         .reset-button:hover {
+            background: rgba(221, 237, 210, 0.8);
             transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
         }
         .warning-box {
-            background-color: #334155;
-            border-left: 4px solid #fbbf24;
+            background: rgba(242, 209, 164, 0.2);
+            border: 2px solid #F2D1A4;
+            border-left: 4px solid #F2D1A4;
             padding: 16px;
             border-radius: 6px;
             margin: 25px 0;
         }
         .warning-box p {
             margin: 0;
-            color: #fbbf24;
+            color: #F2D1A4;
             font-size: 14px;
             font-weight: 500;
         }
         .info-box {
-            background-color: #334155;
-            border-left: 4px solid #60a5fa;
+            background: rgba(221, 237, 210, 0.2);
+            border: 2px solid #DDEDD2;
+            border-left: 4px solid #DDEDD2;
             padding: 16px;
             border-radius: 6px;
             margin: 25px 0;
         }
         .info-box p {
             margin: 0;
-            color: #60a5fa;
+            color: #DDEDD2;
             font-size: 14px;
         }
         .footer { 
             text-align: center; 
             padding: 30px;
-            background-color: #0f172a;
-            border-top: 1px solid #334155;
+            background-color: #0a140a;
+            border-top: 2px solid rgba(221, 237, 210, 0.3);
         }
         .footer p {
-            color: #94a3b8;
+            color: #DDEDD2;
             font-size: 14px;
             margin: 5px 0;
+            opacity: 0.9;
+        }
+        .footer strong {
+            color: #DDEDD2;
+            font-size: 16px;
         }
         .footer a {
-            color: #22c55e;
+            color: #DDEDD2;
             text-decoration: none;
         }
         .footer a:hover {
@@ -144,17 +154,19 @@ function buildPasswordResetEmail($resetUrl, $expiresIn) {
         .link-fallback {
             margin-top: 20px;
             padding: 15px;
-            background-color: #334155;
+            background: rgba(221, 237, 210, 0.1);
+            border: 1px solid rgba(221, 237, 210, 0.3);
             border-radius: 6px;
             word-break: break-all;
         }
         .link-fallback p {
             margin: 0;
             font-size: 12px;
-            color: #94a3b8;
+            color: #DDEDD2;
+            opacity: 0.8;
         }
         .link-fallback code {
-            color: #22c55e;
+            color: #DDEDD2;
             font-size: 11px;
         }
     </style>
@@ -162,14 +174,14 @@ function buildPasswordResetEmail($resetUrl, $expiresIn) {
 <body>
     <div class="email-container">
         <div class="header">
-            <h1>⛳ Karl's GIR</h1>
+            <h1>⛳ Karl Golf GIR</h1>
             <p>Password Reset Request</p>
         </div>
         
         <div class="content">
             <p>Hello,</p>
             
-            <p>We received a request to reset your password for your Karl's GIR account. Click the button below to create a new password:</p>
+            <p>We received a request to reset your password for your Karl Golf GIR account. Click the button below to create a new password:</p>
             
             <div class="button-container">
                 <a href="{$resetUrl}" class="reset-button">Reset Password</a>
@@ -191,7 +203,7 @@ function buildPasswordResetEmail($resetUrl, $expiresIn) {
         </div>
         
         <div class="footer">
-            <p><strong>Karl's GIR</strong> - Golf Performance Tracker</p>
+            <p><strong>Karl Golf GIR</strong> - Golf Performance Tracker</p>
             <p>Track your game. Improve your score. 🏌️‍♂️</p>
             <p style="margin-top: 15px;">
                 <a href="https://{$domain}">Visit {$domain}</a>

@@ -166,8 +166,8 @@ export default function DashboardPage() {
             </h1>
           </div>
 
-          {/* No Completed Rounds Yet - Show Message */}
-          {!hasCompletedRounds && (
+          {/* No Completed Rounds Yet - Show Message (only if no incomplete round either) */}
+          {!hasCompletedRounds && !incompleteRound && (
             <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem', textAlign: 'center' }}>
               <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>
                 No Statistics Yet
@@ -175,15 +175,13 @@ export default function DashboardPage() {
               <p style={{ color: 'var(--text-primary)', marginBottom: '1.5rem', opacity: 0.9 }}>
                 Complete at least one 9-hole round to see your statistics and track your progress.
               </p>
-              {!incompleteRound && (
-                <button
-                  onClick={() => navigate('/track-round')}
-                  className="btn btn-primary"
-                  style={{ width: '100%' }}
-                >
-                  Start Your First Round
-                </button>
-              )}
+              <button
+                onClick={() => navigate('/track-round')}
+                className="btn btn-primary"
+                style={{ width: '100%' }}
+              >
+                Start Your First Round
+              </button>
             </div>
           )}
 
@@ -226,7 +224,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Stats Cards - Show if ANY data exists (completed or incomplete) */}
+          {/* Stats Cards - Show only if there's completed round data */}
           {hasData && (
           <>
             {/* Primary Stat - Average GIR% */}

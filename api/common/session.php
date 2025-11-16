@@ -7,32 +7,18 @@
 require_once __DIR__ . '/environment.php';
 
 function initSession() {
-    // Configure session cookie before starting session
-    ini_set('session.cookie_httponly', '1');
-    ini_set('session.cookie_samesite', 'Lax');
-    ini_set('session.use_only_cookies', '1');
-    ini_set('session.cookie_lifetime', '0');
-
-    // Detect if we're on HTTPS
-    $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
-                (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) ||
-                (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-
-    // Set cookie domain to empty for both environments
-    // Empty domain = current domain only (works for karlgolf.app)
-    $domain = '';
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path' => '/',
-        'domain' => $domain,
-        'secure' => $isSecure,
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-
+    // Use plain session_start() - SiteGround doesn't accept options array
     session_start();
+
+    // Debug session after starting
+    error_log('🔍 Session Started - ID: ' . session_id());
+    error_log('🔍 Session Started - status: ' . session_status());
+    error_log('🔍 Session Started - cookie_params: ' . json_encode(session_get_cookie_params()));
+
+    // Set headers to prevent caching and ensure JSON response
     header('Content-Type: application/json');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
 }
 
 /**

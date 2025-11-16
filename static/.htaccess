@@ -58,11 +58,21 @@
   ExpiresByType text/css "access plus 1 year"
 </IfModule>
 
-# Protect sensitive files
-<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql|json)$">
+# Protect sensitive files (except manifest.json for PWA)
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql)$">
   Order Allow,Deny
   Deny from all
 </FilesMatch>
+
+# Block JSON files except manifest.json
+<FilesMatch "\.json$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+<Files "manifest.json">
+  Order Allow,Deny
+  Allow from all
+</Files>
 
 # Prevent directory browsing
 Options -Indexes

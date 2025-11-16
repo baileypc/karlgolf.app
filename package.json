@@ -2,7 +2,7 @@
   "name": "karlgolf.app",
   "version": "3.1.0",
   "type": "module",
-  "description": "Karl's GIR - Golf Statistics Tracker PWA",
+  "description": "Karl Golf GIR - Golf Statistics Tracker PWA",
   "scripts": {
     "dev": "vite",
     "build": "node pre-build.js && tsc && vite build && node build-deploy.js",
@@ -16,7 +16,7 @@
     "pwa",
     "gir"
   ],
-  "author": "Karl's GIR",
+  "author": "Karl Golf GIR",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^24.10.0",

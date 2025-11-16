@@ -1,4 +1,4 @@
-# Karl's GIR - Golf Tracking PWA
+# Karl Golf GIR - Golf Tracking PWA
 
 **Version:** 3.1.0 (Production)
 **Status:** ✅ **LIVE IN PRODUCTION**
@@ -19,7 +19,7 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 - ✅ **PDF Reports** - Marketing-ready analytics reports with charts
 - ✅ **Enhanced UX** - Direct navigation to track round after login/register
 - ✅ **Password Validation** - Toast notifications for registration errors
-- ✅ **Session Fix** - Resolved production authentication issues
+- ✅ **Session Fix** - Resolved production authentication issues (session cookie domain + welcome email output bug)
 
 ### Features from v3.0.0
 - ✅ **Clean URLs** - App served from root (no `/dist/` in URL)

@@ -118,7 +118,7 @@ export function PWAInstallPrompt() {
         >
           <img
             src="./images/karls_gir.png"
-            alt="Karl's GIR Logo"
+            alt="Karl Golf GIR Logo"
             style={{
               width: '100%',
               height: '100%',
@@ -135,7 +135,7 @@ export function PWAInstallPrompt() {
               color: 'var(--text-primary)',
             }}
           >
-            Install Karl's GIR
+            Install Karl Golf GIR
           </div>
         </div>
 

@@ -300,9 +300,9 @@ export default function ResetPasswordPage() {
         <Modal
           isOpen={errorModal.isOpen}
           onClose={errorModal.close}
-          title={message.includes('successfully') ? 'Success' : 'Error'}
+          title={message.includes('successfully') || message.includes('sent!') ? 'Success' : 'Error'}
           message={message}
-          type={message.includes('successfully') ? 'success' : 'warning'}
+          type={message.includes('successfully') || message.includes('sent!') ? 'success' : 'warning'}
           confirmText="OK"
           showCancel={false}
         />

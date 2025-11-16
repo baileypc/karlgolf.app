@@ -11,9 +11,15 @@ require_once __DIR__ . '/../common/validation.php';
 require_once __DIR__ . '/../common/logger.php';
 require_once __DIR__ . '/../common/analytics-tracker.php';
 require_once __DIR__ . '/../common/rate-limiter.php';
+require_once __DIR__ . '/welcome-email.php';
 
 // Initialize session
 initSession();
+
+// Prevent caching of authentication responses
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 // Get JSON input for POST requests first (for actions sent in JSON body)
 $json = file_get_contents('php://input');
@@ -25,6 +31,10 @@ $action = $_GET['action'] ?? ($_POST['action'] ?? ($data['action'] ?? ''));
 // Check if user is logged in
 if ($action === 'check') {
     $auth = checkAuth();
+    // Debug logging
+    error_log('🔍 Auth Check - Session ID: ' . session_id());
+    error_log('🔍 Auth Check - Session data: ' . json_encode($_SESSION));
+    error_log('🔍 Auth Check - Result: ' . json_encode($auth));
     echo json_encode([
         'loggedIn' => $auth['loggedIn'],
         'email' => $auth['userEmail']
@@ -195,7 +205,19 @@ if ($action === 'register') {
     
     // Track signup for analytics (pass email so admin can see it)
     trackSignup($emailHash, $email);
-    
+
+    // Send welcome email (non-blocking - don't fail registration if email fails)
+    try {
+        sendWelcomeEmail($email);
+        logInfo('Welcome email sent to new user', ['email' => $email]);
+    } catch (Exception $e) {
+        logWarning('Failed to send welcome email', [
+            'email' => $email,
+            'error' => $e->getMessage()
+        ]);
+        // Continue with registration even if email fails
+    }
+
     logInfo('New user registered successfully', [
         'email' => $email,
         'userDir' => $userDir,
@@ -236,10 +258,14 @@ if ($action === 'login') {
     // Create session
     $_SESSION['user_email'] = $email;
     $_SESSION['user_hash'] = $emailHash;
-    
+
     // Regenerate session ID for security after login
     session_regenerate_id(true);
-    
+
+    // Debug logging
+    error_log('🔍 Login Success - Session ID: ' . session_id());
+    error_log('🔍 Login Success - Session data: ' . json_encode($_SESSION));
+
     logInfo('User logged in', ['email' => $email]);
     echo json_encode(['success' => true, 'message' => 'Login successful']);
     exit;
