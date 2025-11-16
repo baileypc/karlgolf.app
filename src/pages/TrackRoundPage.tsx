@@ -192,11 +192,9 @@ export default function TrackRoundPage() {
           holes: apiHoles,
         }).then((result) => {
           if (result.success) {
-            console.log('[Migration] localStorage data migrated to server');
             queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
           }
-        }).catch((error) => {
-          console.error('[Migration] Failed to migrate localStorage data:', error);
+        }).catch(() => {
           // Don't show error to user - data is still in localStorage and will be available
         });
       }
@@ -270,10 +268,8 @@ export default function TrackRoundPage() {
   };
 
   const loadHoleForEditing = (holeNumber: number) => {
-    console.log('✏️ loadHoleForEditing - holeNumber:', holeNumber);
     const hole = holes.find(h => h.holeNumber === holeNumber);
     if (!hole) {
-      console.error('Hole not found for editing:', holeNumber, 'Available holes:', holes.map(h => h.holeNumber));
       return;
     }
 
@@ -292,46 +288,36 @@ export default function TrackRoundPage() {
     // Don't change currentHole - it should stay as the next hole to be entered
 
     // Close modal and scroll to form
-    console.log('✏️ Closing viewHolesModal and scrolling to top');
     viewHolesModal.close();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteHole = async (holeNumber: number) => {
-    console.log('🗑️ handleDeleteHole - holeNumber:', holeNumber);
-
     // Close viewHolesModal first to avoid z-index conflicts
     viewHolesModal.close();
 
     // Use modal for delete confirmation instead of browser confirm
     setModalMessage(`Delete hole ${holeNumber}? This cannot be undone.`);
     setModalAction(() => async () => {
-      console.log('🗑️ modalAction executing...');
       await performDeleteHole(holeNumber);
-      console.log('🗑️ modalAction complete');
     });
 
     // Small delay to ensure viewHolesModal is fully closed
     setTimeout(() => {
       discardModal.open();
-      console.log('🗑️ Modal opened');
     }, 50);
   };
 
   const performDeleteHole = async (holeNumber: number) => {
-    console.log('🗑️ performDeleteHole START - holeNumber:', holeNumber);
 
     // Remove hole and renumber subsequent holes
     const newHoles = holes
       .filter(h => h.holeNumber !== holeNumber)
       .map(h => h.holeNumber > holeNumber ? { ...h, holeNumber: h.holeNumber - 1 } : h);
 
-    console.log('🗑️ newHoles.length:', newHoles.length);
-
     // If this was the last hole, clear the round but keep roundStarted=true
     // so the modal doesn't disappear
     if (newHoles.length === 0) {
-      console.log('🗑️ Last hole - clearing round');
       // Clear localStorage
       localStorage.removeItem('karlsGIR_currentRound');
 
@@ -344,17 +330,14 @@ export default function TrackRoundPage() {
       // If logged in, delete the incomplete round from server
       if (isLoggedIn) {
         try {
-          console.log('🗑️ Deleting from server...');
           await roundsAPI.deleteIncompleteRound();
           queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
-          console.log('🗑️ Server delete complete');
         } catch (error) {
           console.error('Error deleting incomplete round from server:', error);
           // Don't show error - round is already cleared locally
         }
       }
 
-      console.log('🗑️ performDeleteHole END (last hole)');
       return; // Exit early
     }
 
@@ -1037,12 +1020,6 @@ export default function TrackRoundPage() {
             <p style={{ opacity: 0.8 }}>
               {courseName} - {editingHole !== null ? `Editing Hole ${editingHole}` : `Hole ${currentHole}`}
             </p>
-            {/* Debug display - remove after fixing */}
-            {editingHole !== null && (
-              <p style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '0.25rem' }}>
-                Debug: editingHole={String(editingHole)}, currentHole={currentHole}
-              </p>
-            )}
           </div>
 
           {/* Stats Panel */}
@@ -1103,7 +1080,7 @@ export default function TrackRoundPage() {
             {/* Par Selection */}
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                Par
+                Par (Tee Shot)
               </label>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 {[3, 4, 5].map((p) => (
@@ -1133,12 +1110,6 @@ export default function TrackRoundPage() {
             </div>
 
             {/* Fairway Selection (Par 4 & 5 only) */}
-            {/* Debug: Show par value when editing */}
-            {editingHole !== null && (
-              <div style={{ fontSize: '0.75rem', opacity: 0.6, marginBottom: '0.5rem' }}>
-                Debug: par={String(par)}, editingHole={String(editingHole)}
-              </div>
-            )}
             {par !== null && par !== 3 && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
@@ -1292,8 +1263,11 @@ export default function TrackRoundPage() {
             {gir === 'n' && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Shots to Green
+                  Shots to Green (after tee shot)
                 </label>
+                <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', opacity: 0.8 }}>
+                  Tee shot counts as 1st stroke. Enter additional strokes needed to reach the green.
+                </div>
                 <input
                   type="number"
                   min="1"
@@ -1381,7 +1355,19 @@ export default function TrackRoundPage() {
             )}
 
             {/* Submit and Cancel Buttons */}
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSubmitHole();
+                }}
+                className="btn btn-primary"
+                style={{ width: '100%' }}
+              >
+                {editingHole !== null ? `Update Hole ${editingHole}` : `Submit Hole ${currentHole}`}
+              </button>
               {editingHole !== null && (
                 <button
                   onClick={() => {
@@ -1398,24 +1384,11 @@ export default function TrackRoundPage() {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   className="btn btn-secondary"
-                  style={{ flex: '1' }}
+                  style={{ width: '100%' }}
                 >
                   Cancel Edit
                 </button>
               )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSubmitHole();
-                }}
-                className="btn btn-primary"
-                style={{ flex: editingHole !== null ? '1' : 'none', width: editingHole !== null ? 'auto' : '100%' }}
-              >
-                {editingHole !== null ? `Update Hole ${editingHole}` : `Submit Hole ${currentHole}`}
-                {/* Debug: editingHole={String(editingHole)} */}
-              </button>
             </div>
           </div>
 

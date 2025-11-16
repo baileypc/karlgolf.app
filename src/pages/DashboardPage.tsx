@@ -147,8 +147,6 @@ export default function DashboardPage() {
     return holeCount >= 9;
   });
 
-  console.log('📊 Dashboard - hasData:', hasData, 'hasCompletedRounds:', hasCompletedRounds, 'incompleteRound:', incompleteRound);
-
   return (
     <>
       <IconNav />

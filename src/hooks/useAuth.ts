@@ -21,9 +21,7 @@ export function useAuth() {
 
   // Sync with server response
   useEffect(() => {
-    console.log('🔍 useAuth - Server response:', data);
     if (data?.isLoggedIn !== undefined) {
-      console.log('🔍 useAuth - Setting isLoggedIn to:', data.isLoggedIn);
       setIsLoggedIn(data.isLoggedIn);
       storage.setLoginState(data.isLoggedIn);
     }

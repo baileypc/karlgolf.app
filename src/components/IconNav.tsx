@@ -9,9 +9,6 @@ export default function IconNav() {
   const location = useLocation();
   const { logout, isLoggedIn } = useAuth();
 
-  // Debug logging
-  console.log('🔍 IconNav - isLoggedIn:', isLoggedIn);
-
   const handleLogout = async () => {
     try {
       await logout();

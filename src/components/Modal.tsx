@@ -28,9 +28,7 @@ export default function Modal({
   cancelText = 'Cancel',
   showCancel = true
 }: ModalProps) {
-  console.log('🔘 Modal rendering - isOpen:', isOpen, 'title:', title);
   if (!isOpen) return null;
-  console.log('🔘 Modal VISIBLE - rendering content');
 
   const getIcon = () => {
     switch (type) {
@@ -53,15 +51,10 @@ export default function Modal({
   };
 
   const handleConfirm = async () => {
-    console.log('🔘 Modal handleConfirm START');
     if (onConfirm) {
-      console.log('🔘 Calling onConfirm...');
       await onConfirm();
-      console.log('🔘 onConfirm complete');
     }
-    console.log('🔘 Calling onClose...');
     onClose();
-    console.log('🔘 Modal handleConfirm END');
   };
 
   return (
@@ -207,10 +200,7 @@ export default function Modal({
               </button>
             )}
             <button
-              onClick={() => {
-                console.log('🔘 BUTTON CLICKED!');
-                handleConfirm();
-              }}
+              onClick={handleConfirm}
               className="btn btn-primary"
               style={{ flex: 1 }}
             >
