@@ -27,8 +27,8 @@
 # Security Headers
 <IfModule mod_headers.c>
   # Content Security Policy
-  # Allow self, inline styles/scripts (needed for React), and CDN resources (for admin dashboard)
-  Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob:; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self' https://unpkg.com https://cdnjs.cloudflare.com;"
+  # Allow self, inline styles/scripts (needed for React), CDN resources (for admin dashboard), and RapidAPI (for GPS course search)
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob:; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self' https://unpkg.com https://cdnjs.cloudflare.com https://golf-course-finder.p.rapidapi.com;"
 
   # Prevent clickjacking
   Header set X-Frame-Options "SAMEORIGIN"
@@ -43,7 +43,8 @@
   Header set Referrer-Policy "strict-origin-when-cross-origin"
 
   # Permissions Policy (restrict access to sensitive APIs)
-  Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+  # Allow geolocation for self (needed for GPS course search in v3.2+)
+  Header set Permissions-Policy "geolocation=(self), microphone=(), camera=()"
 
   # HSTS - Force HTTPS for 1 year (only set in production with HTTPS)
   # Uncomment the line below after confirming HTTPS works correctly

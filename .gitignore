@@ -20,3 +20,7 @@ npm-debug.log*
 # User data (keep out of version control)
 data/*
 !data/.gitkeep
+
+# Environment variables (contains API keys)
+.env
+.env.local

@@ -104,7 +104,7 @@ export default function HomePage() {
         }}
       >
         <p className="text-sm" style={{ fontSize: '0.75rem', opacity: 0.6, marginBottom: 'var(--space-xs)' }}>
-          Version 3.1.0
+          Version 3.2.0
         </p>
         <p className="text-sm" style={{ fontSize: '0.75rem', opacity: 0.6 }}>
           © 2025 Karl Golf GIR. All rights reserved.

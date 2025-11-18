@@ -5,11 +5,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheckCircle, faExclamationTriangle, faPencil, faTrash, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { roundsAPI } from '@/lib/api';
 import { exportRoundToCSV } from '@/lib/csv-export';
-import type { Hole as APIHole } from '@/types';
+import type { Hole as APIHole, CourseMetadata } from '@/types';
 import IconNav from '../components/IconNav';
 import Modal, { useModal } from '../components/Modal';
 import { useAuth } from '@/hooks/useAuth';
 import Analytics from '@/lib/analytics';
+import CourseSelector from '../components/CourseSelector';
 
 // Local hole type with detailed fairway tracking
 interface LocalHole {
@@ -61,6 +62,7 @@ export default function TrackRoundPage() {
   const [holes, setHoles] = useState<LocalHole[]>([]);
   const [currentHole, setCurrentHole] = useState(1);
   const [courseName, setCourseName] = useState('');
+  const [courseMetadata, setCourseMetadata] = useState<CourseMetadata | null>(null);
   const [roundStarted, setRoundStarted] = useState(false);
   const [serverIncompleteRound, setServerIncompleteRound] = useState<any>(null);
 
@@ -236,11 +238,12 @@ export default function TrackRoundPage() {
       localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
         holes,
         courseName,
+        courseMetadata,
         roundStarted,
         lastUpdated: new Date().toISOString(),
       }));
     }
-  }, [holes, courseName, roundStarted]);
+  }, [holes, courseName, courseMetadata, roundStarted]);
 
   // Helper function to show alert modal
 
@@ -253,12 +256,9 @@ export default function TrackRoundPage() {
     }
   }, [putts]);
 
-  const handleStartRound = () => {
-    if (!courseName.trim()) {
-      setValidationError('Please enter a course name');
-      validationErrorModal.open();
-      return;
-    }
+  const handleCourseSelected = (name: string, metadata: CourseMetadata | null) => {
+    setCourseName(name);
+    setCourseMetadata(metadata);
     setRoundStarted(true);
 
     // Track round start event
@@ -349,6 +349,7 @@ export default function TrackRoundPage() {
     localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
       holes: newHoles,
       courseName,
+      courseMetadata,
       roundStarted,
       lastUpdated: new Date().toISOString(),
     }));
@@ -358,6 +359,7 @@ export default function TrackRoundPage() {
       try {
         const apiData: any = {
           courseName: courseName.trim(),
+          courseMetadata: courseMetadata,
           holes: newHoles.map(convertToAPIHole),
         };
         // API returns 'index' not 'roundIndex'
@@ -506,6 +508,7 @@ export default function TrackRoundPage() {
       try {
         const roundData: any = {
           courseName: courseName.trim(), // Ensure course name is trimmed
+          courseMetadata: courseMetadata,
           holes: newHoles.map(convertToAPIHole),
         };
         // Add merge round ID if we're continuing an existing round
@@ -513,7 +516,7 @@ export default function TrackRoundPage() {
         if (serverIncompleteRound?.index !== undefined) {
           roundData.mergeIntoRoundId = serverIncompleteRound.index;
         }
-        
+
         const result = await roundsAPI.saveRound(roundData);
         
         // Invalidate incomplete rounds query to refresh the list
@@ -907,6 +910,7 @@ export default function TrackRoundPage() {
                           try {
                             const apiData: any = {
                               courseName: courseName.trim(),
+                              courseMetadata: courseMetadata,
                               holes: holesToSave,
                             };
                             if (serverIncompleteRound?.index !== undefined) {
@@ -952,36 +956,10 @@ export default function TrackRoundPage() {
             ) : (
               // Single card when no incomplete round
               <div className="card">
-                <h1 style={{ marginBottom: '1rem' }}>Start New Round</h1>
-                <p style={{ marginBottom: '1.5rem', opacity: 0.8 }}>
-                  Enter a course name to begin tracking your round
-                </p>
-                
-                <input
-                  type="text"
-                  value={courseName}
-                  onChange={(e) => setCourseName(e.target.value)}
-                  placeholder="Course name (e.g., Pebble Beach)"
-                  style={{
-                    width: '100%',
-                    padding: '1rem',
-                    marginBottom: '1.5rem',
-                    backgroundColor: 'rgba(221, 237, 210, 0.3)',
-                    border: '2px solid var(--border-primary)',
-                    borderRadius: '8px',
-                    color: '#DDEDD2',
-                    fontSize: '1rem',
-                    fontWeight: '500',
-                  }}
+                <CourseSelector
+                  onCourseSelected={handleCourseSelected}
+                  initialCourseName={courseName}
                 />
-                
-                <button
-                  onClick={handleStartRound}
-                  className="btn btn-primary"
-                  style={{ width: '100%' }}
-                >
-                  Start Round
-                </button>
               </div>
             )}
           </div>
@@ -1417,6 +1395,7 @@ export default function TrackRoundPage() {
                     try {
                       await roundsAPI.saveRound({
                         courseName,
+                        courseMetadata,
                         holes: holesToSave as any,
                       } as any);
 
@@ -1447,6 +1426,7 @@ export default function TrackRoundPage() {
                     try {
                       await roundsAPI.saveRound({
                         courseName,
+                        courseMetadata,
                         holes: holesToSave as any,
                       } as any);
 

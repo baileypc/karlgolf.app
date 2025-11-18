@@ -1,7 +1,7 @@
 // Karl's GIR - Service Worker
 // This enables offline functionality and PWA installation
 
-const CACHE_NAME = 'karls-gir-v3.1.0';
+const CACHE_NAME = 'karls-gir-v3.2.0';
 const RUNTIME_CACHE = 'karls-gir-runtime';
 
 // Assets to cache on install (only files, not directories)

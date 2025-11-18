@@ -34,9 +34,40 @@ export interface RoundStats {
   penalties: number;
 }
 
+// Golf course metadata from RapidAPI
+export interface CourseMetadata {
+  clubName?: string;
+  courseName?: string;
+  latitude?: number;
+  longitude?: number;
+  distance?: number;
+  placeId?: string;
+  holes?: number;
+  par?: number;
+  weekdayPrice?: string;
+  weekendPrice?: string;
+  twilightPrice?: string;
+}
+
+// Golf course from RapidAPI response
+export interface GolfCourse {
+  clubName: string;
+  courseName: string;
+  latitude: number;
+  longitude: number;
+  placeId?: string;
+  holes?: number;
+  par?: number;
+  weekdayPrice?: string;
+  weekendPrice?: string;
+  twilightPrice?: string;
+  distance?: number; // Calculated distance from user
+}
+
 export interface Round {
   roundId: string;
   courseName: string;
+  courseMetadata?: CourseMetadata | null; // Optional GPS/API data
   date: string;
   holes: Hole[];
   stats: RoundStats;
