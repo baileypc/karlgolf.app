@@ -1,7 +1,7 @@
 # Karl's GIR - System Architecture
 
-**Version:** 3.1.0  
-**Last Updated:** November 2025
+**Version:** 3.2.0  
+**Last Updated:** December 2025
 
 This document provides a comprehensive overview of the Karl's GIR system architecture for developers who need to understand, maintain, or rebuild the application.
 

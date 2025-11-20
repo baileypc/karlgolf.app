@@ -1,5 +1,31 @@
 # Version History
 
+## Version 3.2.0 - GPS Course Finder (December 2025)
+
+### ✅ Major Features
+
+**GPS & Course Search:**
+- **GPS Location Services** - Automatic location detection using device GPS
+- **Nearby Course Search** - Find golf courses within 25 miles of your location
+- **Course Distance Calculation** - See exact distance to each course from your position
+- **Location Permissions** - Smart handling of location permission requests
+- **Course Selector Enhancement** - GPS-powered course selection interface
+- **RapidAPI Integration** - Golf course database integration via RapidAPI
+
+**Technical Implementation:**
+- Added `golf-course-api.ts` with GPS location services
+- Haversine formula for distance calculations
+- Geolocation API integration with error handling
+- Permission state management for location access
+
+### 🔧 Technical Changes
+- Added `src/lib/golf-course-api.ts` for GPS and course search functionality
+- Enhanced `CourseSelector.tsx` with GPS location features
+- Integrated RapidAPI Golf Course Finder API
+- Added location permission handling and error states
+
+---
+
 ## Version 3.1.0 - Admin Dashboard & UX Enhancements (November 2025)
 
 ### ✅ Major Features
@@ -129,6 +155,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.1.0 (Production)
+**Current Version:** 3.2.0 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

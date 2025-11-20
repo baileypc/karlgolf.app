@@ -1,7 +1,7 @@
 # 🚀 Karl's GIR - Production Deployment Guide
 
-**Version:** 3.1.0
-**Last Updated:** November 2025
+**Version:** 3.2.0
+**Last Updated:** December 2025
 
 This guide covers deploying Karl's GIR to SiteGround production hosting.
 

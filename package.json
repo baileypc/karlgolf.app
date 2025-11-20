@@ -5,7 +5,8 @@
   "description": "Karl Golf GIR - Golf Statistics Tracker PWA",
   "scripts": {
     "dev": "vite",
-    "build": "node pre-build.js && tsc && vite build && node build-deploy.js",
+    "sync-version": "node sync-version.js",
+    "build": "node sync-version.js && node pre-build.js && tsc && vite build && node build-deploy.js",
     "build:watch": "nodemon --watch src --watch public --ext ts,tsx,css,json --exec \"npm run build\"",
     "preview": "vite preview",
     "deploy": "npm run build"
