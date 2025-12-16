@@ -14,29 +14,24 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 **Status:** ✅ Fully operational in production
 
 ### What's New in v3.2.1
+- ✅ **Security Enhancements** - SameSite cookie attribute for CSRF protection
+- ✅ **Rate Limiting** - IP-based rate limiting to prevent brute-force attacks
+- ✅ **Session Security** - Improved session cookie configuration
+
+### Features from v3.2.0
 - ✅ **GPS Course Finder** - Find nearby golf courses using your device's GPS location
 - ✅ **Course Search** - Search for courses within 25 miles of your location
 - ✅ **Location Services** - Automatic GPS location detection with permission handling
 - ✅ **Course Distance** - See distance to each course from your current location
 - ✅ **Course Selector** - Enhanced course selection with GPS-powered search
 
-### Features from v3.2.1
+### Features from v3.1.0
 - ✅ **Admin Dashboard** - Comprehensive analytics and user management
 - ✅ **User Management** - Delete users, view individual stats, export reports
 - ✅ **PDF Reports** - Marketing-ready analytics reports with charts
 - ✅ **Enhanced UX** - Direct navigation to track round after login/register
 - ✅ **Password Validation** - Toast notifications for registration errors
 - ✅ **Session Fix** - Resolved production authentication issues (session cookie domain + welcome email output bug)
-
-### Features from v3.2.1
-- ✅ **Clean URLs** - App served from root (no `/dist/` in URL)
-- ✅ **Export All Data** - Download all rounds and stats as JSON/CSV
-- ✅ **Reset Password** - Full password reset with email verification
-- ✅ **Guest Mode** - Track rounds without creating an account
-- ✅ **Delete Rounds** - Delete individual rounds or all rounds
-- ✅ **Improved Dashboard** - Combined "Continue Round" and "No Rounds Yet" cards
-- ✅ **Fairway Stats** - Fixed calculation and display (left/center/right all count)
-- ✅ **Service Worker** - Offline support with smart caching
 
 ---
 
