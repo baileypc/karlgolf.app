@@ -1,5 +1,5 @@
 // Karl's GIR - Build Script for Production Deployment
-// Copies API and data folders into /public for single-folder deployment
+// Copies API and data folders into /dist for single-folder deployment
 
 import fs from 'fs';
 import path from 'path';
@@ -8,18 +8,18 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const publicDir = path.join(__dirname, 'public');
+const distDir = path.join(__dirname, 'dist');
 const staticSrc = path.join(__dirname, 'static');
 const apiSrc = path.join(__dirname, 'api');
-const apiDest = path.join(publicDir, 'api');
+const apiDest = path.join(distDir, 'api');
 const adminSrc = path.join(__dirname, 'admin');
-const adminDest = path.join(publicDir, 'admin');
+const adminDest = path.join(distDir, 'admin');
 const dataSrc = path.join(__dirname, 'data', '.htaccess');
-const dataDest = path.join(publicDir, 'data');
+const dataDest = path.join(distDir, 'data');
 console.log('📦 Preparing deployment package...\n');
 
-// NOTE: User data is stored in root /data/ (not /public/data/)
-// Vite only clears /public/, so user accounts are safe from build deletion
+// NOTE: User data is stored in root /data/ (not /dist/data/)
+// Vite only clears /dist/, so user accounts are safe from build deletion
 // The API auto-detects the correct path (local vs production) via getDataDirectory()
 
 // Helper function to copy directory recursively (including dotfiles)
@@ -45,19 +45,19 @@ function copyDir(src, dest) {
 }
 
 try {
-  // NOTE: User data is now in root /data/ (not /public/data/)
-  // Vite only clears /public/, so data is safe - no backup/restore needed
+  // NOTE: User data is now in root /data/ (not /dist/data/)
+  // Vite only clears /dist/, so data is safe - no backup/restore needed
   
-  // Ensure public directory exists
-  if (!fs.existsSync(publicDir)) {
-    console.error('❌ Error: /public folder not found. Run "npm run build" first.');
+  // Ensure dist directory exists
+  if (!fs.existsSync(distDir)) {
+    console.error('❌ Error: /dist folder not found. Run "npm run build" first.');
     process.exit(1);
   }
 
-  // Copy static assets (images, styles, manifest, etc.) to /public
-  console.log('📂 Copying static assets to /public...');
+  // Copy static assets (images, styles, manifest, etc.) to /dist
+  console.log('📂 Copying static assets to /dist...');
   if (fs.existsSync(staticSrc)) {
-    copyDir(staticSrc, publicDir);
+    copyDir(staticSrc, distDir);
     console.log('✅ Static assets copied');
   }
 
@@ -65,7 +65,7 @@ try {
   console.log('🔄 Updating service worker cache version...');
   const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
   const version = packageJson.version;
-  const swPath = path.join(publicDir, 'service-worker.js');
+  const swPath = path.join(distDir, 'service-worker.js');
 
   if (fs.existsSync(swPath)) {
     let swContent = fs.readFileSync(swPath, 'utf8');
@@ -80,37 +80,37 @@ try {
     console.warn('⚠️ Service worker not found, skipping version update');
   }
 
-  // Copy /api folder to /public/api
-  console.log('📂 Copying /api folder to /public/api...');
+  // Copy /api folder to /dist/api
+  console.log('📂 Copying /api folder to /dist/api...');
   if (fs.existsSync(apiDest)) {
     fs.rmSync(apiDest, { recursive: true, force: true });
   }
   copyDir(apiSrc, apiDest);
   console.log('✅ API folder copied');
 
-  // Copy /admin folder to /public/admin
-  console.log('📂 Copying /admin folder to /public/admin...');
+  // Copy /admin folder to /dist/admin
+  console.log('📂 Copying /admin folder to /dist/admin...');
   if (fs.existsSync(adminDest)) {
     fs.rmSync(adminDest, { recursive: true, force: true });
   }
   copyDir(adminSrc, adminDest);
   console.log('✅ Admin folder copied');
 
-  // NOTE: Data directory is now in root /data/ (not /public/data/)
+  // NOTE: Data directory is now in root /data/ (not /dist/data/)
   // This prevents Vite from deleting user accounts during builds
   // The API auto-detects the correct path (local vs production)
   // No need to copy or preserve data here - it's safe in root /data/
 
   // Remove .vite folder (build artifacts not needed in production)
-  const viteDir = path.join(publicDir, '.vite');
+  const viteDir = path.join(distDir, '.vite');
   if (fs.existsSync(viteDir)) {
     console.log('🧹 Removing .vite build artifacts...');
     fs.rmSync(viteDir, { recursive: true, force: true });
     console.log('✅ Build artifacts removed');
   }
 
-  console.log('\n✨ Deployment package ready in /public folder!');
-  console.log('📤 Upload ALL contents of /public folder to production root directory.\n');
+  console.log('\n✨ Deployment package ready in /dist folder!');
+  console.log('📤 Upload ALL contents of /dist folder to production root directory.\n');
 
 } catch (error) {
   console.error('❌ Error during build preparation:', error.message);

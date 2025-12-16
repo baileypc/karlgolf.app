@@ -1,6 +1,6 @@
 # Karl Golf GIR - Golf Tracking PWA
 
-**Version:** 3.2.0 (Production)
+**Version:** 3.2.1 (Production)
 **Status:** ✅ **LIVE IN PRODUCTION**
 **Domain:** [https://karlgolf.app](https://karlgolf.app)
 
@@ -8,19 +8,19 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 
 ---
 
-## 🎉 Version 3.2.0 - Current Release
+## 🎉 Version 3.2.1 - Current Release
 
 **Deployed:** December 2025
 **Status:** ✅ Fully operational in production
 
-### What's New in v3.2.0
+### What's New in v3.2.1
 - ✅ **GPS Course Finder** - Find nearby golf courses using your device's GPS location
 - ✅ **Course Search** - Search for courses within 25 miles of your location
 - ✅ **Location Services** - Automatic GPS location detection with permission handling
 - ✅ **Course Distance** - See distance to each course from your current location
 - ✅ **Course Selector** - Enhanced course selection with GPS-powered search
 
-### Features from v3.1.0
+### Features from v3.2.1
 - ✅ **Admin Dashboard** - Comprehensive analytics and user management
 - ✅ **User Management** - Delete users, view individual stats, export reports
 - ✅ **PDF Reports** - Marketing-ready analytics reports with charts
@@ -28,7 +28,7 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 - ✅ **Password Validation** - Toast notifications for registration errors
 - ✅ **Session Fix** - Resolved production authentication issues (session cookie domain + welcome email output bug)
 
-### Features from v3.2.0
+### Features from v3.2.1
 - ✅ **Clean URLs** - App served from root (no `/dist/` in URL)
 - ✅ **Export All Data** - Download all rounds and stats as JSON/CSV
 - ✅ **Reset Password** - Full password reset with email verification
@@ -257,4 +257,4 @@ See **[TODOs](docs/TODOS.md)** for complete list of future features.
 **Website:** [cloudvirtue.com](https://cloudvirtue.com)
 **Repository:** Private
 **License:** Proprietary
-**Version:** 3.2.0 (Production)
+**Version:** 3.2.1 (Production)

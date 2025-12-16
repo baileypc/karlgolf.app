@@ -3,7 +3,7 @@
 
 import type { AuthResponse, Round, RoundSaveResponse, UserRounds } from '@/types';
 
-// Use relative path - works in both local (Laragon serving from /public) and production (root)
+// Use relative path - works in both local (Laragon serving from /dist) and production (root)
 const BASE_URL = './api';
 
 class APIError extends Error {

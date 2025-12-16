@@ -24,11 +24,11 @@ function getDataDirectory() {
     $apiDir = dirname($commonDir); // Full path to api/
     $parentDir = dirname($apiDir); // Parent of api/ (could be /public/ or root /)
 
-    // Auto-detect: If parent is "public" or "public_html", we need to go up one more level
+    // Auto-detect: If parent is "dist", "public", or "public_html", we need to go up one more level
     // to reach the true project root (outside the web-accessible directory)
     $parentBasename = basename($parentDir);
-    if ($parentBasename === 'public' || $parentBasename === 'public_html') {
-        // Local: /public/api/ -> go up to root -> /data/
+    if ($parentBasename === 'dist' || $parentBasename === 'public' || $parentBasename === 'public_html') {
+        // Local: /dist/api/ or /public/api/ -> go up to root -> /data/
         // Production: /public_html/api/ -> go up to root -> /data/
         $projectRoot = dirname($parentDir);
     } else {

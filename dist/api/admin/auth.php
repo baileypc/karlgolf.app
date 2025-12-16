@@ -81,6 +81,7 @@ if ($action === 'logout') {
 if ($action === 'login') {
     // Rate limiting for admin login (stricter than regular login)
     $rateLimit = checkRateLimit('admin-login', 3, 15);
+    
     if (!$rateLimit['allowed']) {
         http_response_code(429);
         logWarning('Admin login rate limit exceeded');

@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'public',
+    outDir: 'dist',
     assetsDir: 'assets',
     // Generate manifest for cache busting
     manifest: true,
@@ -43,7 +43,7 @@ export default defineConfig({
       },
     },
   },
-  // Disable publicDir since we're building directly to /public
-  // Static assets (images, manifest, etc.) are already in /public
+  // Disable publicDir since we're building directly to /dist
+  // Static assets (images, manifest, etc.) are already in /static and will be copied to /dist
   publicDir: false,
 });

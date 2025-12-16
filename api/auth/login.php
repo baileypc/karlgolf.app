@@ -118,19 +118,20 @@ if ($dataDir === false) {
     exit;
 }
 
-// Validate email and set up user directory (only for actions that require email in request body)
-// Actions like 'delete-account' and 'reset-dashboard' get email from session
-if (in_array($action, ['register', 'login', 'forgot-password', 'validate-token', 'reset-password'])) {
-    $email = $data['email'] ?? '';
-    if (!validateEmail($email)) {
-        echo json_encode(['success' => false, 'message' => 'Invalid email address']);
-        exit;
-    }
+    // Validate email and set up user directory (only for actions that require email in request body)
+    // Actions like 'delete-account' and 'reset-dashboard' get email from session
+    if (in_array($action, ['register', 'login', 'forgot-password', 'validate-token', 'reset-password'])) {
+        $email = $data['email'] ?? '';
+        
+        if (!validateEmail($email)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid email address']);
+            exit;
+        }
 
-    // Hash email for directory name
-    $emailHash = hash('sha256', strtolower($email));
-    $userDir = $dataDir . '/' . $emailHash;
-}
+        // Hash email for directory name
+        $emailHash = hash('sha256', strtolower($email));
+        $userDir = $dataDir . '/' . $emailHash;
+    }
 
 if ($action === 'register') {
     $password = $data['password'] ?? '';
@@ -167,6 +168,7 @@ if ($action === 'register') {
 
     // Hash and save password (text file, not JSON)
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+    
     $passwordFile = $userDir . '/password.txt';
     $fp = fopen($passwordFile, 'c+');
     if ($fp && flock($fp, LOCK_EX)) {

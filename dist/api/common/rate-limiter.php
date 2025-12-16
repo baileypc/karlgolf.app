@@ -24,11 +24,12 @@ function checkRateLimit($action, $maxAttempts = 5, $windowMinutes = 15) {
     
     $rateLimitDir = $dataDir . '/rate-limits';
     if (!is_dir($rateLimitDir)) {
-        @mkdir($rateLimitDir, 0755, true);
+        @mkdir($rateLimitDir, 0700, true); // Secure permissions: owner read/write/execute only
     }
     
     // Get client IP
     $ip = getClientIP();
+    
     $ipHash = hash('sha256', $ip . $action); // Hash IP for privacy
     $rateLimitFile = $rateLimitDir . '/' . $ipHash . '.json';
     
@@ -83,7 +84,9 @@ function checkRateLimit($action, $maxAttempts = 5, $windowMinutes = 15) {
         'lastAttempt' => time()
     ];
     
+    // Write file with secure permissions (0600 = owner read/write only)
     file_put_contents($rateLimitFile, json_encode($data, JSON_PRETTY_PRINT));
+    @chmod($rateLimitFile, 0600); // Set secure permissions (ignore errors on Windows)
     
     return [
         'allowed' => true,

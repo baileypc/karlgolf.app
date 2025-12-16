@@ -7,6 +7,25 @@
 require_once __DIR__ . '/environment.php';
 
 function initSession() {
+    // Configure session cookie SameSite attribute (CSRF protection)
+    // Set SameSite attribute BEFORE session_start() (PHP 7.3+)
+    if (version_compare(PHP_VERSION, '7.3.0', '>=')) {
+        // Use ini_set for SameSite (must be before session_start)
+        ini_set('session.cookie_samesite', 'Lax');
+        
+        // Also set via session_set_cookie_params with array syntax (more reliable)
+        // Get defaults first
+        $defaultParams = session_get_cookie_params();
+        session_set_cookie_params([
+            'lifetime' => $defaultParams['lifetime'],
+            'path' => $defaultParams['path'] ?: '/',
+            'domain' => $defaultParams['domain'] ?: '',
+            'secure' => $defaultParams['secure'],
+            'httponly' => $defaultParams['httponly'],
+            'samesite' => 'Lax'
+        ]);
+    }
+    
     // Use plain session_start() - SiteGround doesn't accept options array
     session_start();
 
@@ -50,6 +69,7 @@ function requireAuth() {
         echo json_encode(['success' => false, 'message' => 'Not logged in']);
         exit;
     }
+    
     return $auth;
 }
 

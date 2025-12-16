@@ -1,6 +1,6 @@
 # Karl's GIR - System Diagrams
 
-**Version:** 3.2.0  
+**Version:** 3.2.1  
 **Last Updated:** December 2025
 
 This document contains visual diagrams of the Karl's GIR system architecture using Mermaid.
