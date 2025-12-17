@@ -4,6 +4,7 @@
  * Receives tracking events from the frontend
  */
 
+require_once __DIR__ . '/../common/cors.php';
 require_once __DIR__ . '/../common/analytics-tracker.php';
 require_once __DIR__ . '/../common/logger.php';
 

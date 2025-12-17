@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { version } from '../../package.json';
 
 export default function HomePage() {
   const { isLoggedIn } = useAuth();
@@ -20,9 +21,9 @@ export default function HomePage() {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex flex-col items-center justify-center mx-auto"
-      style={{ 
+      style={{
         padding: 'var(--space-xl) var(--space-md)',
         maxWidth: '600px'
       }}
@@ -33,9 +34,9 @@ export default function HomePage() {
           src="./images/karls_gir.png"
           alt="Karl Golf GIR Logo"
           className="mx-auto block"
-          style={{ 
-            width: '10rem', 
-            height: '10rem', 
+          style={{
+            width: '10rem',
+            height: '10rem',
             marginBottom: 'var(--space-xl)',
             borderRadius: 'var(--radius-lg)'
           }}
@@ -95,19 +96,24 @@ export default function HomePage() {
       </div>
 
       {/* Footer */}
-      <div 
+      <div
         className="w-full text-center"
-        style={{ 
+        style={{
           marginTop: 'auto',
           paddingTop: 'var(--space-lg)',
           borderTop: '1px solid var(--border-primary)'
         }}
       >
         <p className="text-sm" style={{ fontSize: '0.75rem', opacity: 0.6, marginBottom: 'var(--space-xs)' }}>
-          Version 3.2.1
+          Version {version}
         </p>
         <p className="text-sm" style={{ fontSize: '0.75rem', opacity: 0.6 }}>
           © 2025 Karl Golf GIR. All rights reserved.
+        </p>
+        <p style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
+          <a href="./privacy.html" style={{ color: 'var(--text-secondary)', textDecoration: 'underline', opacity: 0.8 }}>
+            Privacy Policy
+          </a>
         </p>
       </div>
     </div>

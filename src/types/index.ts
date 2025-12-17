@@ -80,9 +80,10 @@ export interface CourseData {
 }
 
 export interface UserRounds {
-  courses: {
-    [courseName: string]: CourseData;
-  };
+  totalRounds: number;
+  rounds: any[]; // Legacy flat list
+  groups: any[]; // Grouped rounds (recent 10)
+  cumulative: any; // Cumulative stats
 }
 
 export interface User {

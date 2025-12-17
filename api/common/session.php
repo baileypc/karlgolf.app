@@ -11,7 +11,8 @@ function initSession() {
     // Set SameSite attribute BEFORE session_start() (PHP 7.3+)
     if (version_compare(PHP_VERSION, '7.3.0', '>=')) {
         // Use ini_set for SameSite (must be before session_start)
-        ini_set('session.cookie_samesite', 'Lax');
+        ini_set('session.cookie_samesite', 'None');
+        ini_set('session.cookie_secure', '1');
         
         // Also set via session_set_cookie_params with array syntax (more reliable)
         // Get defaults first
@@ -20,9 +21,9 @@ function initSession() {
             'lifetime' => $defaultParams['lifetime'],
             'path' => $defaultParams['path'] ?: '/',
             'domain' => $defaultParams['domain'] ?: '',
-            'secure' => $defaultParams['secure'],
+            'secure' => true, // Must be true for SameSite=None
             'httponly' => $defaultParams['httponly'],
-            'samesite' => 'Lax'
+            'samesite' => 'None'
         ]);
     }
     
@@ -42,9 +43,27 @@ function initSession() {
 
 /**
  * Check if user is logged in
+ * Supports both session cookies (PWA) and Bearer tokens (native app)
  * Returns array with 'loggedIn' boolean and 'userHash' if logged in
  */
 function checkAuth() {
+    // First, check for Bearer token (native app)
+    require_once __DIR__ . '/auth-token.php';
+    $token = getBearerToken();
+    
+    if ($token) {
+        $tokenAuth = validateAuthToken($token);
+        if ($tokenAuth['valid']) {
+            return [
+                'loggedIn' => true,
+                'userHash' => $tokenAuth['userHash'],
+                'userEmail' => null, // Email not stored in token, but userHash is sufficient
+                'authMethod' => 'token'
+            ];
+        }
+    }
+    
+    // Fall back to session cookies (PWA)
     if (!isset($_SESSION['user_email']) || !isset($_SESSION['user_hash'])) {
         return [
             'loggedIn' => false,
@@ -56,7 +75,8 @@ function checkAuth() {
     return [
         'loggedIn' => true,
         'userHash' => $_SESSION['user_hash'],
-        'userEmail' => $_SESSION['user_email']
+        'userEmail' => $_SESSION['user_email'],
+        'authMethod' => 'session'
     ];
 }
 
@@ -64,12 +84,33 @@ function checkAuth() {
  * Require authentication - exits with error if not logged in
  */
 function requireAuth() {
-    $auth = checkAuth();
-    if (!$auth['loggedIn']) {
-        echo json_encode(['success' => false, 'message' => 'Not logged in']);
+    try {
+        $auth = checkAuth();
+        if (!$auth['loggedIn']) {
+            // Debug failure reason
+            $debug = [
+                'session_id' => session_id(),
+                'has_token' => (bool)getBearerToken(),
+                'token_val' => substr(getBearerToken() ?? '', 0, 5) . '...',
+                'session_email' => $_SESSION['user_email'] ?? 'unset',
+            ];
+            
+            http_response_code(401); // Unauthorized
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Not logged in',
+                'debug' => $debug
+            ]);
+            exit;
+        }
+        return $auth;
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Auth Error: ' . $e->getMessage()
+        ]);
         exit;
     }
-    
-    return $auth;
 }
 

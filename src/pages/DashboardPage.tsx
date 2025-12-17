@@ -90,11 +90,14 @@ export default function DashboardPage() {
   const { data: statsData, isLoading, isError } = useQuery({
     queryKey: ['stats'],
     queryFn: async () => {
-      const response = await fetch('./api/stats/load.php', {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to load stats');
-      return response.json();
+      // Use the API helper which handles native requests and auth tokens
+      const result = await roundsAPI.loadStats();
+      if (!result.success) throw new Error('Failed to load stats');
+      // Return the data object directly to match existing component structure
+      return {
+        ...result.data,
+        success: true // Ensure success flag is present if checked elsewhere
+      };
     },
     retry: 1,
     staleTime: 5 * 60 * 1000,
@@ -105,10 +108,10 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
         <div className="card" style={{ maxWidth: '28rem', width: '100%', textAlign: 'center' }}>
-          <div style={{ 
-            width: '3rem', 
-            height: '3rem', 
-            border: '3px solid var(--border-primary)', 
+          <div style={{
+            width: '3rem',
+            height: '3rem',
+            border: '3px solid var(--border-primary)',
             borderTop: '3px solid var(--color-interactive)',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
@@ -224,297 +227,297 @@ export default function DashboardPage() {
 
           {/* Stats Cards - Show only if there's completed round data */}
           {hasData && (
-          <>
-            {/* Primary Stat - Average GIR% */}
-            <div className="card" style={{ marginBottom: '2rem', textAlign: 'center', padding: '2rem' }}>
-              <h2 style={{ fontSize: 'var(--font-lg)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                Average GIR %
-              </h2>
-              <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                {statsData.cumulative.girPct.toFixed(1)}%
-              </div>
-              <p style={{ color: 'var(--text-primary)', marginTop: '0.5rem' }}>
-                Across {statsData.totalRounds} round{statsData.totalRounds !== 1 ? 's' : ''}
-              </p>
-            </div>
-
-            {/* Cumulative Stats Grid */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-              gap: '1rem',
-              marginBottom: '2rem'
-            }}>
-              <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  Total Holes
+            <>
+              {/* Primary Stat - Average GIR% */}
+              <div className="card" style={{ marginBottom: '2rem', textAlign: 'center', padding: '2rem' }}>
+                <h2 style={{ fontSize: 'var(--font-lg)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                  Average GIR %
+                </h2>
+                <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                  {statsData.cumulative.girPct.toFixed(1)}%
                 </div>
-                <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                  {statsData.cumulative.totalHoles}
-                </div>
+                <p style={{ color: 'var(--text-primary)', marginTop: '0.5rem' }}>
+                  Across {statsData.totalRounds} round{statsData.totalRounds !== 1 ? 's' : ''}
+                </p>
               </div>
 
-              <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  Total Strokes
-                </div>
-                <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                  {statsData.cumulative.totalScore}
-                </div>
-              </div>
-
-              <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  Fairways Hit
-                </div>
-                <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                  {statsData.cumulative.fairwayPct.toFixed(1)}%
-                </div>
-                <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)', marginTop: '0.25rem', opacity: 0.8 }}>
-                  (Par 4/5)
-                </div>
-              </div>
-
-              <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  Avg Putts/Hole
-                </div>
-                <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                  {statsData.cumulative.avgPutts.toFixed(1)}
-                </div>
-              </div>
-
-              <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  Scrambling %
-                </div>
-                <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                  {statsData.cumulative.scramblingPct.toFixed(1)}%
-                </div>
-              </div>
-
-              <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  Proximity
-                </div>
-                <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                  {statsData.cumulative.avgProximity.toFixed(1)}ft
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Rounds - Grouped by 10 */}
-            <div style={{ marginBottom: '2rem' }}>
-              <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>
-                Recent Rounds
-              </h2>
-              {statsData.groups.slice(0, 10).map((group: any) => {
-                const holeCount = group.rounds[0]?.holes?.length || 0;
-                const isIncomplete = holeCount > 0 && holeCount < 9;
-                
-                return (
-                  <div key={group.roundNumber} className="card" style={{ marginBottom: '1rem', padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <div>
-                        <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                          {group.courseName}
-                        </h3>
-                        <p style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginTop: '0.25rem' }}>
-                          {group.range} • {holeCount} hole{holeCount !== 1 ? 's' : ''}
-                          {isIncomplete && (
-                            <span style={{ color: 'var(--color-interactive)', marginLeft: '0.5rem' }}>
-                              (Incomplete)
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                          {group.stats.girPct.toFixed(1)}%
-                        </div>
-                        <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)' }}>
-                          GIR
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-                      gap: '1rem',
-                      paddingTop: '1rem',
-                      borderTop: '1px solid var(--border-primary)'
-                    }}>
-                      <div>
-                        <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Fairways</div>
-                        <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
-                          {group.stats.fairwayPct.toFixed(1)}%
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Avg Putts</div>
-                        <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
-                          {group.stats.avgPutts.toFixed(1)}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Scrambling</div>
-                        <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
-                          {group.stats.scramblingPct.toFixed(1)}%
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Proximity</div>
-                        <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
-                          {group.stats.avgProximity.toFixed(1)}ft
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-primary)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {isIncomplete && (
-                        <button
-                          onClick={() => navigate('/track-round')}
-                          className="btn btn-primary"
-                          style={{ width: '100%' }}
-                        >
-                          Continue Round
-                        </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          setRoundToDelete({ roundNumber: group.roundNumber, courseName: group.courseName });
-                          deleteSingleRoundModal.open();
-                        }}
-                        className="btn btn-secondary"
-                        style={{
-                          width: '100%',
-                          fontSize: '0.875rem',
-                          borderColor: '#ef4444',
-                          color: '#ef4444',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.5rem',
-                        }}
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                        Delete Round
-                      </button>
-                    </div>
+              {/* Cumulative Stats Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '1rem',
+                marginBottom: '2rem'
+              }}>
+                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                    Total Holes
                   </div>
-                );
-              })}
-            </div>
+                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                    {statsData.cumulative.totalHoles}
+                  </div>
+                </div>
 
-            {/* Admin Tools Footer - Only show when there ARE completed rounds */}
-            {hasCompletedRounds && (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              marginTop: '3rem',
-              paddingTop: '1.5rem',
-              borderTop: '1px solid rgba(221, 237, 210, 0.2)'
-            }}>
-              {/* Export Data */}
-              <button
-                onClick={() => {
-                  if (!statsData?.success || !statsData.groups || statsData.groups.length === 0) {
-                    alert('No data to export');
-                    return;
-                  }
+                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                    Total Strokes
+                  </div>
+                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                    {statsData.cumulative.totalScore}
+                  </div>
+                </div>
 
-                  // Collect all rounds from groups
-                  const allRounds: any[] = [];
-                  statsData.groups.forEach((group: any) => {
-                    if (group.rounds && Array.isArray(group.rounds)) {
-                      allRounds.push(...group.rounds);
-                    }
-                  });
+                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                    Fairways Hit
+                  </div>
+                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                    {statsData.cumulative.fairwayPct.toFixed(1)}%
+                  </div>
+                  <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)', marginTop: '0.25rem', opacity: 0.8 }}>
+                    (Par 4/5)
+                  </div>
+                </div>
 
-                  // Create export object
-                  const exportData = {
-                    exportDate: new Date().toISOString(),
-                    totalRounds: statsData.totalRounds || allRounds.length,
-                    cumulativeStats: statsData.cumulative || null,
-                    rounds: allRounds,
-                  };
+                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                    Avg Putts/Hole
+                  </div>
+                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                    {statsData.cumulative.avgPutts.toFixed(1)}
+                  </div>
+                </div>
 
-                  // Create and download JSON file
-                  const jsonStr = JSON.stringify(exportData, null, 2);
-                  const blob = new Blob([jsonStr], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `karls-gir-export-${new Date().toISOString().split('T')[0]}.json`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(url);
-                }}
-                className="btn btn-secondary"
-                style={{
-                  width: '100%',
-                  fontSize: '0.875rem',
+                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                    Scrambling %
+                  </div>
+                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                    {statsData.cumulative.scramblingPct.toFixed(1)}%
+                  </div>
+                </div>
+
+                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                    Proximity
+                  </div>
+                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                    {statsData.cumulative.avgProximity.toFixed(1)}ft
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Rounds - Grouped by 10 */}
+              <div style={{ marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>
+                  Recent Rounds
+                </h2>
+                {statsData.groups.slice(0, 10).map((group: any) => {
+                  const holeCount = group.rounds[0]?.holes?.length || 0;
+                  const isIncomplete = holeCount > 0 && holeCount < 9;
+
+                  return (
+                    <div key={group.roundNumber} className="card" style={{ marginBottom: '1rem', padding: '1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div>
+                          <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                            {group.courseName}
+                          </h3>
+                          <p style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginTop: '0.25rem' }}>
+                            {group.range} • {holeCount} hole{holeCount !== 1 ? 's' : ''}
+                            {isIncomplete && (
+                              <span style={{ color: 'var(--color-interactive)', marginLeft: '0.5rem' }}>
+                                (Incomplete)
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                            {group.stats.girPct.toFixed(1)}%
+                          </div>
+                          <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)' }}>
+                            GIR
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                        gap: '1rem',
+                        paddingTop: '1rem',
+                        borderTop: '1px solid var(--border-primary)'
+                      }}>
+                        <div>
+                          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Fairways</div>
+                          <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
+                            {group.stats.fairwayPct.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Avg Putts</div>
+                          <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
+                            {group.stats.avgPutts.toFixed(1)}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Scrambling</div>
+                          <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
+                            {group.stats.scramblingPct.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Proximity</div>
+                          <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
+                            {group.stats.avgProximity.toFixed(1)}ft
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-primary)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {isIncomplete && (
+                          <button
+                            onClick={() => navigate('/track-round')}
+                            className="btn btn-primary"
+                            style={{ width: '100%' }}
+                          >
+                            Continue Round
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setRoundToDelete({ roundNumber: group.roundNumber, courseName: group.courseName });
+                            deleteSingleRoundModal.open();
+                          }}
+                          className="btn btn-secondary"
+                          style={{
+                            width: '100%',
+                            fontSize: '0.875rem',
+                            borderColor: '#ef4444',
+                            color: '#ef4444',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                          Delete Round
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Admin Tools Footer - Only show when there ARE completed rounds */}
+              {hasCompletedRounds && (
+                <div style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <FontAwesomeIcon icon={faDownload} />
-                Export All Data
-              </button>
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                  marginTop: '3rem',
+                  paddingTop: '1.5rem',
+                  borderTop: '1px solid rgba(221, 237, 210, 0.2)'
+                }}>
+                  {/* Export Data */}
+                  <button
+                    onClick={() => {
+                      if (!statsData?.success || !statsData.groups || statsData.groups.length === 0) {
+                        alert('No data to export');
+                        return;
+                      }
 
-              {/* Clear Cache */}
-              <button
-                onClick={() => {
-                  localStorage.clear();
-                  sessionStorage.clear();
-                  queryClient.clear();
-                  alert('✅ Cache cleared');
-                  window.location.reload();
-                }}
-                className="btn btn-secondary"
-                style={{
-                  width: '100%',
-                  fontSize: '0.875rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <FontAwesomeIcon icon={faRotateRight} />
-                Clear Cache
-              </button>
+                      // Collect all rounds from groups
+                      const allRounds: any[] = [];
+                      statsData.groups.forEach((group: any) => {
+                        if (group.rounds && Array.isArray(group.rounds)) {
+                          allRounds.push(...group.rounds);
+                        }
+                      });
 
-              {/* Reset Data */}
-              <button
-                onClick={() => {
-                  deleteRoundsModal.open();
-                }}
-                disabled={isResetting}
-                className="btn btn-secondary"
-                style={{
-                  width: '100%',
-                  fontSize: '0.875rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                  color: '#ef4444',
-                  opacity: isResetting ? 0.5 : 1,
-                  cursor: isResetting ? 'not-allowed' : 'pointer',
-                }}
-              >
-                <FontAwesomeIcon icon={faTrash} />
-                Delete All Rounds
-              </button>
-            </div>
-            )}
-          </>
-        )}
+                      // Create export object
+                      const exportData = {
+                        exportDate: new Date().toISOString(),
+                        totalRounds: statsData.totalRounds || allRounds.length,
+                        cumulativeStats: statsData.cumulative || null,
+                        rounds: allRounds,
+                      };
+
+                      // Create and download JSON file
+                      const jsonStr = JSON.stringify(exportData, null, 2);
+                      const blob = new Blob([jsonStr], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `karls-gir-export-${new Date().toISOString().split('T')[0]}.json`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="btn btn-secondary"
+                    style={{
+                      width: '100%',
+                      fontSize: '0.875rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faDownload} />
+                    Export All Data
+                  </button>
+
+                  {/* Clear Cache */}
+                  <button
+                    onClick={() => {
+                      localStorage.clear();
+                      sessionStorage.clear();
+                      queryClient.clear();
+                      alert('✅ Cache cleared');
+                      window.location.reload();
+                    }}
+                    className="btn btn-secondary"
+                    style={{
+                      width: '100%',
+                      fontSize: '0.875rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faRotateRight} />
+                    Clear Cache
+                  </button>
+
+                  {/* Reset Data */}
+                  <button
+                    onClick={() => {
+                      deleteRoundsModal.open();
+                    }}
+                    disabled={isResetting}
+                    className="btn btn-secondary"
+                    style={{
+                      width: '100%',
+                      fontSize: '0.875rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      color: '#ef4444',
+                      opacity: isResetting ? 0.5 : 1,
+                      cursor: isResetting ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                    Delete All Rounds
+                  </button>
+                </div>
+              )}
+            </>
+          )}
 
           {/* Footer Buttons - Show when no completed rounds (after stats cards) */}
           {!hasCompletedRounds && isLoggedIn && (
@@ -659,7 +662,7 @@ export default function DashboardPage() {
         onClose={deleteSingleRoundModal.close}
         onConfirm={async () => {
           if (!roundToDelete) return;
-          
+
           // If roundNumber is 0, it's the incomplete round from the single card
           // Need to delete from both rounds.json (if it exists there) AND localStorage/current_round.json
           if (roundToDelete.roundNumber === 0 || roundToDelete.isIncompleteCard) {
@@ -673,7 +676,7 @@ export default function DashboardPage() {
                   const matchingRound = incompleteRounds.incompleteRounds.find(
                     (r: any) => r.courseName.toLowerCase().trim() === roundToDelete.courseName.toLowerCase().trim()
                   );
-                  
+
                   if (matchingRound && matchingRound.roundNumber) {
                     // Delete from rounds.json
                     try {
@@ -685,10 +688,10 @@ export default function DashboardPage() {
                   }
                 }
               }
-              
+
               // Clear localStorage
               localStorage.removeItem('karlsGIR_currentRound');
-              
+
               // Clear server-side incomplete round (current_round.json) if logged in
               if (isLoggedIn) {
                 try {
@@ -697,12 +700,12 @@ export default function DashboardPage() {
                   // Ignore - current_round.json might not exist
                 }
               }
-              
+
               // Invalidate queries and refresh
               queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
               queryClient.invalidateQueries({ queryKey: ['stats'] });
               deleteSingleRoundModal.close();
-              
+
               // Force a refetch before reload
               await refetchIncomplete();
               window.location.reload();
@@ -732,12 +735,12 @@ export default function DashboardPage() {
                   // Ignore errors - current_round.json might not exist
                 }
               }
-              
+
               // Invalidate all queries
               queryClient.invalidateQueries({ queryKey: ['stats'] });
               queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
               deleteSingleRoundModal.close();
-              
+
               // Reload to refresh the dashboard
               window.location.reload();
             } else {
@@ -750,7 +753,7 @@ export default function DashboardPage() {
           }
         }}
         title="Delete Round?"
-        message={roundToDelete 
+        message={roundToDelete
           ? `Delete "${roundToDelete.courseName}"? This action cannot be undone.`
           : 'Delete this round? This action cannot be undone.'}
         type="confirm"

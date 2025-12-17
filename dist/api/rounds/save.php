@@ -6,6 +6,7 @@
  */
 
 require_once __DIR__ . '/../common/session.php';
+require_once __DIR__ . '/../common/cors.php';
 require_once __DIR__ . '/../common/file-lock.php';
 require_once __DIR__ . '/../common/stats-calculator.php';
 require_once __DIR__ . '/../common/round-merger.php';

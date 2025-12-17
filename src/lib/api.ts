@@ -1,10 +1,36 @@
-// Karl's GIR - API Client (TypeScript)
-// Wrapper around existing PHP backend with proper error handling
-
 import type { AuthResponse, Round, RoundSaveResponse, UserRounds } from '@/types';
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
 
-// Use relative path - works in both local (Laragon serving from /dist) and production (root)
-const BASE_URL = './api';
+// Production API URL for native apps
+const PROD_API_URL = 'https://karlgolf.app/api';
+const AUTH_TOKEN_KEY = 'karl_golf_auth_token';
+
+// Simple token storage using localStorage (works in both PWA and native WebView)
+function getStoredToken(): string | null {
+  try {
+    return localStorage.getItem(AUTH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function storeToken(token: string): void {
+  try {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+    console.log('[API] Token stored');
+  } catch (e) {
+    console.error('[API] Failed to store token:', e);
+  }
+}
+
+function clearToken(): void {
+  try {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    console.log('[API] Token cleared');
+  } catch (e) {
+    console.error('[API] Failed to clear token:', e);
+  }
+}
 
 class APIError extends Error {
   constructor(
@@ -17,12 +43,71 @@ class APIError extends Error {
   }
 }
 
-async function request<T>(
+// Native HTTP request using Capacitor (bypasses CORS)
+async function nativeRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${BASE_URL}/${endpoint}`;
-  
+  const url = `${PROD_API_URL}/${endpoint}`;
+  const method = (options.method || 'GET').toUpperCase();
+
+  // Get stored auth token
+  const token = getStoredToken();
+
+  console.log('[API Native] Request:', method, url, token ? '(with token)' : '(no token)');
+
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
+    };
+
+    // Add Authorization header if token exists
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await CapacitorHttp.request({
+      url,
+      method,
+      headers,
+      data: options.body ? JSON.parse(options.body as string) : undefined,
+    });
+
+    console.log('[API Native] Response status:', response.status);
+
+    const data = response.data;
+
+    if (response.status >= 400 || !data.success) {
+      throw new APIError(
+        data.message || `API error: ${response.status}`,
+        response.status,
+        data.errorCode || data.code
+      );
+    }
+
+    return data as T;
+  } catch (error) {
+    console.error('[API Native] Error:', error);
+
+    if (error instanceof APIError) {
+      throw error;
+    }
+    throw new APIError(
+      error instanceof Error ? error.message : 'Network error',
+      undefined,
+      'NETWORK_ERROR'
+    );
+  }
+}
+
+// Browser/PWA HTTP request using fetch
+async function browserRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const url = `./api/${endpoint}`;
+
   const config: RequestInit = {
     credentials: 'include',
     headers: {
@@ -37,28 +122,21 @@ async function request<T>(
 
   try {
     const response = await fetch(url, config);
-
-    // Get response text first to debug JSON parse errors
     const text = await response.text();
 
-    // Try to parse as JSON
     let data;
     try {
       data = JSON.parse(text);
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
-      console.error('Response text:', text.substring(0, 500)); // Log first 500 chars
-      throw new APIError(
-        'Invalid response from server',
-        response.status
-      );
+      throw new APIError('Invalid response from server', response.status);
     }
 
     if (!response.ok || !data.success) {
       throw new APIError(
         data.message || `API error: ${response.status}`,
         response.status,
-        data.errorCode || data.code // Support both errorCode and code
+        data.errorCode || data.code
       );
     }
 
@@ -66,12 +144,6 @@ async function request<T>(
   } catch (error) {
     if (error instanceof APIError) {
       throw error;
-    }
-    
-    // Network error or JSON parse error
-    // Only log network errors, not authentication errors (they're handled by toast)
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      console.error(`API request failed (${endpoint}): Network error`);
     }
     throw new APIError(
       error instanceof Error ? error.message : 'Network error',
@@ -81,14 +153,43 @@ async function request<T>(
   }
 }
 
+// Unified request function - uses native HTTP for apps, fetch for browser
+async function request<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  if (Capacitor.isNativePlatform()) {
+    return nativeRequest<T>(endpoint, options);
+  }
+  return browserRequest<T>(endpoint, options);
+}
+
 // Authentication API
 export const authAPI = {
   async checkLogin(): Promise<{ success: boolean; isLoggedIn: boolean }> {
-    const response = await fetch(`${BASE_URL}/auth/login.php?action=check`, {
+    const endpoint = 'auth/login.php?action=check';
+
+    if (Capacitor.isNativePlatform()) {
+      // Use native HTTP for app
+      try {
+        const response = await CapacitorHttp.get({
+          url: `${PROD_API_URL}/${endpoint}`,
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        return {
+          success: true,
+          isLoggedIn: response.data?.loggedIn || false,
+        };
+      } catch {
+        return { success: true, isLoggedIn: false };
+      }
+    }
+
+    // Use fetch for browser/PWA
+    const response = await fetch(`./api/${endpoint}`, {
       credentials: 'include',
     });
     const data = await response.json();
-    // API returns { loggedIn: boolean, email?: string }
     return {
       success: true,
       isLoggedIn: data.loggedIn || false,
@@ -96,10 +197,17 @@ export const authAPI = {
   },
 
   async login(email: string, password: string): Promise<AuthResponse> {
-    return request('auth/login.php?action=login', {
+    const response = await request<AuthResponse & { token?: string }>('auth/login.php?action=login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+
+    // Store token for native app
+    if (response.token) {
+      storeToken(response.token);
+    }
+
+    return response;
   },
 
   async register(email: string, password: string): Promise<AuthResponse> {
@@ -110,6 +218,9 @@ export const authAPI = {
   },
 
   async logout(): Promise<AuthResponse> {
+    // Clear stored token first
+    clearToken();
+
     return request('auth/login.php?action=logout', {
       method: 'POST',
     });

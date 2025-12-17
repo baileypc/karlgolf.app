@@ -155,6 +155,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.2.1 (Production)
+**Current Version:** 3.3.0 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

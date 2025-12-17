@@ -21,10 +21,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ 
-          width: '3rem', 
-          height: '3rem', 
-          border: '3px solid var(--border-secondary)', 
+        <div style={{
+          width: '3rem',
+          height: '3rem',
+          border: '3px solid var(--border-secondary)',
           borderTop: '3px solid var(--color-interactive)',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
@@ -64,7 +64,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        
+
         {/* Track Round - Public route (works for both guest and logged-in users) */}
         <Route path="/track-round" element={<TrackRoundPage />} />
 

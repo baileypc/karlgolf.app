@@ -6,6 +6,7 @@
  */
 
 require_once __DIR__ . '/../common/session.php';
+require_once __DIR__ . '/../common/cors.php';
 require_once __DIR__ . '/../common/file-lock.php';
 require_once __DIR__ . '/../common/validation.php';
 require_once __DIR__ . '/../common/logger.php';
@@ -263,13 +264,22 @@ if ($action === 'login') {
 
     // Regenerate session ID for security after login
     session_regenerate_id(true);
+    
+    // Generate auth token for native app support
+    require_once __DIR__ . '/../common/auth-token.php';
+    $authToken = generateAuthToken($emailHash);
 
     // Debug logging
     error_log('🔍 Login Success - Session ID: ' . session_id());
     error_log('🔍 Login Success - Session data: ' . json_encode($_SESSION));
 
     logInfo('User logged in', ['email' => $email]);
-    echo json_encode(['success' => true, 'message' => 'Login successful']);
+    echo json_encode([
+        'success' => true, 
+        'message' => 'Login successful',
+        'token' => $authToken,
+        'userHash' => $emailHash
+    ]);
     exit;
 }
 

@@ -43,7 +43,6 @@ export default defineConfig({
       },
     },
   },
-  // Disable publicDir since we're building directly to /dist
-  // Static assets (images, manifest, etc.) are already in /static and will be copied to /dist
-  publicDir: false,
+  // Enable public directory copying (default behavior)
+  publicDir: 'public',
 });

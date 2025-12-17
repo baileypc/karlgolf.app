@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Karl Golf GIR</string>
+    <string name="title_activity_main">Karl Golf GIR</string>
+    <string name="package_name">app.karlgolf.gir</string>
+    <string name="custom_url_scheme">app.karlgolf.gir</string>
+</resources>

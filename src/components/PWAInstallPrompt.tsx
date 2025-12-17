@@ -14,7 +14,7 @@ export function PWAInstallPrompt() {
 
   useEffect(() => {
     // Check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (window.matchMedia('(display-mode: standalone)').matches || (window as any).Capacitor?.isNativePlatform()) {
       setIsInstalled(true);
       return;
     }
@@ -49,7 +49,7 @@ export function PWAInstallPrompt() {
 
     // Wait for the user's response
     await deferredPrompt.userChoice;
-    
+
     // User responded to install prompt (accepted or dismissed)
 
     // Clear the prompt

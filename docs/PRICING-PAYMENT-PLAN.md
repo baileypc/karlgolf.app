@@ -1,6 +1,6 @@
 # Karl Golf GIR - Pricing & Payment System Plan
 
-**Version:** 3.2.1  
+**Version:** 3.3.0  
 **Status:** 📋 Planning Phase  
 **Last Updated:** November 2025
 
@@ -518,19 +518,19 @@ STRIPE_ANNUAL_PRICE_ID=price_xxxxx
 
 ## 🚀 Deployment Strategy
 
-### Phase 1: Development (v3.2.1-dev)
+### Phase 1: Development (v3.3.0-dev)
 - Build all features in test mode
 - Use Stripe test keys
 - Test with fake credit cards
 - Internal testing only
 
-### Phase 2: Beta (v3.2.1-beta)
+### Phase 2: Beta (v3.3.0-beta)
 - Deploy to staging environment
 - Invite beta testers
 - Collect feedback
 - Fix bugs
 
-### Phase 3: Production (v3.2.1)
+### Phase 3: Production (v3.3.0)
 - Switch to Stripe live keys
 - Deploy to production
 - Monitor for issues
