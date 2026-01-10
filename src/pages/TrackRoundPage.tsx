@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle, faExclamationTriangle, faPencil, faTrash, faDownload } from '@fortawesome/free-solid-svg-icons';
+import { faCheckCircle, faPencil, faTrash, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { roundsAPI } from '@/lib/api';
 import { exportRoundToCSV } from '@/lib/csv-export';
 import type { Hole as APIHole, CourseMetadata } from '@/types';
@@ -57,6 +57,7 @@ const convertToAPIHole = (localHole: LocalHole): APIHole => {
 
 export default function TrackRoundPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
   const [holes, setHoles] = useState<LocalHole[]>([]);
@@ -69,7 +70,6 @@ export default function TrackRoundPage() {
   // Modal states
   const discardModal = useModal();
   const saveNineModal = useModal();
-  const endRoundMinModal = useModal();
   const endRoundIncompleteModal = useModal();
   const endRoundCompleteModal = useModal();
   const accountPromptModal = useModal(); // New: prompt guest to create account
@@ -111,48 +111,64 @@ export default function TrackRoundPage() {
     }
   }, [isLoggedIn, refetchIncomplete]);
 
-  // Improved: load server incomplete round OR fallback to local for logged-in users
+  // NOTE: Auto-loading incomplete rounds is now DISABLED
+  // Incomplete rounds should ONLY be loaded when user clicks "Continue Round" from Dashboard
+  // This effect only stores the server incomplete round reference for later use
   useEffect(() => {
-    if (!isLoggedIn) return; // guest handled in separate effect
+    if (!isLoggedIn) return;
 
     const serverRounds = incompleteData?.success ? incompleteData.incompleteRounds : null;
     const firstServer = serverRounds && serverRounds.length > 0 ? serverRounds[0] : null;
     if (firstServer) setServerIncompleteRound(firstServer);
+  }, [incompleteData, isLoggedIn]);
+
+  // Load incomplete round ONLY when navigated from Dashboard with continueRound flag
+  useEffect(() => {
+    const state = location.state as { continueRound?: boolean } | null;
+    if (!state?.continueRound) return; // Only load if explicitly requested
+
+    // Clear the navigation state to prevent re-loading on refresh
+    navigate(location.pathname, { replace: true, state: {} });
 
     const localRoundRaw = localStorage.getItem('karlsGIR_currentRound');
     let localData: any = null;
     if (localRoundRaw) {
-      try { localData = JSON.parse(localRoundRaw); } catch { /* ignore */ }
+      try {
+        localData = JSON.parse(localRoundRaw);
+      } catch (e) {
+        console.error('Error parsing localStorage:', e);
+      }
     }
 
-    // Decide source precedence
-    if (firstServer && firstServer.holes && firstServer.holes.length > 0) {
-      const serverHoleCount = firstServer.holes.length;
-      const localHoleCount = localData?.holes?.length || 0;
-      const sameCourse = localData && localData.courseName === firstServer.courseName;
-      
-      // Prefer localStorage if it's more recent (e.g., after a delete operation)
-      const localLastUpdated = localData?.lastUpdated ? new Date(localData.lastUpdated).getTime() : 0;
-      const isLocalRecent = localData && localData.lastUpdated && localLastUpdated > Date.now() - 10000; // If localStorage was updated in last 10 seconds, prefer it
-      
-      // If same course and localStorage has fewer holes, it likely means a delete happened - prefer localStorage
-      const localHasFewerHoles = sameCourse && localHoleCount < serverHoleCount && localHoleCount > 0;
-      
-      const preferLocal = isLocalRecent || localHasFewerHoles;
-      const preferServer = !preferLocal && (serverHoleCount > localHoleCount || sameCourse || !localData);
-      
-      if (preferLocal && localData && localData.holes && localData.holes.length > 0) {
-        // Prefer localStorage (e.g., after a delete operation)
-        setHoles(localData.holes);
-        setCurrentHole(localData.holes.length + 1);
-        setCourseName(localData.courseName || '');
-        setRoundStarted(true);
-        // Keep localStorage as-is (already has the correct data)
-        return; // done
-      } else if (preferServer) {
-        const serverHoles: any[] = firstServer.holes.map((h: any) => ({
-          holeNumber: h.holeNumber,
-          par: h.par,
+    // For logged-in users, check both localStorage and server
+    if (isLoggedIn) {
+      const serverRounds = incompleteData?.success ? incompleteData.incompleteRounds : null;
+      const firstServer = serverRounds && serverRounds.length > 0 ? serverRounds[0] : null;
+
+      if (firstServer && firstServer.holes && firstServer.holes.length > 0) {
+        const serverHoleCount = firstServer.holes.length;
+        const localHoleCount = localData?.holes?.length || 0;
+        const sameCourse = localData && localData.courseName === firstServer.courseName;
+
+        // Prefer localStorage if it's more recent (e.g., after a delete operation)
+        const localLastUpdated = localData?.lastUpdated ? new Date(localData.lastUpdated).getTime() : 0;
+        const isLocalRecent = localData && localData.lastUpdated && localLastUpdated > Date.now() - 10000;
+        const localHasFewerHoles = sameCourse && localHoleCount < serverHoleCount && localHoleCount > 0;
+
+        const preferLocal = isLocalRecent || localHasFewerHoles;
+
+        if (preferLocal && localData && localData.holes && localData.holes.length > 0) {
+          // Use localStorage
+          setHoles(localData.holes);
+          setCurrentHole(localData.holes.length + 1);
+          setCourseName(localData.courseName || '');
+          setRoundStarted(true);
+          return;
+        } else {
+          // Use server data
+          const serverHoles: any[] = firstServer.holes.map((h: any) => ({
+            holeNumber: h.holeNumber,
+            par: h.par,
             score: h.score,
             gir: h.gir,
             putts: h.putts,
@@ -161,76 +177,30 @@ export default function TrackRoundPage() {
             shotsToGreen: h.shotsToGreen,
             penalty: h.penalty || '',
             proximity: h.proximity,
-        }));
-        setHoles(serverHoles);
-        setCurrentHole(serverHoles.length + 1);
-        setCourseName(firstServer.courseName || localData?.courseName || '');
-        setRoundStarted(true);
-        localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
-          holes: serverHoles,
-          courseName: firstServer.courseName,
-          roundStarted: true,
-          lastUpdated: new Date().toISOString(),
-        }));
-        return; // done
+          }));
+          setHoles(serverHoles);
+          setCurrentHole(serverHoles.length + 1);
+          setCourseName(firstServer.courseName || '');
+          setRoundStarted(true);
+          localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
+            holes: serverHoles,
+            courseName: firstServer.courseName,
+            roundStarted: true,
+            lastUpdated: new Date().toISOString(),
+          }));
+          return;
+        }
       }
     }
 
-    // Fallback: use local if it exists and not already loaded
-    // Also migrate localStorage data to server if server is empty
-    if (localData && localData.holes && localData.holes.length > 0 && holes.length === 0) {
+    // For guest users or if no server data, use localStorage
+    if (localData && localData.holes && localData.holes.length > 0) {
       setHoles(localData.holes);
       setCurrentHole(localData.holes.length + 1);
       setCourseName(localData.courseName || '');
       setRoundStarted(true);
-      
-      // CRITICAL: Migrate localStorage data to server if server is empty
-      // This ensures data persists after account recreation
-      if (!firstServer || !firstServer.holes || firstServer.holes.length === 0) {
-        // Server is empty, migrate localStorage data
-        const apiHoles = localData.holes.map((hole: LocalHole) => convertToAPIHole(hole));
-        roundsAPI.saveRound({
-          courseName: localData.courseName || 'Unknown Course',
-          holes: apiHoles,
-        }).then((result) => {
-          if (result.success) {
-            queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
-          }
-        }).catch(() => {
-          // Don't show error to user - data is still in localStorage and will be available
-        });
-      }
     }
-  }, [incompleteData, isLoggedIn, queryClient]);
-
-  // Load saved round from localStorage on mount (GUEST USERS ONLY)
-  // Logged-in users handled by server effect (with fallback) above
-  useEffect(() => {
-    // Only load localStorage for guests
-    if (!isLoggedIn) {
-      const saved = localStorage.getItem('karlsGIR_currentRound');
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          // Load holes if they exist
-          if (data.holes && data.holes.length > 0) {
-            setHoles(data.holes);
-            // Always calculate currentHole based on holes array, don't restore from saved data
-            setCurrentHole(data.holes.length + 1);
-          }
-          // Load course name and round started state
-          if (data.courseName) {
-            setCourseName(data.courseName);
-          }
-          if (data.roundStarted === true) {
-            setRoundStarted(true);
-          }
-        } catch (e) {
-          console.error('Error loading saved round:', e);
-        }
-      }
-    }
-  }, [isLoggedIn]);
+  }, [location, navigate, isLoggedIn, incompleteData]);
 
   // Persist to localStorage whenever state changes (both guest & logged-in for continuity)
   useEffect(() => {
@@ -627,11 +597,6 @@ export default function TrackRoundPage() {
 
   const stats = calculateStats();
 
-  // Helper function to determine if round is complete (multiple of 9)
-  const isCompleteRound = (holeCount: number): boolean => {
-    return holeCount % 9 === 0 && holeCount > 0;
-  };
-
   // Helper function to get the number of complete nines
   const getCompleteNines = (holeCount: number): number => {
     return Math.floor(holeCount / 9);
@@ -644,324 +609,21 @@ export default function TrackRoundPage() {
     }
   }, [holes, roundStarted]);
 
-  const handleDiscardIncomplete = () => {
-    discardModal.open();
-  };
-
-  const confirmDiscardIncomplete = () => {
-    localStorage.removeItem('karlsGIR_currentRound');
-    setHoles([]);
-    setCurrentHole(1);
-    setCourseName('');
-    setRoundStarted(false);
-  };
-
-  // Show course name modal if round not started
+  // Show course selector if round not started
+  // NOTE: Incomplete rounds are now ONLY shown on Dashboard, not here
   if (!roundStarted) {
-    const hasLocalIncompleteRound = holes.length > 0;
-    
-    // Check both serverIncompleteRound state AND incompleteData query directly
-    // This handles cases where state hasn't been set yet but query data is available
-    const serverRounds = incompleteData?.success ? incompleteData.incompleteRounds : null;
-    const firstServerFromQuery = serverRounds && serverRounds.length > 0 ? serverRounds[0] : null;
-    const serverRoundToUse = serverIncompleteRound || firstServerFromQuery;
-    
-    const hasServerIncompleteRound = serverRoundToUse !== null && 
-      (serverRoundToUse.holes?.length > 0 || serverRoundToUse.holeCount > 0);
-    const hasAnyIncompleteRound = hasLocalIncompleteRound || hasServerIncompleteRound;
-
-    // Prefer localStorage data if it exists, otherwise use server data
-    const displayCourseName = hasLocalIncompleteRound 
-      ? (courseName || 'Unnamed Course')
-      : (serverRoundToUse?.courseName || 'Unnamed Course');
-    const displayHoleCount = hasLocalIncompleteRound 
-      ? holes.length 
-      : (serverRoundToUse?.holes?.length || serverRoundToUse?.holeCount || 0);
-
     return (
       <>
         <IconNav />
         <div style={{ paddingTop: '76px', padding: '76px 0.25rem 2rem', maxWidth: '900px', margin: '0 auto' }}>
           <div className="container">
-            {hasAnyIncompleteRound ? (
-              // Single card layout when incomplete round exists
-              <div className="card">
-                <h2 style={{ marginBottom: '1rem' }}>Incomplete Round</h2>
-                
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.75rem' }}>
-                    {displayCourseName}
-                  </div>
-                  
-                  {/* Status indicator */}
-                  {displayHoleCount < 9 ? (
-                    <div style={{
-                      padding: '0.5rem 0.75rem',
-                      backgroundColor: 'rgba(221, 237, 210, 0.2)',
-                      borderRadius: '6px',
-                      fontSize: '0.875rem',
-                    }}>
-                      <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '0.5rem' }} />
-                      {displayHoleCount} hole{displayHoleCount !== 1 ? 's' : ''} recorded<br />
-                      <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: '0.5rem' }} />
-                      Need 9 minimum to save
-                    </div>
-                  ) : isCompleteRound(displayHoleCount) ? (
-                    <div style={{
-                      padding: '0.5rem 0.75rem',
-                      backgroundColor: 'rgba(221, 237, 210, 0.3)',
-                      borderRadius: '6px',
-                      fontSize: '0.875rem',
-                    }}>
-                      <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '0.5rem' }} />
-                      {displayHoleCount} holes recorded
-                    </div>
-                  ) : (
-                    <div style={{
-                      padding: '0.5rem 0.75rem',
-                      backgroundColor: 'rgba(221, 237, 210, 0.2)',
-                      borderRadius: '6px',
-                      fontSize: '0.875rem',
-                    }}>
-                      <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '0.5rem' }} />
-                      {displayHoleCount} hole{displayHoleCount !== 1 ? 's' : ''} recorded<br />
-                      <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: '0.5rem' }} />
-                      {9 - (displayHoleCount % 9)} hole{9 - (displayHoleCount % 9) !== 1 ? 's' : ''} remaining
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={async () => {
-                    // ALWAYS check localStorage first - it might have more recent data (e.g., after a delete)
-                    const localRoundRaw = localStorage.getItem('karlsGIR_currentRound');
-                    let localData: any = null;
-                    if (localRoundRaw) {
-                      try {
-                        localData = JSON.parse(localRoundRaw);
-                      } catch (e) {
-                        // Ignore parse errors
-                      }
-                    }
-                    
-                    // If localStorage has data, check if it should be preferred
-                    if (localData && localData.holes && localData.holes.length > 0) {
-                      const localHoleCount = localData.holes.length;
-                      const serverHoleCount = serverRoundToUse?.holes?.length || serverRoundToUse?.holeCount || 0;
-                      const sameCourse = localData.courseName === serverRoundToUse?.courseName;
-                      
-                      // Prefer localStorage if:
-                      // 1. It's more recent (updated in last 30 seconds)
-                      // 2. It has fewer holes than server (indicating a delete happened)
-                      // 3. No server data exists
-                      const localLastUpdated = localData.lastUpdated ? new Date(localData.lastUpdated).getTime() : 0;
-                      const isLocalRecent = localLastUpdated > Date.now() - 30000; // Last 30 seconds
-                      const localHasFewerHoles = sameCourse && localHoleCount < serverHoleCount && localHoleCount > 0;
-                      
-                      if (isLocalRecent || localHasFewerHoles || !hasServerIncompleteRound) {
-                        // Use localStorage data
-                        setHoles(localData.holes);
-                        setCourseName(localData.courseName || '');
-                        setCurrentHole(localData.holes.length + 1);
-                        setRoundStarted(true);
-                        return;
-                      }
-                    }
-
-                    // Server round path - use serverRoundToUse which checks both state and query
-                    if (hasServerIncompleteRound && serverRoundToUse) {
-                      try {
-                        // First try to use the round we already have
-                        if (serverRoundToUse.holes && serverRoundToUse.holes.length > 0) {
-                          const serverHoles = serverRoundToUse.holes.map((hole: any) => ({
-                            holeNumber: hole.holeNumber,
-                            par: hole.par,
-                            score: hole.score,
-                            gir: hole.gir,
-                            putts: hole.putts,
-                            puttDistances: hole.puttDistances || [],
-                            // Convert API fairway format ('y'/'n') to local format ('l'/'c'/'r'/'na'/'rough')
-                            fairway: hole.fairway === 'y' ? 'c' : hole.fairway === 'n' ? 'rough' : undefined,
-                            shotsToGreen: hole.shotsToGreen,
-                            penalty: hole.penalty || '',
-                            proximity: hole.proximity,
-                          }));
-
-                          setHoles(serverHoles);
-                          setCourseName(serverRoundToUse.courseName || '');
-                          setCurrentHole(serverHoles.length + 1);
-                          setRoundStarted(true);
-                          
-                          // Also update localStorage for consistency
-                          localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
-                            holes: serverHoles,
-                            courseName: serverRoundToUse.courseName,
-                            roundStarted: true,
-                            lastUpdated: new Date().toISOString(),
-                          }));
-                          
-                          return;
-                        }
-
-                        // If holes missing, refetch from API to get full details
-                        const refetch = await roundsAPI.getIncompleteRounds();
-                        const first = refetch?.success && refetch.incompleteRounds?.length > 0 
-                          ? refetch.incompleteRounds[0] 
-                          : null;
-                          
-                        if (first && first.holes && first.holes.length > 0) {
-                          // Check localStorage again after refetch - it might be more recent
-                          const localAfterRefetch = localStorage.getItem('karlsGIR_currentRound');
-                          let localDataAfterRefetch: any = null;
-                          if (localAfterRefetch) {
-                            try {
-                              localDataAfterRefetch = JSON.parse(localAfterRefetch);
-                            } catch (e) {
-                              // Ignore
-                            }
-                          }
-                          
-                          // Prefer localStorage if it has fewer holes (after delete) or is more recent
-                          if (localDataAfterRefetch && localDataAfterRefetch.holes && localDataAfterRefetch.holes.length > 0) {
-                            const localCount = localDataAfterRefetch.holes.length;
-                            const serverCount = first.holes.length;
-                            const sameCourseAfter = localDataAfterRefetch.courseName === first.courseName;
-                            const localLastUpdatedAfter = localDataAfterRefetch.lastUpdated ? new Date(localDataAfterRefetch.lastUpdated).getTime() : 0;
-                            const isLocalRecentAfter = localLastUpdatedAfter > Date.now() - 30000;
-                            const localHasFewerAfter = sameCourseAfter && localCount < serverCount && localCount > 0;
-                            
-                            if (isLocalRecentAfter || localHasFewerAfter) {
-                              // Use localStorage
-                              setHoles(localDataAfterRefetch.holes);
-                              setCourseName(localDataAfterRefetch.courseName || '');
-                              setCurrentHole(localDataAfterRefetch.holes.length + 1);
-                              setRoundStarted(true);
-                              return;
-                            }
-                          }
-                          
-                          // Use server data
-                          const serverHoles = first.holes.map((hole: any) => ({
-                            holeNumber: hole.holeNumber,
-                            par: hole.par,
-                            score: hole.score,
-                            gir: hole.gir,
-                            putts: hole.putts,
-                            puttDistances: hole.puttDistances || [],
-                            // Convert API fairway format to local format
-                            fairway: hole.fairway === 'y' ? 'c' : hole.fairway === 'n' ? 'rough' : undefined,
-                            shotsToGreen: hole.shotsToGreen,
-                            penalty: hole.penalty || '',
-                            proximity: hole.proximity,
-                          }));
-
-                          setHoles(serverHoles);
-                          setCourseName(first.courseName || '');
-                          setCurrentHole(serverHoles.length + 1);
-                          setRoundStarted(true);
-                          
-                          // Also update localStorage and state for consistency
-                          localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
-                            holes: serverHoles,
-                            courseName: first.courseName,
-                            roundStarted: true,
-                            lastUpdated: new Date().toISOString(),
-                          }));
-                          setServerIncompleteRound(first);
-                          
-                          return;
-                        }
-                      } catch (e) {
-                        console.warn('[Continue Round] Failed to load server round', e);
-                        setValidationError('⚠️ Could not load incomplete round from server. Please try again.');
-                        validationErrorModal.open();
-                      }
-                    }
-
-                    // Fallback: at least start the round UI
-                    setRoundStarted(true);
-                  }}
-                  className="btn btn-primary"
-                  style={{ width: '100%', marginBottom: '0.75rem' }}
-                >
-                  Continue Round
-                </button>
-
-                {/* Only show Save & Finish if there are complete nines */}
-                {displayHoleCount >= 9 && !isCompleteRound(displayHoleCount) && (
-                  <button
-                    onClick={() => {
-                      const completeNines = getCompleteNines(displayHoleCount);
-                      const incompleteHoles = displayHoleCount % 9;
-                      const firstIncompleteHole = completeNines * 9 + 1;
-                      const lastIncompleteHole = displayHoleCount;
-                      
-                      const message = incompleteHoles === 1
-                        ? `Save first ${completeNines * 9} holes and delete hole ${lastIncompleteHole}?`
-                        : `Save first ${completeNines * 9} holes and delete holes ${firstIncompleteHole}-${lastIncompleteHole}?`;
-                      
-                      setModalMessage(message);
-                      setModalAction(async () => {
-                        // Save only the complete nines to API
-                        const completeHoles = holes.slice(0, completeNines * 9);
-                        const holesToSave = completeHoles.map(convertToAPIHole);
-                        
-                        if (isLoggedIn) {
-                          try {
-                            const apiData: any = {
-                              courseName: courseName.trim(),
-                              courseMetadata: courseMetadata,
-                              holes: holesToSave,
-                            };
-                            if (serverIncompleteRound?.index !== undefined) {
-                              apiData.mergeIntoRoundId = serverIncompleteRound.index;
-                            }
-                            const result = await roundsAPI.saveRound(apiData);
-                            
-                            if (result.success) {
-                              queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
-                              queryClient.invalidateQueries({ queryKey: ['stats'] });
-                            } else {
-                              throw new Error('Server save failed');
-                            }
-                          } catch (error) {
-                            console.error('Error saving complete nines:', error);
-                            setValidationError('⚠️ Could not save to server. Please try again.');
-                            validationErrorModal.open();
-                            return; // Don't navigate if save failed
-                          }
-                        }
-                        
-                        // Clear localStorage and navigate
-                        localStorage.removeItem('karlsGIR_currentRound');
-                        navigate('/dashboard');
-                      });
-                      saveNineModal.open();
-                    }}
-                    className="btn btn-primary"
-                    style={{ width: '100%', marginBottom: '0.75rem' }}
-                  >
-                    Save {getCompleteNines(displayHoleCount) * 9} & Finish
-                  </button>
-                )}
-
-                <button
-                  onClick={handleDiscardIncomplete}
-                  className="btn btn-secondary"
-                  style={{ width: '100%' }}
-                >
-                  Discard Round
-                </button>
-              </div>
-            ) : (
-              // Single card when no incomplete round
-              <div className="card">
-                <CourseSelector
-                  onCourseSelected={handleCourseSelected}
-                  initialCourseName={courseName}
-                />
-              </div>
-            )}
+            {/* Always show course selector - incomplete rounds are handled on Dashboard */}
+            <div className="card">
+              <CourseSelector
+                onCourseSelected={handleCourseSelected}
+                initialCourseName={courseName}
+              />
+            </div>
           </div>
         </div>
       </>
@@ -1379,13 +1041,14 @@ export default function TrackRoundPage() {
                   const incompleteHoles = holes.length % 9;
                 
                 if (holes.length < 9) {
-                  // Less than 9 holes - pause round
-                  setModalMessage(`Pause round with ${holes.length} hole${holes.length !== 1 ? 's' : ''}? You can continue this round later. (Note: Minimum 9 holes required to record stats)`);
-                  setModalAction(() => () => {
-                    // Keep data in localStorage and server, just return to dashboard
+                  // Less than 9 holes - discard round (no server save, just clear localStorage)
+                  setModalMessage(`Discard this round? You have ${holes.length} hole${holes.length !== 1 ? 's' : ''} entered. Minimum 9 holes required to save stats.`);
+                  setModalAction(() => async () => {
+                    // Just clear localStorage and navigate - no server save for < 9 holes
+                    localStorage.removeItem('karlsGIR_currentRound');
                     navigate('/dashboard');
                   });
-                  endRoundMinModal.open();
+                  discardModal.open();
                 } else if (incompleteHoles > 0) {
                   // Incomplete nine - only record complete nines
                   setModalMessage(`You've completed ${completeNines * 9} holes. The remaining ${incompleteHoles} hole${incompleteHoles !== 1 ? 's' : ''} will be deleted. Continue?`);
@@ -1397,6 +1060,7 @@ export default function TrackRoundPage() {
                         courseName,
                         courseMetadata,
                         holes: holesToSave as any,
+                        completed: true, // Mark round as completed so it won't show in "Resume Round"
                       } as any);
 
                       // Track round save event
@@ -1428,6 +1092,7 @@ export default function TrackRoundPage() {
                         courseName,
                         courseMetadata,
                         holes: holesToSave as any,
+                        completed: true, // Mark round as completed so it won't show in "Resume Round"
                       } as any);
 
                       // Track round save event
@@ -1456,8 +1121,49 @@ export default function TrackRoundPage() {
                 marginTop: '1.5rem',
               }}
             >
-              {holes.length < 9 ? `Pause Round (${holes.length} hole${holes.length !== 1 ? 's' : ''})` : `End Round (${holes.length} holes)`}
+              {holes.length < 9 ? `Discard Round (${holes.length} hole${holes.length !== 1 ? 's' : ''})` : `End Round (${holes.length} holes)`}
             </button>
+
+            {/* Pause Round Button - only for >= 9 holes */}
+            {holes.length >= 9 && (
+              <button
+                onClick={() => {
+                  setModalMessage(`Pause round with ${holes.length} holes? You can continue this round later from the dashboard.`);
+                  setModalAction(() => async () => {
+                    // Save round WITHOUT completed flag so it can be resumed
+                    const holesToSave = holes.map(convertToAPIHole);
+                    try {
+                      await roundsAPI.saveRound({
+                        courseName,
+                        courseMetadata,
+                        holes: holesToSave as any,
+                        // NO completed flag - this allows the round to be resumed
+                      } as any);
+
+                      // Invalidate queries so dashboard shows the paused round
+                      queryClient.invalidateQueries({ queryKey: ['stats'] });
+                      queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+                    } catch (error) {
+                      console.error('Failed to pause round:', error);
+                      setValidationError('Failed to pause round. Please try again.');
+                      validationErrorModal.open();
+                      return;
+                    }
+                    // Clear localStorage and navigate to dashboard
+                    localStorage.removeItem('karlsGIR_currentRound');
+                    navigate('/dashboard');
+                  });
+                  saveNineModal.open();
+                }}
+                className="btn btn-secondary"
+                style={{
+                  width: '100%',
+                  marginTop: '0.75rem',
+                }}
+              >
+                Pause Round ({holes.length} holes)
+              </button>
+            )}
 
             {/* CSV Export for Guests */}
             {!isLoggedIn && (
@@ -1502,24 +1208,14 @@ export default function TrackRoundPage() {
       <Modal
         isOpen={discardModal.isOpen}
         onClose={() => {
-          console.log('🔘 discardModal onClose called');
           discardModal.close();
         }}
         onConfirm={async () => {
-          console.log('🔘 discardModal onConfirm called');
-          console.log('🔘 modalMessage:', modalMessage);
-          // Check if this is a delete hole confirmation or discard round
-          if (modalMessage && modalMessage.includes('Delete hole')) {
-            console.log('🔘 Calling modalAction...');
-            await modalAction();
-            console.log('🔘 modalAction done');
-          } else {
-            console.log('🔘 Calling confirmDiscardIncomplete...');
-            confirmDiscardIncomplete();
-          }
+          // Use modalAction for all cases (delete hole or discard round)
+          await modalAction();
         }}
         title={modalMessage && modalMessage.includes('Delete hole') ? "Delete Hole?" : "Discard Round?"}
-        message={modalMessage && modalMessage.includes('Delete hole') ? modalMessage : "This will delete your incomplete round. Are you sure?"}
+        message={modalMessage || "This will delete your incomplete round. Are you sure?"}
         type="confirm"
         confirmText={modalMessage && modalMessage.includes('Delete hole') ? "Delete" : "Discard"}
         cancelText="Cancel"
@@ -1529,20 +1225,9 @@ export default function TrackRoundPage() {
         isOpen={saveNineModal.isOpen}
         onClose={saveNineModal.close}
         onConfirm={modalAction}
-        title="Save & Finish?"
-        message={modalMessage}
-        type="confirm"
-        confirmText="Save & Finish"
-        cancelText="Cancel"
-      />
-
-      <Modal
-        isOpen={endRoundMinModal.isOpen}
-        onClose={endRoundMinModal.close}
-        onConfirm={modalAction}
         title="Pause Round?"
         message={modalMessage}
-        type="warning"
+        type="confirm"
         confirmText="Pause Round"
         cancelText="Cancel"
       />

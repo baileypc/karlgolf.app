@@ -1,0 +1,196 @@
+[
+    {
+        "timestamp": "2025-11-06 19:31:33",
+        "date": "2025-11-06",
+        "courseName": "BHGC",
+        "roundNumber": 1,
+        "holes": [
+            {
+                "holeNumber": 1,
+                "par": 3,
+                "score": 3,
+                "gir": true,
+                "putts": 2,
+                "puttDistances": [
+                    34,
+                    6
+                ],
+                "fairway": null,
+                "teeShotResult": null,
+                "approachDistance": 34,
+                "penalty": "",
+                "shotsToGreen": null
+            },
+            {
+                "holeNumber": 2,
+                "par": 4,
+                "score": 6,
+                "gir": false,
+                "putts": 3,
+                "puttDistances": [
+                    34,
+                    13,
+                    2
+                ],
+                "fairway": true,
+                "teeShotResult": "",
+                "approachDistance": 34,
+                "penalty": null,
+                "shotsToGreen": 3
+            },
+            {
+                "holeNumber": 3,
+                "par": 5,
+                "score": 6,
+                "gir": false,
+                "putts": 3,
+                "puttDistances": [
+                    34,
+                    5,
+                    1
+                ],
+                "fairway": false,
+                "teeShotResult": "bunker",
+                "approachDistance": 34,
+                "penalty": null,
+                "shotsToGreen": 3
+            },
+            {
+                "holeNumber": 4,
+                "par": 3,
+                "score": 5,
+                "gir": false,
+                "putts": 3,
+                "puttDistances": [
+                    43,
+                    13,
+                    3
+                ],
+                "fairway": null,
+                "teeShotResult": null,
+                "approachDistance": 43,
+                "penalty": "ob",
+                "shotsToGreen": null
+            },
+            {
+                "holeNumber": 5,
+                "par": 3,
+                "score": 2,
+                "gir": true,
+                "putts": 1,
+                "puttDistances": [
+                    4
+                ],
+                "fairway": null,
+                "teeShotResult": null,
+                "approachDistance": 4,
+                "penalty": "",
+                "shotsToGreen": null
+            },
+            {
+                "holeNumber": 6,
+                "par": 3,
+                "score": 6,
+                "gir": false,
+                "putts": 3,
+                "puttDistances": [
+                    43,
+                    22,
+                    3
+                ],
+                "fairway": null,
+                "teeShotResult": null,
+                "approachDistance": 43,
+                "penalty": "",
+                "shotsToGreen": 3
+            },
+            {
+                "holeNumber": 7,
+                "par": 3,
+                "score": 5,
+                "gir": false,
+                "putts": 2,
+                "puttDistances": [
+                    34,
+                    6
+                ],
+                "fairway": null,
+                "teeShotResult": null,
+                "approachDistance": 34,
+                "penalty": "",
+                "shotsToGreen": 3
+            },
+            {
+                "holeNumber": 8,
+                "par": 3,
+                "score": 3,
+                "gir": true,
+                "putts": 2,
+                "puttDistances": [
+                    12,
+                    3
+                ],
+                "fairway": null,
+                "teeShotResult": null,
+                "approachDistance": 12,
+                "penalty": "",
+                "shotsToGreen": null
+            },
+            {
+                "holeNumber": 9,
+                "par": 3,
+                "score": 2,
+                "gir": true,
+                "putts": 1,
+                "puttDistances": [
+                    25
+                ],
+                "fairway": null,
+                "teeShotResult": null,
+                "approachDistance": 25,
+                "penalty": "",
+                "shotsToGreen": null
+            },
+            {
+                "holeNumber": 10,
+                "par": 4,
+                "score": 5,
+                "gir": false,
+                "putts": 2,
+                "puttDistances": [
+                    26,
+                    5
+                ],
+                "fairway": false,
+                "teeShotResult": "rough",
+                "approachDistance": 26,
+                "penalty": null,
+                "shotsToGreen": 3
+            }
+        ],
+        "stats": {
+            "totalHoles": 10,
+            "totalScore": 43,
+            "totalPar": 34,
+            "toPar": 9,
+            "avgScore": 4.3,
+            "girsHit": 4,
+            "girPct": 40,
+            "fairwaysHit": 1,
+            "eligibleFairways": 3,
+            "fairwayPct": 33.3,
+            "totalPutts": 22,
+            "avgPutts": 2.2,
+            "puttsPerGIR": 1.5,
+            "scrambles": 0,
+            "missedGirs": 6,
+            "scramblingPct": 0,
+            "penalties": 1,
+            "totalPenaltyStrokes": 1,
+            "avgProximity": 28.9,
+            "avgProximityGIR": 18.8,
+            "avgProximityMissed": 35.7
+        },
+        "lastUpdated": "2025-11-06 19:31:33"
+    }
+]

@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const deleteRoundsModal = useModal();
   const deleteSingleRoundModal = useModal();
   const deleteAccountModal = useModal();
+  const endRoundModal = useModal();
   const errorModal = useModal();
   const [errorMessage, setErrorMessage] = useState('');
   const [roundToDelete, setRoundToDelete] = useState<{ roundNumber: number; courseName: string; isIncompleteCard?: boolean } | null>(null);
@@ -93,11 +94,9 @@ export default function DashboardPage() {
       // Use the API helper which handles native requests and auth tokens
       const result = await roundsAPI.loadStats();
       if (!result.success) throw new Error('Failed to load stats');
-      // Return the data object directly to match existing component structure
-      return {
-        ...result.data,
-        success: true // Ensure success flag is present if checked elsewhere
-      };
+      // The API returns { success, groups, cumulative, totalRounds } directly
+      // Just return the result as-is since it already has the correct structure
+      return result;
     },
     retry: 1,
     staleTime: 5 * 60 * 1000,
@@ -196,12 +195,22 @@ export default function DashboardPage() {
                 {incompleteRound.courseName} • {incompleteRound.holes} hole{incompleteRound.holes !== 1 ? 's' : ''} recorded
               </p>
               <button
-                onClick={() => navigate('/track-round')}
+                onClick={() => navigate('/track-round', { state: { continueRound: true } })}
                 className="btn btn-primary"
                 style={{ width: '100%', marginBottom: '0.75rem' }}
               >
                 Continue Round
               </button>
+              {/* Only show End Round button if >= 9 holes */}
+              {incompleteRound.holes >= 9 && (
+                <button
+                  onClick={() => endRoundModal.open()}
+                  className="btn btn-secondary"
+                  style={{ width: '100%', marginBottom: '0.75rem' }}
+                >
+                  End Round
+                </button>
+              )}
               <button
                 onClick={() => {
                   setRoundToDelete({ roundNumber: 0, courseName: incompleteRound.courseName, isIncompleteCard: true });
@@ -374,13 +383,25 @@ export default function DashboardPage() {
                       </div>
                       <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-primary)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         {isIncomplete && (
-                          <button
-                            onClick={() => navigate('/track-round')}
-                            className="btn btn-primary"
-                            style={{ width: '100%' }}
-                          >
-                            Continue Round
-                          </button>
+                          <>
+                            <button
+                              onClick={() => navigate('/track-round', { state: { continueRound: true } })}
+                              className="btn btn-primary"
+                              style={{ width: '100%' }}
+                            >
+                              Continue Round
+                            </button>
+                            {/* Only show End Round button if >= 9 holes */}
+                            {holeCount >= 9 && (
+                              <button
+                                onClick={() => endRoundModal.open()}
+                                className="btn btn-secondary"
+                                style={{ width: '100%' }}
+                              >
+                                End Round
+                              </button>
+                            )}
+                          </>
                         )}
                         <button
                           onClick={() => {
@@ -758,6 +779,72 @@ export default function DashboardPage() {
           : 'Delete this round? This action cannot be undone.'}
         type="confirm"
         confirmText="Delete"
+        cancelText="Cancel"
+      />
+
+      {/* End Round Confirmation Modal */}
+      <Modal
+        isOpen={endRoundModal.isOpen}
+        onClose={endRoundModal.close}
+        onConfirm={async () => {
+          try {
+            // Get the incomplete round data
+            const saved = localStorage.getItem('karlsGIR_currentRound');
+            let localData: any = null;
+            if (saved) {
+              try {
+                localData = JSON.parse(saved);
+              } catch (e) {
+                console.error('Error parsing localStorage:', e);
+              }
+            }
+
+            // Check server incomplete rounds (if logged in)
+            const serverRounds = incompleteData?.success ? incompleteData.incompleteRounds : null;
+            const firstServer = serverRounds && serverRounds.length > 0 ? serverRounds[0] : null;
+
+            // Use localStorage data if available, otherwise server data
+            const roundData = localData || firstServer;
+
+            if (!roundData) {
+              throw new Error('No incomplete round found');
+            }
+
+            // Save the round with completed: true
+            const result = await roundsAPI.saveRound({
+              courseName: roundData.courseName || incompleteRound?.courseName || 'Unknown Course',
+              courseMetadata: roundData.courseMetadata || null,
+              holes: roundData.holes || [],
+              completed: true, // Mark as completed so it won't show in "Continue Your Round"
+              mergeIntoRoundId: firstServer?.index, // Merge into existing server round if it exists
+            } as any);
+
+            if (result.success) {
+              // Clear localStorage
+              localStorage.removeItem('karlsGIR_currentRound');
+
+              // Invalidate queries to refresh dashboard
+              queryClient.invalidateQueries({ queryKey: ['stats'] });
+              queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+
+              endRoundModal.close();
+
+              // Reload to refresh the dashboard
+              window.location.reload();
+            } else {
+              throw new Error(result.message || 'Failed to end round');
+            }
+          } catch (error) {
+            console.error('End round failed:', error);
+            setErrorMessage('❌ Failed to end round. Please try again.');
+            errorModal.open();
+            endRoundModal.close();
+          }
+        }}
+        title="End Round?"
+        message="⚠️ This will permanently end the round and add it to your statistics. You will NOT be able to resume or continue this round later. Are you sure?"
+        type="confirm"
+        confirmText="End Round"
         cancelText="Cancel"
       />
 

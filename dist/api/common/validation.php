@@ -128,7 +128,13 @@ function validateRoundData($roundData) {
     if (isset($roundData['mergeIntoRoundId'])) {
         $sanitized['mergeIntoRoundId'] = $roundData['mergeIntoRoundId'];
     }
-    
+    if (isset($roundData['completed'])) {
+        $sanitized['completed'] = (bool)$roundData['completed'];
+    }
+    if (isset($roundData['courseMetadata'])) {
+        $sanitized['courseMetadata'] = $roundData['courseMetadata'];
+    }
+
     return [
         'valid' => empty($errors),
         'errors' => $errors,

@@ -1,5 +1,24 @@
 # Version History
 
+## Version 3.3.1 - Bug Fixes (January 2026)
+
+### 🐛 Bug Fixes
+
+- **Completed Flag Fix** - Fixed `completed` field being stripped during round validation, causing rounds to never be marked as complete
+- **Dashboard Stats Display** - Fixed Dashboard not displaying stats due to incorrect API response parsing (was accessing `result.data` instead of `result` directly)
+- **TypeScript Types** - Updated `loadStats()` return type to match actual API response structure
+
+---
+
+## Version 3.3.0 - API & Data Improvements (January 2026)
+
+### ✅ Features & Improvements
+
+- **Enhanced API Response Types** - Improved TypeScript definitions for API responses
+- **Version Sync Script** - Automated version syncing across all documentation files
+
+---
+
 ## Version 3.2.0 - GPS Course Finder (December 2025)
 
 ### ✅ Major Features
@@ -155,6 +174,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.3.0 (Production)
+**Current Version:** 3.3.1 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

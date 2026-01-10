@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://unpkg.com https://cdn.tailwindcss.com;">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Admin Dashboard - Karl's GIR</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../assets/css/main.css">
+    
+    <!-- React and ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel Standalone for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background-color: #0a140a;
+            color: #DDEDD2;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Admin Dashboard Component
+        function AdminDashboard() {
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [isLoading, setIsLoading] = useState(true);
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [loginError, setLoginError] = useState('');
+            const [isLoggingIn, setIsLoggingIn] = useState(false);
+            const [analytics, setAnalytics] = useState(null);
+            const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+            const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
+            
+            // Check authentication on mount
+            useEffect(() => {
+                checkAuth();
+            }, []);
+            
+            // Load analytics when authenticated
+            useEffect(() => {
+                if (isAuthenticated) {
+                    loadAnalytics();
+                }
+            }, [isAuthenticated, dateRange]);
+            
+            const checkAuth = async () => {
+                try {
+                    const response = await fetch('../api/admin/auth.php?action=check');
+                    const data = await response.json();
+                    setIsAuthenticated(data.loggedIn || false);
+                    if (data.loggedIn) {
+                        setUsername(data.username || 'admin');
+                    }
+                } catch (error) {
+                    console.error('Auth check error:', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                setIsLoggingIn(true);
+                setLoginError('');
+                
+                try {
+                    const response = await fetch('../api/admin/auth.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'login',
+                            username: username,
+                            password: password
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        setIsAuthenticated(true);
+                        setPassword('');
+                    } else {
+                        setLoginError(data.message || 'Login failed');
+                    }
+                } catch (error) {
+                    setLoginError('Network error. Please try again.');
+                    console.error('Login error:', error);
+                } finally {
+                    setIsLoggingIn(false);
+                }
+            };
+            
+            const handleLogout = async () => {
+                try {
+                    await fetch('../api/admin/auth.php?action=logout');
+                    setIsAuthenticated(false);
+                    setUsername('');
+                    setPassword('');
+                    setAnalytics(null);
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            };
+            
+            const loadAnalytics = async () => {
+                setIsLoadingAnalytics(true);
+                try {
+                    let url = '../api/admin/analytics.php';
+                    const params = new URLSearchParams();
+                    if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+                    if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+                    if (params.toString()) url += '?' + params.toString();
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        setAnalytics(data);
+                    }
+                } catch (error) {
+                    console.error('Analytics load error:', error);
+                } finally {
+                    setIsLoadingAnalytics(false);
+                }
+            };
+            
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            };
+            
+            const formatNumber = (num) => {
+                return num ? num.toLocaleString() : '0';
+            };
+            
+            if (isLoading) {
+                return (
+                    <div className="min-h-screen bg-karl-bg-primary flex items-center justify-center">
+                        <div className="text-karl-text-primary text-xl">Loading...</div>
+                    </div>
+                );
+            }
+            
+            if (!isAuthenticated) {
+                return (
+                    <div className="min-h-screen bg-karl-bg-primary flex items-center justify-center p-4">
+                        <div className="bg-karl-bg-secondary rounded-lg p-8 w-full max-w-md border border-karl-border-primary">
+                            <div className="text-center mb-6">
+                                <h1 className="text-2xl font-bold text-karl-text-primary mb-2">Admin Dashboard</h1>
+                                <p className="text-karl-text-secondary text-sm">Karl's GIR Analytics</p>
+                            </div>
+                            
+                            <form onSubmit={handleLogin}>
+                                <div className="mb-4">
+                                    <label className="block text-karl-text-primary text-sm font-medium mb-2">
+                                        Username
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        className="w-full px-4 py-2 bg-karl-bg-primary border border-karl-border-primary rounded-lg text-karl-text-primary focus:outline-none focus:border-karl-light-green"
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+                                
+                                <div className="mb-6">
+                                    <label className="block text-karl-text-primary text-sm font-medium mb-2">
+                                        Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full px-4 py-2 bg-karl-bg-primary border border-karl-border-primary rounded-lg text-karl-text-primary focus:outline-none focus:border-karl-light-green"
+                                        required
+                                    />
+                                </div>
+                                
+                                {loginError && (
+                                    <div className="mb-4 p-3 bg-red-900/30 border border-red-500 rounded-lg text-red-300 text-sm">
+                                        {loginError}
+                                    </div>
+                                )}
+                                
+                                <button
+                                    type="submit"
+                                    disabled={isLoggingIn}
+                                    className="w-full py-2 bg-karl-light-green text-karl-dark rounded-lg font-semibold hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isLoggingIn ? 'Logging in...' : 'Login'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+            
+            return (
+                <div className="min-h-screen bg-karl-bg-primary p-4">
+                    <div className="max-w-7xl mx-auto">
+                        {/* Header */}
+                        <div className="mb-6 flex justify-between items-center">
+                            <div>
+                                <h1 className="text-3xl font-bold text-karl-text-primary">Admin Dashboard</h1>
+                                <p className="text-karl-text-secondary text-sm mt-1">Analytics & Market Research</p>
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                            >
+                                Logout
+                            </button>
+                        </div>
+                        
+                        {/* Date Range Filter */}
+                        <div className="mb-6 bg-karl-bg-secondary p-4 rounded-lg border border-karl-border-primary">
+                            <div className="flex flex-wrap gap-4 items-end">
+                                <div className="flex-1 min-w-[200px]">
+                                    <label className="block text-karl-text-primary text-sm font-medium mb-2">
+                                        Start Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={dateRange.startDate}
+                                        onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                                        className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-karl-light-green focus:border-karl-light-green"
+                                        style={{ colorScheme: 'light' }}
+                                    />
+                                </div>
+                                <div className="flex-1 min-w-[200px]">
+                                    <label className="block text-karl-text-primary text-sm font-medium mb-2">
+                                        End Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={dateRange.endDate}
+                                        onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                                        className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-karl-light-green focus:border-karl-light-green"
+                                        style={{ colorScheme: 'light' }}
+                                    />
+                                </div>
+                                <div>
+                                    <button
+                                        onClick={loadAnalytics}
+                                        disabled={isLoadingAnalytics}
+                                        className="px-4 py-2 bg-karl-light-green text-karl-dark rounded-lg font-semibold hover:bg-opacity-90 disabled:opacity-50"
+                                    >
+                                        {isLoadingAnalytics ? 'Loading...' : 'Refresh'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {isLoadingAnalytics && !analytics ? (
+                            <div className="text-center py-12">
+                                <div className="text-karl-text-primary text-xl">Loading analytics...</div>
+                            </div>
+                        ) : analytics ? (
+                            <>
+                                {/* Key Market Insights */}
+                                <div className="mb-6 bg-gradient-to-r from-karl-bg-secondary to-karl-bg-primary p-6 rounded-lg border border-karl-border-primary">
+                                    <h2 className="text-2xl font-bold text-karl-text-primary mb-4">Key Market Insights</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="bg-karl-bg-primary p-4 rounded-lg border border-karl-border-primary">
+                                            <div className="text-karl-text-secondary text-sm mb-1">User Acquisition</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {formatNumber(analytics.summary?.totalSignups || 0)}
+                                            </div>
+                                            <div className="text-xs text-karl-text-secondary">
+                                                Total signups: {analytics.summary?.totalPageVisits > 0 ? 
+                                                    Math.round((analytics.summary.totalSignups / analytics.summary.totalPageVisits) * 100) : 0}% conversion rate
+                                            </div>
+                                        </div>
+                                        <div className="bg-karl-bg-primary p-4 rounded-lg border border-karl-border-primary">
+                                            <div className="text-karl-text-secondary text-sm mb-1">User Engagement</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {analytics.roundStats?.completionRate || 0}%
+                                            </div>
+                                            <div className="text-xs text-karl-text-secondary">
+                                                {analytics.roundStats?.totalStarts || 0} rounds started, {analytics.roundStats?.totalSaves || 0} completed
+                                            </div>
+                                        </div>
+                                        <div className="bg-karl-bg-primary p-4 rounded-lg border border-karl-border-primary">
+                                            <div className="text-karl-text-secondary text-sm mb-1">Feature Preference</div>
+                                            <div className="text-3xl font-bold text-karl-light-green mb-2">
+                                                {analytics.summary?.liveVersionUsage?.totalVisits > 0 ? 
+                                                    Math.round((analytics.summary.liveVersionUsage.totalVisits / (analytics.summary.totalPageVisits || 1)) * 100) : 0}%
+                                            </div>
+                                            <div className="text-xs text-karl-text-secondary">
+                                                Prefer live version (no signup required)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* User Behavior Analysis */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                    <div className="bg-karl-bg-secondary p-6 rounded-lg border border-karl-border-primary">
+                                        <h2 className="text-xl font-bold text-karl-text-primary mb-4">User Journey Analysis</h2>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-karl-text-primary font-medium">Landing Page</span>
+                                                    <span className="text-karl-light-green font-semibold">
+                                                        {formatNumber(analytics.pageVisitCounts?.['index.html'] || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-karl-bg-primary rounded-full h-2">
+                                                    <div 
+                                                        className="bg-karl-light-green h-2 rounded-full" 
+                                                        style={{ width: `${analytics.summary?.totalPageVisits > 0 ? 
+                                                            (analytics.pageVisitCounts?.['index.html'] || 0) / analytics.summary.totalPageVisits * 100 : 0}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-karl-text-primary font-medium">Live Round (No Signup)</span>
+                                                    <span className="text-karl-light-green font-semibold">
+                                                        {formatNumber(analytics.pageVisitCounts?.['track-live.html'] || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-karl-bg-primary rounded-full h-2">
+                                                    <div 
+                                                        className="bg-karl-light-green h-2 rounded-full" 
+                                                        style={{ width: `${analytics.summary?.totalPageVisits > 0 ? 
+                                                            (analytics.pageVisitCounts?.['track-live.html'] || 0) / analytics.summary.totalPageVisits * 100 : 0}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-karl-text-primary font-medium">Registered Users</span>
+                                                    <span className="text-karl-light-green font-semibold">
+                                                        {formatNumber(analytics.pageVisitCounts?.['track-round.html'] || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-karl-bg-primary rounded-full h-2">
+                                                    <div 
+                                                        className="bg-karl-light-green h-2 rounded-full" 
+                                                        style={{ width: `${analytics.summary?.totalPageVisits > 0 ? 
+                                                            (analytics.pageVisitCounts?.['track-round.html'] || 0) / analytics.summary.totalPageVisits * 100 : 0}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-karl-text-primary font-medium">Dashboard Usage</span>
+                                                    <span className="text-karl-light-green font-semibold">
+                                                        {formatNumber(analytics.pageVisitCounts?.['dashboard.html'] || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-karl-bg-primary rounded-full h-2">
+                                                    <div 
+                                                        className="bg-karl-light-green h-2 rounded-full" 
+                                                        style={{ width: `${analytics.summary?.totalPageVisits > 0 ? 
+                                                            (analytics.pageVisitCounts?.['dashboard.html'] || 0) / analytics.summary.totalPageVisits * 100 : 0}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-karl-bg-secondary p-6 rounded-lg border border-karl-border-primary">
+                                        <h2 className="text-xl font-bold text-karl-text-primary mb-4">Engagement & Drop-off Analysis</h2>
+                                        <div className="space-y-4">
+                                            <div className="p-4 bg-karl-bg-primary rounded-lg border border-karl-border-primary">
+                                                <div className="text-karl-text-secondary text-sm mb-2">Round Completion Rate</div>
+                                                <div className="text-2xl font-bold text-karl-text-primary mb-1">
+                                                    {analytics.roundStats?.completionRate || 0}%
+                                                </div>
+                                                <div className="text-xs text-karl-text-secondary">
+                                                    {analytics.roundStats?.totalSaves || 0} of {analytics.roundStats?.totalStarts || 0} rounds completed
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-karl-bg-primary rounded-lg border border-karl-border-primary">
+                                                <div className="text-karl-text-secondary text-sm mb-2">Abandonment Pattern</div>
+                                                <div className="text-2xl font-bold text-karl-text-primary mb-1">
+                                                    {analytics.roundStats?.averageHolesBeforeAbandon || 0} holes
+                                                </div>
+                                                <div className="text-xs text-karl-text-secondary">
+                                                    Average holes before users abandon rounds
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-karl-bg-primary rounded-lg border border-karl-border-primary">
+                                                <div className="text-karl-text-secondary text-sm mb-2">Abandonment Rate</div>
+                                                <div className="text-2xl font-bold text-red-400 mb-1">
+                                                    {analytics.roundStats?.totalStarts > 0 ? 
+                                                        Math.round((analytics.roundStats.totalAbandons / analytics.roundStats.totalStarts) * 100) : 0}%
+                                                </div>
+                                                <div className="text-xs text-karl-text-secondary">
+                                                    {analytics.roundStats?.totalAbandons || 0} rounds abandoned
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Feature Adoption: Live vs Registered */}
+                                <div className="bg-karl-bg-secondary p-6 rounded-lg border border-karl-border-primary mb-6">
+                                    <h2 className="text-xl font-bold text-karl-text-primary mb-4">Feature Adoption: Live vs Registered Users</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="p-4 bg-karl-bg-primary rounded-lg border border-karl-border-primary">
+                                            <h3 className="text-lg font-semibold text-karl-text-primary mb-3">Live Version (No Signup)</h3>
+                                            <div className="space-y-2 mb-4">
+                                                <div className="flex justify-between">
+                                                    <span className="text-karl-text-secondary text-sm">Total Visits</span>
+                                                    <span className="text-karl-text-primary font-semibold">
+                                                        {formatNumber(analytics.summary?.liveVersionUsage?.totalVisits || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-karl-text-secondary text-sm">Rounds Started</span>
+                                                    <span className="text-karl-text-primary font-semibold">
+                                                        {formatNumber(analytics.roundStats?.liveStarts || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-karl-text-secondary text-sm">Rounds Completed</span>
+                                                    <span className="text-green-400 font-semibold">
+                                                        {formatNumber(analytics.roundStats?.liveSaves || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-karl-text-secondary text-sm">Completion Rate</span>
+                                                    <span className="text-karl-text-primary font-semibold">
+                                                        {analytics.roundStats?.liveStarts > 0 ? 
+                                                            Math.round((analytics.roundStats.liveSaves / analytics.roundStats.liveStarts) * 100) : 0}%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-karl-text-secondary italic">
+                                                Users prefer quick access without registration
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="p-4 bg-karl-bg-primary rounded-lg border border-karl-border-primary">
+                                            <h3 className="text-lg font-semibold text-karl-text-primary mb-3">Registered Users</h3>
+                                            <div className="space-y-2 mb-4">
+                                                <div className="flex justify-between">
+                                                    <span className="text-karl-text-secondary text-sm">Total Signups</span>
+                                                    <span className="text-karl-text-primary font-semibold">
+                                                        {formatNumber(analytics.summary?.totalSignups || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-karl-text-secondary text-sm">Rounds Started</span>
+                                                    <span className="text-karl-text-primary font-semibold">
+                                                        {formatNumber(analytics.roundStats?.registeredStarts || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-karl-text-secondary text-sm">Rounds Completed</span>
+                                                    <span className="text-green-400 font-semibold">
+                                                        {formatNumber(analytics.roundStats?.registeredSaves || 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-karl-text-secondary text-sm">Completion Rate</span>
+                                                    <span className="text-karl-text-primary font-semibold">
+                                                        {analytics.roundStats?.registeredStarts > 0 ? 
+                                                            Math.round((analytics.roundStats.registeredSaves / analytics.roundStats.registeredStarts) * 100) : 0}%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-karl-text-secondary italic">
+                                                Committed users who create accounts
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Actionable Insights */}
+                                <div className="bg-karl-bg-secondary p-6 rounded-lg border border-karl-border-primary mb-6">
+                                    <h2 className="text-xl font-bold text-karl-text-primary mb-4">Market Research Insights</h2>
+                                    <div className="space-y-3">
+                                        {analytics.roundStats?.averageHolesBeforeAbandon > 0 && analytics.roundStats.averageHolesBeforeAbandon < 9 && (
+                                            <div className="p-3 bg-yellow-900/30 border border-yellow-600 rounded-lg">
+                                                <div className="text-yellow-300 font-semibold mb-1">⚠️ Early Drop-off Pattern</div>
+                                                <div className="text-yellow-200 text-sm">
+                                                    Users are abandoning rounds early (avg {analytics.roundStats.averageHolesBeforeAbandon} holes). 
+                                                    Consider simplifying the initial experience or adding engagement hooks.
+                                                </div>
+                                            </div>
+                                        )}
+                                        {analytics.summary?.liveVersionUsage?.totalVisits > (analytics.summary?.totalSignups || 0) * 2 && (
+                                            <div className="p-3 bg-blue-900/30 border border-blue-600 rounded-lg">
+                                                <div className="text-blue-300 font-semibold mb-1">💡 Signup Barrier Identified</div>
+                                                <div className="text-blue-200 text-sm">
+                                                    Live version usage significantly exceeds signups. Users prefer no-signup experience. 
+                                                    Consider making signup optional or highlighting benefits of registration.
+                                                </div>
+                                            </div>
+                                        )}
+                                        {analytics.roundStats?.completionRate < 50 && analytics.roundStats.completionRate > 0 && (
+                                            <div className="p-3 bg-red-900/30 border border-red-600 rounded-lg">
+                                                <div className="text-red-300 font-semibold mb-1">🔴 Low Completion Rate</div>
+                                                <div className="text-red-200 text-sm">
+                                                    Only {analytics.roundStats.completionRate}% of started rounds are completed. 
+                                                    Investigate friction points in the round tracking flow.
+                                                </div>
+                                            </div>
+                                        )}
+                                        {analytics.roundStats?.liveStarts > 0 && 
+                                         analytics.roundStats.liveSaves / analytics.roundStats.liveStarts > 
+                                         (analytics.roundStats.registeredSaves || 1) / (analytics.roundStats.registeredStarts || 1) && (
+                                            <div className="p-3 bg-green-900/30 border border-green-600 rounded-lg">
+                                                <div className="text-green-300 font-semibold mb-1">✅ Live Version Success</div>
+                                                <div className="text-green-200 text-sm">
+                                                    Live version has higher completion rate than registered. 
+                                                    The no-signup experience is working well for user engagement.
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                {/* Growth Trends */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                    <div className="bg-karl-bg-secondary p-6 rounded-lg border border-karl-border-primary">
+                                        <h2 className="text-xl font-bold text-karl-text-primary mb-4">User Growth Trend</h2>
+                                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                                            {Object.entries(analytics.signupsByDate || {}).slice(-14).map(([date, count]) => (
+                                                <div key={date} className="flex justify-between items-center py-2 border-b border-karl-border-primary">
+                                                    <span className="text-karl-text-primary">{date}</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-32 bg-karl-bg-primary rounded-full h-2">
+                                                            <div 
+                                                                className="bg-karl-light-green h-2 rounded-full" 
+                                                                style={{ width: `${Math.max(10, (count / Math.max(...Object.values(analytics.signupsByDate || {}), 1)) * 100)}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <span className="text-karl-light-green font-semibold w-12 text-right">{formatNumber(count)}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-karl-bg-secondary p-6 rounded-lg border border-karl-border-primary">
+                                        <h2 className="text-xl font-bold text-karl-text-primary mb-4">Page Usage Distribution</h2>
+                                        <div className="space-y-3">
+                                            {Object.entries(analytics.pageVisitCounts || {})
+                                                .sort((a, b) => b[1] - a[1])
+                                                .map(([page, count]) => {
+                                                    const percentage = analytics.summary?.totalPageVisits > 0 ? 
+                                                        (count / analytics.summary.totalPageVisits * 100) : 0;
+                                                    return (
+                                                        <div key={page}>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-karl-text-primary text-sm">{page.replace('.html', '')}</span>
+                                                                <span className="text-karl-light-green font-semibold text-sm">{formatNumber(count)} ({percentage.toFixed(1)}%)</span>
+                                                            </div>
+                                                            <div className="w-full bg-karl-bg-primary rounded-full h-2">
+                                                                <div 
+                                                                    className="bg-karl-light-green h-2 rounded-full" 
+                                                                    style={{ width: `${percentage}%` }}
+                                                                ></div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Detailed Activity Logs (Collapsible) */}
+                                <div className="bg-karl-bg-secondary p-6 rounded-lg border border-karl-border-primary">
+                                    <details className="cursor-pointer">
+                                        <summary className="text-xl font-bold text-karl-text-primary mb-4 list-none">
+                                            <div className="flex justify-between items-center">
+                                                <span>Detailed Activity Logs</span>
+                                                <span className="text-sm text-karl-text-secondary font-normal">(Click to expand)</span>
+                                            </div>
+                                        </summary>
+                                        <div className="mt-4 space-y-6">
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-karl-text-primary mb-3">Recent Signups (Last 50)</h3>
+                                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                    {analytics.recentSignups?.map((signup, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center py-2 border-b border-karl-border-primary text-sm">
+                                                            <span className="text-karl-text-secondary">{formatDate(signup.timestamp)}</span>
+                                                            <span className="text-karl-text-primary font-mono text-xs">{signup.userHash?.substring(0, 16)}...</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-karl-text-primary mb-3">Recent Round Events (Last 100)</h3>
+                                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                    {analytics.recentRoundEvents?.map((event, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center py-2 border-b border-karl-border-primary text-sm">
+                                                            <div className="flex gap-4">
+                                                                <span className="text-karl-text-secondary">{formatDate(event.timestamp)}</span>
+                                                                <span className={`px-2 py-1 rounded text-xs ${
+                                                                    event.eventType === 'save' ? 'bg-green-600' :
+                                                                    event.eventType === 'start' ? 'bg-blue-600' :
+                                                                    'bg-red-600'
+                                                                }`}>
+                                                                    {event.eventType}
+                                                                </span>
+                                                                <span className="text-karl-text-primary">{event.roundType}</span>
+                                                                {event.holesCount > 0 && (
+                                                                    <span className="text-karl-text-secondary">{event.holesCount} holes</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </details>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center py-12">
+                                <div className="text-karl-text-primary text-xl">No analytics data available</div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+        
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AdminDashboard />);
+    </script>
+</body>
+</html>
+

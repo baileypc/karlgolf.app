@@ -150,17 +150,22 @@ function mergeRound($existingRound, $newRoundData) {
 function findIncompleteRoundByCourse($rounds, $courseName) {
     // Normalize course name: trim and convert to lowercase for case-insensitive matching
     $normalizedCourseName = strtolower(trim($courseName));
-    
+
     foreach ($rounds as $idx => $round) {
+        // Skip rounds that have been explicitly marked as completed
+        if (isset($round['completed']) && $round['completed'] === true) {
+            continue;
+        }
+
         $existingHoleCount = count($round['holes'] ?? []);
         $existingCourseName = strtolower(trim($round['courseName'] ?? ''));
-        
+
         // Match incomplete rounds with same course name (case-insensitive)
         if ($existingHoleCount < 18 && $existingCourseName === $normalizedCourseName && !empty($existingCourseName)) {
             return $idx;
         }
     }
-    
+
     return null;
 }
 

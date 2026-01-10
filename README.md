@@ -1,6 +1,6 @@
 # Karl Golf GIR - Golf Tracking PWA
 
-**Version:** 3.3.0 (Production)
+**Version:** 3.3.1 (Production)
 **Status:** ✅ **LIVE IN PRODUCTION**
 **Domain:** [https://karlgolf.app](https://karlgolf.app)
 
@@ -8,30 +8,21 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 
 ---
 
-## 🎉 Version 3.3.0 - Current Release
+## 🎉 Version 3.3.1 - Current Release
 
-**Deployed:** December 2025
+**Deployed:** January 2026
 **Status:** ✅ Fully operational in production
 
-### What's New in v3.3.0
-- ✅ **Security Enhancements** - SameSite cookie attribute for CSRF protection
-- ✅ **Rate Limiting** - IP-based rate limiting to prevent brute-force attacks
-- ✅ **Session Security** - Improved session cookie configuration
+### What's New in v3.3.1
+- 🐛 **Completed Flag Fix** - Fixed rounds not being marked as complete due to validation stripping the `completed` field
+- 🐛 **Dashboard Stats Display** - Fixed Dashboard not displaying stats (API response parsing issue)
+- 🔧 **TypeScript Types** - Updated `loadStats()` return type to match actual API response
 
-### Features from v3.3.0
+### Previous Release Highlights
 - ✅ **GPS Course Finder** - Find nearby golf courses using your device's GPS location
 - ✅ **Course Search** - Search for courses within 25 miles of your location
-- ✅ **Location Services** - Automatic GPS location detection with permission handling
-- ✅ **Course Distance** - See distance to each course from your current location
-- ✅ **Course Selector** - Enhanced course selection with GPS-powered search
-
-### Features from v3.3.0
 - ✅ **Admin Dashboard** - Comprehensive analytics and user management
-- ✅ **User Management** - Delete users, view individual stats, export reports
 - ✅ **PDF Reports** - Marketing-ready analytics reports with charts
-- ✅ **Enhanced UX** - Direct navigation to track round after login/register
-- ✅ **Password Validation** - Toast notifications for registration errors
-- ✅ **Session Fix** - Resolved production authentication issues (session cookie domain + welcome email output bug)
 
 ---
 
@@ -252,4 +243,4 @@ See **[TODOs](docs/TODOS.md)** for complete list of future features.
 **Website:** [cloudvirtue.com](https://cloudvirtue.com)
 **Repository:** Private
 **License:** Proprietary
-**Version:** 3.3.0 (Production)
+**Version:** 3.3.1 (Production)

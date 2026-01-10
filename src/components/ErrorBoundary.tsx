@@ -1,6 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faExclamationTriangle, faHome, faRotateRight } from '@fortawesome/free-solid-svg-icons';
+import { faTriangleExclamation, faHome, faRotateRight } from '@fortawesome/free-solid-svg-icons';
 
 interface Props {
   children: React.ReactNode;
@@ -59,7 +59,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
               marginBottom: '1.5rem',
               color: '#ef4444'
             }}>
-              <FontAwesomeIcon icon={faExclamationTriangle} />
+              <FontAwesomeIcon icon={faTriangleExclamation} />
             </div>
 
             {/* Error Title */}

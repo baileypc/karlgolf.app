@@ -15,18 +15,28 @@ require_once __DIR__ . '/logger.php';
  * @return array ['allowed' => bool, 'message' => string, 'retryAfter' => int|null]
  */
 function checkRateLimit($action, $maxAttempts = 5, $windowMinutes = 15) {
+    // Disable rate limiting for local development
+    $isLocalhost = isset($_SERVER['HTTP_HOST']) &&
+                   (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false ||
+                    strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false ||
+                    strpos($_SERVER['HTTP_HOST'], '.test') !== false);
+
+    if ($isLocalhost) {
+        return ['allowed' => true, 'message' => '', 'retryAfter' => null];
+    }
+
     $dataDir = getDataDirectory();
     if (!$dataDir) {
         // If data directory fails, allow the request (fail open)
         logError('Rate limiter: Data directory not available');
         return ['allowed' => true, 'message' => '', 'retryAfter' => null];
     }
-    
+
     $rateLimitDir = $dataDir . '/rate-limits';
     if (!is_dir($rateLimitDir)) {
         @mkdir($rateLimitDir, 0700, true); // Secure permissions: owner read/write/execute only
     }
-    
+
     // Get client IP
     $ip = getClientIP();
     

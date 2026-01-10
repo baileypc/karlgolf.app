@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLocationDot, faGolfBallTee, faPencil, faCheck, faArrowLeft, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faLocationDot, faGolfBallTee, faPencil, faCheck, faArrowLeft, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import type { GolfCourse, CourseMetadata } from '@/types';
 import { searchNearbyGolfCourses, getUserLocation } from '@/lib/golf-course-api';
 
@@ -330,7 +330,7 @@ export default function CourseSelector({ onCourseSelected, initialCourseName = '
             fontSize: 'var(--font-sm)',
             lineHeight: '1.5',
           }}>
-            <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginRight: '0.5rem' }} />
+            <FontAwesomeIcon icon={faTriangleExclamation} style={{ marginRight: '0.5rem' }} />
             Location access is blocked. To use GPS search, enable location permissions in your browser settings.
           </div>
         )}

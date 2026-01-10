@@ -82,6 +82,7 @@ $roundData = $validation['sanitized'];
 $courseName = $roundData['courseName'];
 $mergeIntoRoundId = $roundData['mergeIntoRoundId'] ?? null;
 $isMerging = $mergeIntoRoundId !== null && $mergeIntoRoundId !== '';
+$completed = $roundData['completed'] ?? false; // Track if user explicitly ended the round
 
 logInfo('Save round request', [
     'mergeIntoRoundId' => $mergeIntoRoundId,
@@ -125,8 +126,12 @@ if ($isMerging && $mergeIntoRoundId >= 0 && $mergeIntoRoundId < count($rounds)) 
     }
     
     // Update rounds array with merged round
+    // Preserve or set completed flag
+    if ($completed) {
+        $mergeResult['round']['completed'] = true;
+    }
     $rounds[$mergeIntoRoundId] = $mergeResult['round'];
-    
+
     // Save with file locking
     if (!writeJsonFile($roundsFile, $rounds)) {
         logError('Failed to save merged round', ['roundIndex' => $mergeIntoRoundId]);
@@ -187,8 +192,12 @@ if (!$isMerging) {
         }
         
         // Update rounds array
+        // Preserve or set completed flag
+        if ($completed) {
+            $mergeResult['round']['completed'] = true;
+        }
         $rounds[$incompleteRoundIdx] = $mergeResult['round'];
-        
+
         // Save with file locking
         if (!writeJsonFile($roundsFile, $rounds)) {
             logError('Failed to save auto-merged round', ['roundIndex' => $incompleteRoundIdx]);
@@ -241,7 +250,8 @@ $newRound = [
     'courseName' => $courseName,
     'roundNumber' => count($rounds) + 1,
     'holes' => $roundData['holes'],
-    'stats' => $stats
+    'stats' => $stats,
+    'completed' => $completed // Mark if user explicitly ended the round
 ];
 
 // Add round to array

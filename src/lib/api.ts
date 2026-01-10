@@ -1,4 +1,4 @@
-import type { AuthResponse, Round, RoundSaveResponse, UserRounds } from '@/types';
+import type { AuthResponse, Round, RoundSaveResponse } from '@/types';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 
 // Production API URL for native apps
@@ -285,7 +285,12 @@ export const roundsAPI = {
     return request(`rounds/incomplete.php${params}`);
   },
 
-  async loadStats(): Promise<{ success: boolean; data: UserRounds }> {
+  async loadStats(): Promise<{
+    success: boolean;
+    totalRounds: number;
+    groups: any[];
+    cumulative: any;
+  }> {
     return request('stats/load.php');
   },
 

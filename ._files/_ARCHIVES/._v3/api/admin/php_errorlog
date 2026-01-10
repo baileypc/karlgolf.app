@@ -1,0 +1,18 @@
+[11-Nov-2025 22:16:58 UTC] {"timestamp":"2025-11-11 22:16:58","level":"WARNING","message":"Admin login attempt failed","context":{"username":"baileypc@gmail.com"},"request":{"method":"POST","uri":"\/api\/admin\/auth.php","ip":"172.59.78.149"}}
+
+[11-Nov-2025 22:16:59 UTC] {"timestamp":"2025-11-11 22:16:59","level":"WARNING","message":"Admin login attempt failed","context":{"username":"baileypc@gmail.com"},"request":{"method":"POST","uri":"\/api\/admin\/auth.php","ip":"172.59.78.149"}}
+
+[11-Nov-2025 22:22:19 UTC] {"timestamp":"2025-11-11 22:22:19","level":"INFO","message":"Admin logged in","context":{"username":"karl"},"request":{"method":"POST","uri":"\/api\/admin\/auth.php","ip":"172.59.78.149"}}
+
+[11-Nov-2025 22:23:01 UTC] {"timestamp":"2025-11-11 22:23:01","level":"INFO","message":"Admin logged in","context":{"username":"karl"},"request":{"method":"POST","uri":"\/api\/admin\/auth.php","ip":"172.59.78.149"}}
+
+[11-Nov-2025 22:26:20 UTC] {"timestamp":"2025-11-11 22:26:20","level":"INFO","message":"Admin logged in","context":{"username":"karl"},"request":{"method":"POST","uri":"\/api\/admin\/auth.php","ip":"172.59.78.149"}}
+
+[12-Nov-2025 15:10:24 UTC] {"timestamp":"2025-11-12 15:10:24","level":"INFO","message":"Admin logged out","context":[],"request":{"method":"GET","uri":"\/api\/admin\/auth.php?action=logout","ip":"172.59.78.149"}}
+
+[12-Nov-2025 15:11:08 UTC] {"timestamp":"2025-11-12 15:11:08","level":"INFO","message":"Admin logged in","context":{"username":"karl"},"request":{"method":"POST","uri":"\/api\/admin\/auth.php","ip":"172.59.78.149"}}
+
+[12-Nov-2025 22:20:31 UTC] {"timestamp":"2025-11-12 22:20:31","level":"INFO","message":"Admin logged in","context":{"username":"karl"},"request":{"method":"POST","uri":"\/api\/admin\/auth.php","ip":"172.59.78.149"}}
+
+[12-Nov-2025 22:21:00 UTC] {"timestamp":"2025-11-12 22:21:00","level":"INFO","message":"Admin logged out","context":[],"request":{"method":"GET","uri":"\/api\/admin\/auth.php?action=logout","ip":"172.59.78.149"}}
+

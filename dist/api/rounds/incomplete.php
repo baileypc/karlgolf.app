@@ -57,7 +57,14 @@ foreach ($rounds as $index => $round) {
     if ($holeCount >= 18) {
         continue;
     }
-    
+
+    // Skip rounds that have been explicitly marked as completed by the user
+    // This allows users to "end" a round at any point (e.g., 9 holes) and have it
+    // no longer appear as resumable
+    if (isset($round['completed']) && $round['completed'] === true) {
+        continue;
+    }
+
     // If course name provided, match that course (case-insensitive, trimmed)
     if ($courseName) {
         $normalizedRoundCourse = strtolower(trim($roundCourse));

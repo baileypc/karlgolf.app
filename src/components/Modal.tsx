@@ -1,7 +1,7 @@
 // Karl's GIR - Standardized Modal Component
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle, faExclamationTriangle, faInfoCircle, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faCheckCircle, faTriangleExclamation, faInfoCircle, faXmark } from '@fortawesome/free-solid-svg-icons';
 
 export type ModalType = 'success' | 'warning' | 'info' | 'confirm';
 
@@ -35,9 +35,9 @@ export default function Modal({
       case 'success':
         return faCheckCircle;
       case 'warning':
-        return faExclamationTriangle;
+        return faTriangleExclamation;
       case 'confirm':
-        return faExclamationTriangle;
+        return faTriangleExclamation;
       case 'info':
       default:
         return faInfoCircle;

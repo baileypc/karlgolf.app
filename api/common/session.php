@@ -7,13 +7,29 @@
 require_once __DIR__ . '/environment.php';
 
 function initSession() {
+    // Detect if we're on HTTPS or local development
+    $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+                (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) ||
+                (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+    // Use localhost detection for local development
+    $isLocalhost = isset($_SERVER['HTTP_HOST']) &&
+                   (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false ||
+                    strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false ||
+                    strpos($_SERVER['HTTP_HOST'], '.test') !== false);
+
     // Configure session cookie SameSite attribute (CSRF protection)
     // Set SameSite attribute BEFORE session_start() (PHP 7.3+)
     if (version_compare(PHP_VERSION, '7.3.0', '>=')) {
+        // For local development, use Lax and don't require secure
+        // For production (HTTPS), use None and require secure
+        $sameSite = ($isLocalhost || !$isSecure) ? 'Lax' : 'None';
+        $requireSecure = ($isLocalhost || !$isSecure) ? false : true;
+
         // Use ini_set for SameSite (must be before session_start)
-        ini_set('session.cookie_samesite', 'None');
-        ini_set('session.cookie_secure', '1');
-        
+        ini_set('session.cookie_samesite', $sameSite);
+        ini_set('session.cookie_secure', $requireSecure ? '1' : '0');
+
         // Also set via session_set_cookie_params with array syntax (more reliable)
         // Get defaults first
         $defaultParams = session_get_cookie_params();
@@ -21,9 +37,9 @@ function initSession() {
             'lifetime' => $defaultParams['lifetime'],
             'path' => $defaultParams['path'] ?: '/',
             'domain' => $defaultParams['domain'] ?: '',
-            'secure' => true, // Must be true for SameSite=None
+            'secure' => $requireSecure,
             'httponly' => $defaultParams['httponly'],
-            'samesite' => 'None'
+            'samesite' => $sameSite
         ]);
     }
     
