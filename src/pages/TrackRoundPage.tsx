@@ -75,10 +75,10 @@ export default function TrackRoundPage() {
   const accountPromptModal = useModal(); // New: prompt guest to create account
   const validationErrorModal = useModal(); // Validation error modal
   const [modalMessage, setModalMessage] = useState('');
-  const [modalAction, setModalAction] = useState<() => Promise<void> | void>(() => {});
+  const [modalAction, setModalAction] = useState<() => Promise<void> | void>(() => { });
   const [validationError, setValidationError] = useState('');
 
-  
+
   // View holes modal
   const viewHolesModal = useModal();
   const [editingHole, setEditingHole] = useState<number | null>(null); // Hole number being edited
@@ -121,6 +121,45 @@ export default function TrackRoundPage() {
     const firstServer = serverRounds && serverRounds.length > 0 ? serverRounds[0] : null;
     if (firstServer) setServerIncompleteRound(firstServer);
   }, [incompleteData, isLoggedIn]);
+
+  // Auto-recover round from localStorage on page refresh / accidental swipe
+  // This ensures in-progress rounds survive a page reload
+  useEffect(() => {
+    // Don't override if round is already loaded
+    if (holes.length > 0 || roundStarted) return;
+
+    const localRoundRaw = localStorage.getItem('karlsGIR_currentRound');
+    if (!localRoundRaw) return;
+
+    try {
+      const localData = JSON.parse(localRoundRaw);
+      if (localData && localData.roundStarted) {
+        // Restore completed holes (if any)
+        if (localData.holes && localData.holes.length > 0) {
+          setHoles(localData.holes);
+          setCurrentHole(localData.holes.length + 1);
+        }
+        setCourseName(localData.courseName || '');
+        setCourseMetadata(localData.courseMetadata || null);
+        setRoundStarted(true);
+
+        // Restore in-progress form state (half-entered hole)
+        if (localData.formState) {
+          const f = localData.formState;
+          if (f.par !== undefined) setPar(f.par);
+          if (f.gir !== undefined) setGir(f.gir);
+          if (f.putts !== undefined) setPutts(f.putts);
+          if (f.puttDistances) setPuttDistances(f.puttDistances);
+          if (f.fairway !== undefined) setFairway(f.fairway);
+          if (f.shotsToGreen !== undefined) setShotsToGreen(f.shotsToGreen);
+          if (f.penalty !== undefined) setPenalty(f.penalty);
+          if (f.proximity !== undefined) setProximity(f.proximity);
+        }
+      }
+    } catch (e) {
+      console.error('Error recovering round from localStorage:', e);
+    }
+  }, []); // Empty deps = runs once on mount
 
   // Load incomplete round ONLY when navigated from Dashboard with continueRound flag
   useEffect(() => {
@@ -203,6 +242,7 @@ export default function TrackRoundPage() {
   }, [location, navigate, isLoggedIn, incompleteData]);
 
   // Persist to localStorage whenever state changes (both guest & logged-in for continuity)
+  // Includes form state so half-entered holes survive refresh
   useEffect(() => {
     if (holes.length > 0 || roundStarted) {
       localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
@@ -210,10 +250,20 @@ export default function TrackRoundPage() {
         courseName,
         courseMetadata,
         roundStarted,
+        formState: {
+          par,
+          gir,
+          putts,
+          puttDistances,
+          fairway,
+          shotsToGreen,
+          penalty,
+          proximity,
+        },
         lastUpdated: new Date().toISOString(),
       }));
     }
-  }, [holes, courseName, courseMetadata, roundStarted]);
+  }, [holes, courseName, courseMetadata, roundStarted, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity]);
 
   // Helper function to show alert modal
 
@@ -362,179 +412,189 @@ export default function TrackRoundPage() {
       return;
     }
     setIsSubmitting(true);
-    
+
     try {
-    // Validation - check fields in order and show specific error
-    if (par === null) {
-      setValidationError('Please select a par');
-      validationErrorModal.open();
-      setIsSubmitting(false);
-      return;
-    }
-    
-    // For Par 4 and 5, check fairway first
-    if (par === 4 || par === 5) {
-      if (fairway === null) {
-        setValidationError('Please select fairway result');
+      // Validation - check fields in order and show specific error
+      if (par === null) {
+        setValidationError('Please select a par');
         validationErrorModal.open();
         setIsSubmitting(false);
         return;
       }
-      // For par 4/5, penalty is optional (can have fairway without penalty)
-      // No validation needed here - penalty is separate from fairway
-    }
-    
-    // Determine if GIR should be 'n' (either explicitly set or auto-set for penalty +2/+3)
-    const isGirNo = gir === 'n' || (penalty === '2' || penalty === '3');
-    
-    // GIR validation - only required if not auto-set by penalty +2/+3
-    if (gir === null && !(penalty === '2' || penalty === '3')) {
-      setValidationError('Please select GIR result');
-      validationErrorModal.open();
-      setIsSubmitting(false);
-      return;
-    }
-    
-    // Shots to Green validation (required if GIR is 'n' - either explicitly or auto-set)
-    if (isGirNo && shotsToGreen === null) {
-      setValidationError('Please enter shots to green');
-      validationErrorModal.open();
-      setIsSubmitting(false);
-      return;
-    }
-    
-    if (putts === null || putts === 0) {
-      setValidationError('Please enter number of putts');
-      validationErrorModal.open();
-      setIsSubmitting(false);
-      return;
-    }
-    if (puttDistances.length !== putts || puttDistances.some(d => d === 0)) {
-      setValidationError('Please enter all putt distances');
-      validationErrorModal.open();
-      setIsSubmitting(false);
-      return;
-    }
 
-    // Create hole object
-    // Score calculation:
-    // - GIR = Yes: Tee shot reached green, so score = (par - 2) + putts + penalties
-    //   Example Par 3: (3 - 2) + 2 putts = 3 (par)
-    // - GIR = No: Tee shot (1) + additional shots to green + putts + penalties
-    //   Example Par 3: 1 (tee) + 1 (second shot) + 2 putts = 4
-    let score: number;
-    if (gir === 'y') {
-      // GIR: Tee shot reached green
-      score = (par - 2) + putts + parseInt(penalty || '0');
-    } else {
-      // No GIR: Tee shot (1) + additional shots to green + putts + penalties
-      const additionalShots = shotsToGreen || 0;
-      score = 1 + additionalShots + putts + parseInt(penalty || '0');
-    }
+      // For Par 4 and 5, check fairway first
+      if (par === 4 || par === 5) {
+        if (fairway === null) {
+          setValidationError('Please select fairway result');
+          validationErrorModal.open();
+          setIsSubmitting(false);
+          return;
+        }
+        // For par 4/5, penalty is optional (can have fairway without penalty)
+        // No validation needed here - penalty is separate from fairway
+      }
 
-    // Use editingHole if editing, otherwise use currentHole for new holes
-    // IMPORTANT: Capture editingHole value at the start to avoid closure issues
-    const isEditing = editingHole !== null;
-    const holeNumber = isEditing ? editingHole! : currentHole;
+      // Determine if GIR should be 'n' (either explicitly set or auto-set for penalty +2/+3)
+      const isGirNo = gir === 'n' || (penalty === '2' || penalty === '3');
 
-    const hole: LocalHole = {
-      holeNumber: holeNumber,
-      par: par as 3 | 4 | 5, // Assert par is one of the valid values
-      score,
-      gir: gir || 'n', // Default to 'n' if null (e.g., hazard +2/+3)
-      putts,
-      puttDistances,
-      fairway: par === 3 ? 'na' : fairway!,
-      shotsToGreen: shotsToGreen || undefined,
-      penalty,
-      proximity: proximity || undefined,
-    };
+      // GIR validation - only required if not auto-set by penalty +2/+3
+      if (gir === null && !(penalty === '2' || penalty === '3')) {
+        setValidationError('Please select GIR result');
+        validationErrorModal.open();
+        setIsSubmitting(false);
+        return;
+      }
 
-    // Store whether we're editing before clearing the state
-    const wasEditing = editingHole !== null;
-    const editingHoleNumber = editingHole; // Store the hole number we're editing
-    
-    let newHoles: LocalHole[];
-    if (wasEditing && editingHoleNumber !== null) {
-      // Update existing hole - find and replace the specific hole
-      const holeIndex = holes.findIndex(h => h.holeNumber === editingHoleNumber);
-      if (holeIndex !== -1) {
-        // Replace the hole at the found index
-        newHoles = [...holes];
-        newHoles[holeIndex] = hole;
+      // Shots to Green validation (required if GIR is 'n' - either explicitly or auto-set)
+      if (isGirNo && shotsToGreen === null) {
+        setValidationError('Please enter shots to green');
+        validationErrorModal.open();
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate shots to green minimum (must be >= par - 2 since tee shot is counted separately)
+      if (isGirNo && shotsToGreen !== null && par !== null) {
+        const minShots = par - 2;
+        if (shotsToGreen < minShots) {
+          setValidationError(`Shots to green must be at least ${minShots} for a par ${par} (GIR would be on in ${par - 2 + 1} shots)`);
+          validationErrorModal.open();
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      if (putts === null || putts === 0) {
+        setValidationError('Please enter number of putts');
+        validationErrorModal.open();
+        setIsSubmitting(false);
+        return;
+      }
+      if (puttDistances.length !== putts || puttDistances.some(d => d === 0)) {
+        setValidationError('Please enter all putt distances');
+        validationErrorModal.open();
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create hole object
+      // Score calculation:
+      // - GIR = Yes: Tee shot reached green, so score = (par - 2) + putts + penalties
+      //   Example Par 3: (3 - 2) + 2 putts = 3 (par)
+      // - GIR = No: Tee shot (1) + additional shots to green + putts + penalties
+      //   Example Par 3: 1 (tee) + 1 (second shot) + 2 putts = 4
+      let score: number;
+      if (gir === 'y') {
+        // GIR: Tee shot reached green
+        score = (par - 2) + putts + parseInt(penalty || '0');
       } else {
-        // Hole not found (shouldn't happen), but fallback to map
-        newHoles = holes.map(h => h.holeNumber === editingHoleNumber ? hole : h);
+        // No GIR: Tee shot (1) + additional shots to green + putts + penalties
+        const additionalShots = shotsToGreen || 0;
+        score = 1 + additionalShots + putts + parseInt(penalty || '0');
       }
-      setEditingHole(null); // Clear editing state
-    } else {
-      // Add new hole
-      newHoles = [...holes, hole];
-    }
-    setHoles(newHoles);
 
-    // Save to API immediately (only if logged in)
-    if (isLoggedIn) {
-      try {
-        const roundData: any = {
-          courseName: courseName.trim(), // Ensure course name is trimmed
-          courseMetadata: courseMetadata,
-          holes: newHoles.map(convertToAPIHole),
-        };
-        // Add merge round ID if we're continuing an existing round
-        // API returns 'index' not 'roundIndex'
-        if (serverIncompleteRound?.index !== undefined) {
-          roundData.mergeIntoRoundId = serverIncompleteRound.index;
-        }
+      // Use editingHole if editing, otherwise use currentHole for new holes
+      // IMPORTANT: Capture editingHole value at the start to avoid closure issues
+      const isEditing = editingHole !== null;
+      const holeNumber = isEditing ? editingHole! : currentHole;
 
-        const result = await roundsAPI.saveRound(roundData);
-        
-        // Invalidate incomplete rounds query to refresh the list
-        if (result.success) {
-          queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
-        }
-      } catch (error: any) {
-        console.error('[Save] Failed to save hole to server:', error);
-        
-        // Handle account not found error - user needs to log out and back in
-        if (error?.code === 'ACCOUNT_NOT_FOUND' || error?.code === 'ACCOUNT_INVALID') {
-          setValidationError('⚠️ Your session is invalid. Please log out and log back in.');
-          validationErrorModal.open();
+      const hole: LocalHole = {
+        holeNumber: holeNumber,
+        par: par as 3 | 4 | 5, // Assert par is one of the valid values
+        score,
+        gir: gir || 'n', // Default to 'n' if null (e.g., hazard +2/+3)
+        putts,
+        puttDistances,
+        fairway: par === 3 ? 'na' : fairway!,
+        shotsToGreen: shotsToGreen || undefined,
+        penalty,
+        proximity: proximity || undefined,
+      };
+
+      // Store whether we're editing before clearing the state
+      const wasEditing = editingHole !== null;
+      const editingHoleNumber = editingHole; // Store the hole number we're editing
+
+      let newHoles: LocalHole[];
+      if (wasEditing && editingHoleNumber !== null) {
+        // Update existing hole - find and replace the specific hole
+        const holeIndex = holes.findIndex(h => h.holeNumber === editingHoleNumber);
+        if (holeIndex !== -1) {
+          // Replace the hole at the found index
+          newHoles = [...holes];
+          newHoles[holeIndex] = hole;
         } else {
-          // Continue anyway - localStorage will persist the data
-          setValidationError('⚠️ Could not save to server. Data saved locally.');
-          validationErrorModal.open();
+          // Hole not found (shouldn't happen), but fallback to map
+          newHoles = holes.map(h => h.holeNumber === editingHoleNumber ? hole : h);
         }
+        setEditingHole(null); // Clear editing state
+      } else {
+        // Add new hole
+        newHoles = [...holes, hole];
       }
+      setHoles(newHoles);
+
+      // Save to API immediately (only if logged in)
+      if (isLoggedIn) {
+        try {
+          const roundData: any = {
+            courseName: courseName.trim(), // Ensure course name is trimmed
+            courseMetadata: courseMetadata,
+            holes: newHoles.map(convertToAPIHole),
+          };
+          // Add merge round ID if we're continuing an existing round
+          // API returns 'index' not 'roundIndex'
+          if (serverIncompleteRound?.index !== undefined) {
+            roundData.mergeIntoRoundId = serverIncompleteRound.index;
+          }
+
+          const result = await roundsAPI.saveRound(roundData);
+
+          // Invalidate incomplete rounds query to refresh the list
+          if (result.success) {
+            queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+          }
+        } catch (error: any) {
+          console.error('[Save] Failed to save hole to server:', error);
+
+          // Handle account not found error - user needs to log out and back in
+          if (error?.code === 'ACCOUNT_NOT_FOUND' || error?.code === 'ACCOUNT_INVALID') {
+            setValidationError('⚠️ Your session is invalid. Please log out and log back in.');
+            validationErrorModal.open();
+          } else {
+            // Continue anyway - localStorage will persist the data
+            setValidationError('⚠️ Could not save to server. Data saved locally.');
+            validationErrorModal.open();
+          }
+        }
       } else {
         // Guest mode - data only in localStorage
-      
-      // Show account creation prompt after 9+ holes for guests
-      if (newHoles.length === 9 && !wasEditing) {
-        accountPromptModal.open();
+
+        // Show account creation prompt after 9+ holes for guests
+        if (newHoles.length === 9 && !wasEditing) {
+          accountPromptModal.open();
+        }
       }
-    }
 
-    // Move to next hole (only if not editing)
-    if (!wasEditing) {
-      setCurrentHole(currentHole + 1);
-    }
+      // Move to next hole (only if not editing)
+      if (!wasEditing) {
+        setCurrentHole(currentHole + 1);
+      }
 
-    // Reset form (only if not editing - when editing, form should stay cleared)
-    // This prevents accidental double-submission
-    setPar(null);
-    setGir(null);
-    setPutts(null);
-    setPuttDistances([]);
-    setFairway(null);
-    setShotsToGreen(null);
-    setPenalty('');
-    setProximity(null);
-    
-    // If we were editing, also ensure editingHole is cleared (redundant but safe)
-    if (wasEditing) {
-      setEditingHole(null);
-    }
+      // Reset form (only if not editing - when editing, form should stay cleared)
+      // This prevents accidental double-submission
+      setPar(null);
+      setGir(null);
+      setPutts(null);
+      setPuttDistances([]);
+      setFairway(null);
+      setShotsToGreen(null);
+      setPenalty('');
+      setProximity(null);
+
+      // If we were editing, also ensure editingHole is cleared (redundant but safe)
+      if (wasEditing) {
+        setEditingHole(null);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -653,7 +713,7 @@ export default function TrackRoundPage() {
               </p>
             </div>
           )}
-          
+
           {/* Header */}
           <div style={{ marginBottom: '1.5rem' }}>
             <h1 style={{ marginBottom: '0.5rem' }}>Track Round</h1>
@@ -715,7 +775,29 @@ export default function TrackRoundPage() {
 
           {/* Hole Form */}
           <div className="card">
-            <h2 style={{ marginBottom: '1.5rem' }}>Hole {editingHole !== null ? editingHole : currentHole}</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0 }}>Hole {editingHole !== null ? editingHole : currentHole}</h2>
+              {par !== null && (
+                <span style={{ fontSize: '0.9rem', opacity: 0.8, color: 'var(--text-primary)' }}>
+                  {(() => {
+                    let runningScore = 1; // Tee shot always counts as 1
+                    if (gir === 'y') {
+                      // GIR: on green in par - 2 shots
+                      runningScore = par - 2;
+                    } else if (gir === 'n' && shotsToGreen) {
+                      // Missed GIR: tee + additional shots
+                      runningScore = 1 + shotsToGreen;
+                    }
+                    if (putts) runningScore += putts;
+                    if (penalty) runningScore += parseInt(penalty) || 0;
+
+                    // Only show "1 Stroke" initially, then update as more data comes in
+                    if (!gir && !putts) return `(1 Stroke)`;
+                    return `(${runningScore} Stroke${runningScore !== 1 ? 's' : ''})`;
+                  })()}
+                </span>
+              )}
+            </div>
 
             {/* Par Selection */}
             <div style={{ marginBottom: '1.5rem' }}>
@@ -906,15 +988,36 @@ export default function TrackRoundPage() {
                   Shots to Green (after tee shot)
                 </label>
                 <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', opacity: 0.8 }}>
-                  Tee shot counts as 1st stroke. Enter additional strokes needed to reach the green.
+                  {par === 3
+                    ? 'Tee shot missed the green. How many more shots to reach it?'
+                    : par === 4
+                      ? 'GIR would be on in 2. How many shots after the tee to reach the green? (min 2)'
+                      : 'GIR would be on in 3. How many shots after the tee to reach the green? (min 3)'}
                 </div>
                 <input
                   type="number"
-                  min="1"
+                  min={par ? par - 2 : 1}
                   max="10"
                   value={shotsToGreen || ''}
-                  onChange={(e) => setShotsToGreen(parseInt(e.target.value) || null)}
-                  placeholder="Enter number of shots"
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || null;
+                    const minVal = par ? par - 2 : 1;
+                    if (val !== null && val < minVal) {
+                      // Show modal warning instead of silently correcting
+                      setShotsToGreen(null); // Reset field
+                      setValidationError(
+                        par === 4
+                          ? 'On a Par 4, GIR means reaching the green in 2 shots (tee + approach). Since you missed GIR, you need at least 2 shots after the tee to reach the green.'
+                          : par === 5
+                            ? 'On a Par 5, GIR means reaching the green in 3 shots. Since you missed GIR, you need at least 3 shots after the tee to reach the green.'
+                            : 'Please enter a valid number of shots to reach the green.'
+                      );
+                      validationErrorModal.open();
+                    } else {
+                      setShotsToGreen(val);
+                    }
+                  }}
+                  placeholder={`${par ? par - 2 : 1} or more shots`}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -1039,153 +1142,153 @@ export default function TrackRoundPage() {
                 onClick={() => {
                   const completeNines = getCompleteNines(holes.length);
                   const incompleteHoles = holes.length % 9;
-                
-                if (holes.length < 9) {
-                  // Less than 9 holes - discard round (no server save, just clear localStorage)
-                  setModalMessage(`Discard this round? You have ${holes.length} hole${holes.length !== 1 ? 's' : ''} entered. Minimum 9 holes required to save stats.`);
-                  setModalAction(() => async () => {
-                    // Just clear localStorage and navigate - no server save for < 9 holes
-                    localStorage.removeItem('karlsGIR_currentRound');
-                    navigate('/dashboard');
-                  });
-                  discardModal.open();
-                } else if (incompleteHoles > 0) {
-                  // Incomplete nine - only record complete nines
-                  setModalMessage(`You've completed ${completeNines * 9} holes. The remaining ${incompleteHoles} hole${incompleteHoles !== 1 ? 's' : ''} will be deleted. Continue?`);
-                  setModalAction(() => async () => {
-                    // Save only the complete nines to API
-                    const holesToSave = holes.slice(0, completeNines * 9).map(convertToAPIHole);
-                    try {
-                      await roundsAPI.saveRound({
-                        courseName,
-                        courseMetadata,
-                        holes: holesToSave as any,
-                        completed: true, // Mark round as completed so it won't show in "Resume Round"
-                      } as any);
 
-                      // Track round save event
-                      const roundType = isLoggedIn ? 'registered' : 'live';
-                      const userHash = isLoggedIn ? localStorage.getItem('userHash') : null;
-                      Analytics.trackRoundEvent('save', roundType, userHash, holesToSave.length, true);
+                  if (holes.length < 9) {
+                    // Less than 9 holes - discard round (no server save, just clear localStorage)
+                    setModalMessage(`Discard this round? You have ${holes.length} hole${holes.length !== 1 ? 's' : ''} entered. Minimum 9 holes required to save stats.`);
+                    setModalAction(() => async () => {
+                      // Just clear localStorage and navigate - no server save for < 9 holes
+                      localStorage.removeItem('karlsGIR_currentRound');
+                      navigate('/dashboard');
+                    });
+                    discardModal.open();
+                  } else if (incompleteHoles > 0) {
+                    // Incomplete nine - only record complete nines
+                    setModalMessage(`You've completed ${completeNines * 9} holes. The remaining ${incompleteHoles} hole${incompleteHoles !== 1 ? 's' : ''} will be deleted. Continue?`);
+                    setModalAction(() => async () => {
+                      // Save only the complete nines to API
+                      const holesToSave = holes.slice(0, completeNines * 9).map(convertToAPIHole);
+                      try {
+                        await roundsAPI.saveRound({
+                          courseName,
+                          courseMetadata,
+                          holes: holesToSave as any,
+                          completed: true, // Mark round as completed so it won't show in "Resume Round"
+                        } as any);
 
-                      // Invalidate stats query so dashboard refreshes
-                      queryClient.invalidateQueries({ queryKey: ['stats'] });
-                      queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
-                    } catch (error) {
-                      console.error('Failed to save round:', error);
-                      setValidationError('Failed to save round. Please try again.');
-                      validationErrorModal.open();
-                      return;
-                    }
-                    localStorage.removeItem('karlsGIR_currentRound');
-                    navigate('/dashboard');
-                  });
-                  endRoundIncompleteModal.open();
-                } else {
-                  // Complete round (9/18/36/54/72)
-                  setModalMessage(`End round and save ${holes.length} holes?`);
-                  setModalAction(() => async () => {
-                    // Save all holes to API
-                    const holesToSave = holes.map(convertToAPIHole);
-                    try {
-                      await roundsAPI.saveRound({
-                        courseName,
-                        courseMetadata,
-                        holes: holesToSave as any,
-                        completed: true, // Mark round as completed so it won't show in "Resume Round"
-                      } as any);
+                        // Track round save event
+                        const roundType = isLoggedIn ? 'registered' : 'live';
+                        const userHash = isLoggedIn ? localStorage.getItem('userHash') : null;
+                        Analytics.trackRoundEvent('save', roundType, userHash, holesToSave.length, true);
 
-                      // Track round save event
-                      const roundType = isLoggedIn ? 'registered' : 'live';
-                      const userHash = isLoggedIn ? localStorage.getItem('userHash') : null;
-                      Analytics.trackRoundEvent('save', roundType, userHash, holesToSave.length, true);
+                        // Invalidate stats query so dashboard refreshes
+                        queryClient.invalidateQueries({ queryKey: ['stats'] });
+                        queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+                      } catch (error) {
+                        console.error('Failed to save round:', error);
+                        setValidationError('Failed to save round. Please try again.');
+                        validationErrorModal.open();
+                        return;
+                      }
+                      localStorage.removeItem('karlsGIR_currentRound');
+                      navigate('/dashboard');
+                    });
+                    endRoundIncompleteModal.open();
+                  } else {
+                    // Complete round (9/18/36/54/72)
+                    setModalMessage(`End round and save ${holes.length} holes?`);
+                    setModalAction(() => async () => {
+                      // Save all holes to API
+                      const holesToSave = holes.map(convertToAPIHole);
+                      try {
+                        await roundsAPI.saveRound({
+                          courseName,
+                          courseMetadata,
+                          holes: holesToSave as any,
+                          completed: true, // Mark round as completed so it won't show in "Resume Round"
+                        } as any);
 
-                      // Invalidate stats query so dashboard refreshes
-                      queryClient.invalidateQueries({ queryKey: ['stats'] });
-                      queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
-                    } catch (error) {
-                      console.error('Failed to save round:', error);
-                      setValidationError('Failed to save round. Please try again.');
-                      validationErrorModal.open();
-                      return;
-                    }
-                    localStorage.removeItem('karlsGIR_currentRound');
-                    navigate('/dashboard');
-                  });
-                  endRoundCompleteModal.open();
-                }
-              }}
-              className="btn btn-secondary"
-              style={{
-                width: '100%',
-                marginTop: '1.5rem',
-              }}
-            >
-              {holes.length < 9 ? `Discard Round (${holes.length} hole${holes.length !== 1 ? 's' : ''})` : `End Round (${holes.length} holes)`}
-            </button>
+                        // Track round save event
+                        const roundType = isLoggedIn ? 'registered' : 'live';
+                        const userHash = isLoggedIn ? localStorage.getItem('userHash') : null;
+                        Analytics.trackRoundEvent('save', roundType, userHash, holesToSave.length, true);
 
-            {/* Pause Round Button - only for >= 9 holes */}
-            {holes.length >= 9 && (
-              <button
-                onClick={() => {
-                  setModalMessage(`Pause round with ${holes.length} holes? You can continue this round later from the dashboard.`);
-                  setModalAction(() => async () => {
-                    // Save round WITHOUT completed flag so it can be resumed
-                    const holesToSave = holes.map(convertToAPIHole);
-                    try {
-                      await roundsAPI.saveRound({
-                        courseName,
-                        courseMetadata,
-                        holes: holesToSave as any,
-                        // NO completed flag - this allows the round to be resumed
-                      } as any);
-
-                      // Invalidate queries so dashboard shows the paused round
-                      queryClient.invalidateQueries({ queryKey: ['stats'] });
-                      queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
-                    } catch (error) {
-                      console.error('Failed to pause round:', error);
-                      setValidationError('Failed to pause round. Please try again.');
-                      validationErrorModal.open();
-                      return;
-                    }
-                    // Clear localStorage and navigate to dashboard
-                    localStorage.removeItem('karlsGIR_currentRound');
-                    navigate('/dashboard');
-                  });
-                  saveNineModal.open();
+                        // Invalidate stats query so dashboard refreshes
+                        queryClient.invalidateQueries({ queryKey: ['stats'] });
+                        queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+                      } catch (error) {
+                        console.error('Failed to save round:', error);
+                        setValidationError('Failed to save round. Please try again.');
+                        validationErrorModal.open();
+                        return;
+                      }
+                      localStorage.removeItem('karlsGIR_currentRound');
+                      navigate('/dashboard');
+                    });
+                    endRoundCompleteModal.open();
+                  }
                 }}
                 className="btn btn-secondary"
                 style={{
                   width: '100%',
-                  marginTop: '0.75rem',
+                  marginTop: '1.5rem',
                 }}
               >
-                Pause Round ({holes.length} holes)
+                {holes.length < 9 ? `Discard Round (${holes.length} hole${holes.length !== 1 ? 's' : ''})` : `End Round (${holes.length} holes)`}
               </button>
-            )}
 
-            {/* CSV Export for Guests */}
-            {!isLoggedIn && (
-              <button
-                onClick={() => {
-                  exportRoundToCSV({ courseName, holes });
-                }}
-                className="btn btn-secondary"
-                style={{
-                  width: '100%',
-                  marginTop: '0.75rem',
-                  fontSize: '0.875rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <FontAwesomeIcon icon={faDownload} />
-                Download Round as CSV
-              </button>
-            )}
+              {/* Pause Round Button - only for >= 9 holes */}
+              {holes.length >= 9 && (
+                <button
+                  onClick={() => {
+                    setModalMessage(`Pause round with ${holes.length} holes? You can continue this round later from the dashboard.`);
+                    setModalAction(() => async () => {
+                      // Save round WITHOUT completed flag so it can be resumed
+                      const holesToSave = holes.map(convertToAPIHole);
+                      try {
+                        await roundsAPI.saveRound({
+                          courseName,
+                          courseMetadata,
+                          holes: holesToSave as any,
+                          // NO completed flag - this allows the round to be resumed
+                        } as any);
+
+                        // Invalidate queries so dashboard shows the paused round
+                        queryClient.invalidateQueries({ queryKey: ['stats'] });
+                        queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+                      } catch (error) {
+                        console.error('Failed to pause round:', error);
+                        setValidationError('Failed to pause round. Please try again.');
+                        validationErrorModal.open();
+                        return;
+                      }
+                      // Clear localStorage and navigate to dashboard
+                      localStorage.removeItem('karlsGIR_currentRound');
+                      navigate('/dashboard');
+                    });
+                    saveNineModal.open();
+                  }}
+                  className="btn btn-secondary"
+                  style={{
+                    width: '100%',
+                    marginTop: '0.75rem',
+                  }}
+                >
+                  Pause Round ({holes.length} holes)
+                </button>
+              )}
+
+              {/* CSV Export for Guests */}
+              {!isLoggedIn && (
+                <button
+                  onClick={() => {
+                    exportRoundToCSV({ courseName, holes });
+                  }}
+                  className="btn btn-secondary"
+                  style={{
+                    width: '100%',
+                    marginTop: '0.75rem',
+                    fontSize: '0.875rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <FontAwesomeIcon icon={faDownload} />
+                  Download Round as CSV
+                </button>
+              )}
             </>
           )}
         </div>
@@ -1309,7 +1412,7 @@ export default function TrackRoundPage() {
               <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>
                 Totals: Holes ({holes.length}) | Strokes ({holes.reduce((sum, h) => sum + h.score, 0)})
               </h2>
-              
+
               {/* Scrollable Holes List */}
               <div
                 style={{
@@ -1436,13 +1539,13 @@ export default function TrackRoundPage() {
             <h2 style={{ marginBottom: '1rem', color: 'var(--color-interactive)' }}>
               🎉 Nice Round!
             </h2>
-            
+
             <p style={{ fontSize: '1.125rem', marginBottom: '1.5rem', lineHeight: '1.6' }}>
               You've completed 9 holes! Create a free account to:
             </p>
-            
-            <div style={{ 
-              textAlign: 'left', 
+
+            <div style={{
+              textAlign: 'left',
               marginBottom: '2rem',
               backgroundColor: 'rgba(221, 237, 210, 0.1)',
               padding: '1rem',
@@ -1452,7 +1555,7 @@ export default function TrackRoundPage() {
               <div style={{ marginBottom: '0.75rem' }}>✓ Track your stats over time</div>
               <div>✓ Never lose your data</div>
             </div>
-            
+
             <button
               onClick={() => {
                 accountPromptModal.close();
@@ -1463,7 +1566,7 @@ export default function TrackRoundPage() {
             >
               Create Account
             </button>
-            
+
             <button
               onClick={() => {
                 // Export round data as CSV
@@ -1483,7 +1586,7 @@ export default function TrackRoundPage() {
               <FontAwesomeIcon icon={faDownload} />
               Download CSV Instead
             </button>
-            
+
             <button
               onClick={accountPromptModal.close}
               style={{

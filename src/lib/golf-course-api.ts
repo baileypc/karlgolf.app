@@ -1,33 +1,5 @@
-// Golf Course API Service - RapidAPI Integration
+// Golf Course API Service - Server-side proxy to Google Places API
 import type { GolfCourse } from '@/types';
-
-const RAPIDAPI_KEY = import.meta.env.VITE_RAPIDAPI_KEY;
-const RAPIDAPI_HOST = 'golf-course-finder.p.rapidapi.com';
-const BASE_URL = 'https://golf-course-finder.p.rapidapi.com/api';
-
-// Haversine formula - calculate distance between two GPS coordinates
-function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 3959; // Earth's radius in miles
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Distance in miles
-}
 
 export interface SearchCoursesParams {
   latitude: number;
@@ -45,82 +17,52 @@ export interface SearchCoursesResult {
 
 /**
  * Search for golf courses near a GPS location
+ * Calls our own PHP backend which proxies to Google Places API
  */
 export async function searchNearbyGolfCourses(
   params: SearchCoursesParams
 ): Promise<SearchCoursesResult> {
   const { latitude, longitude, miles = 25 } = params;
 
-  if (!RAPIDAPI_KEY) {
-    throw new Error('RapidAPI key not configured. Please add VITE_RAPIDAPI_KEY to .env file.');
-  }
+  // Convert miles to meters for the API
+  const radiusMeters = Math.round(miles * 1609.34);
 
-  console.log('[API] API Key loaded:', RAPIDAPI_KEY ? `${RAPIDAPI_KEY.substring(0, 10)}...` : 'MISSING');
-  console.log('[API] API Key length:', RAPIDAPI_KEY?.length);
+  const queryParams = new URLSearchParams({
+    latitude: latitude.toString(),
+    longitude: longitude.toString(),
+    radius: radiusMeters.toString(),
+  });
 
-  const url = `${BASE_URL}/golf-clubs/?latitude=${latitude}&longitude=${longitude}&miles=${miles}`;
-  console.log('[API] Request URL:', url);
+  const url = `./api/rounds/search-courses.php?${queryParams}`;
 
   try {
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': RAPIDAPI_KEY,
-        'X-RapidAPI-Host': RAPIDAPI_HOST,
-      },
+      credentials: 'include',
     });
 
-    console.log('[API] Response status:', response.status);
-
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[API] Error response:', errorText);
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Course search failed: ${response.status}`);
     }
 
     const data = await response.json();
 
-    console.log('[API] ========== RAW API RESPONSE ==========');
-    console.log('[API] Response type:', typeof data);
-    console.log('[API] Is array?', Array.isArray(data));
-    console.log('[API] Number of courses:', Array.isArray(data) ? data.length : 'N/A');
-    console.log('[API] Full response:', JSON.stringify(data, null, 2));
-
-    if (Array.isArray(data) && data.length > 0) {
-      console.log('[API] First course object:', data[0]);
-      console.log('[API] First course keys:', Object.keys(data[0]));
-      console.log('[API] First course clubName:', data[0].clubName);
-      console.log('[API] First course name:', data[0].name);
+    if (!data.success) {
+      throw new Error(data.message || 'Course search failed');
     }
-    console.log('[API] ========================================');
 
-    // Transform API response to our GolfCourse type
-    const courses: GolfCourse[] = (Array.isArray(data) ? data : []).map((course: any) => {
-      // Calculate distance from user location
-      const distance = calculateDistance(
-        latitude,
-        longitude,
-        course.latitude,
-        course.longitude
-      );
-
-      return {
-        clubName: course.club_name || course.clubName || course.name || 'Unknown Club',
-        courseName: course.course_name || course.courseName || '',
-        latitude: course.latitude,
-        longitude: course.longitude,
-        placeId: course.place_id || course.placeId,
-        holes: course.number_of_holes || course.holes,
-        par: course.par,
-        weekdayPrice: course.weekday_price || course.weekdayPrice,
-        weekendPrice: course.weekend_price || course.weekendPrice,
-        twilightPrice: course.twilight_price || course.twilightPrice,
-        distance: parseFloat(distance.toFixed(1)),
-      };
-    });
-
-    // Sort by distance (closest first)
-    courses.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+    // Transform to GolfCourse type (server already returns the right shape)
+    const courses: GolfCourse[] = (data.courses || []).map((course: any) => ({
+      clubName: course.clubName || 'Unknown Course',
+      courseName: course.courseName || '',
+      latitude: course.latitude,
+      longitude: course.longitude,
+      placeId: course.placeId,
+      holes: course.holes,
+      par: course.par,
+      distance: course.distance,
+    }));
 
     return {
       courses,
@@ -137,7 +79,6 @@ export async function searchNearbyGolfCourses(
  */
 export async function checkLocationPermission(): Promise<'granted' | 'denied' | 'prompt'> {
   if (!navigator.permissions) {
-    // Permissions API not supported, assume we need to prompt
     return 'prompt';
   }
 
@@ -145,7 +86,6 @@ export async function checkLocationPermission(): Promise<'granted' | 'denied' | 
     const result = await navigator.permissions.query({ name: 'geolocation' });
     return result.state;
   } catch (error) {
-    // If query fails, assume we need to prompt
     return 'prompt';
   }
 }
@@ -156,35 +96,25 @@ export async function checkLocationPermission(): Promise<'granted' | 'denied' | 
  */
 export function getUserLocation(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
-    console.log('[GPS] Checking geolocation support...');
-
     if (!navigator.geolocation) {
-      console.error('[GPS] Geolocation not supported');
       reject(new Error('Geolocation is not supported by your browser'));
       return;
     }
 
-    console.log('[GPS] Requesting current position...');
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        console.log('[GPS] Position obtained:', position.coords.latitude, position.coords.longitude);
         resolve(position);
       },
       (error) => {
-        console.error('[GPS] Error:', error.code, error.message);
         let message = 'Unable to get your location';
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            console.error('[GPS] Permission denied by user');
-            message = 'PERMISSION_DENIED'; // Special code for UI to handle
+            message = 'PERMISSION_DENIED';
             break;
           case error.POSITION_UNAVAILABLE:
-            console.error('[GPS] Position unavailable');
             message = 'Location information unavailable. Please check your device settings.';
             break;
           case error.TIMEOUT:
-            console.error('[GPS] Request timed out');
             message = 'Location request timed out. Please try again.';
             break;
         }
@@ -198,4 +128,3 @@ export function getUserLocation(): Promise<GeolocationPosition> {
     );
   });
 }
-

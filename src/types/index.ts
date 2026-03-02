@@ -34,7 +34,7 @@ export interface RoundStats {
   penalties: number;
 }
 
-// Golf course metadata from RapidAPI
+// Golf course metadata from GPS search (OpenStreetMap)
 export interface CourseMetadata {
   clubName?: string;
   courseName?: string;
@@ -49,7 +49,7 @@ export interface CourseMetadata {
   twilightPrice?: string;
 }
 
-// Golf course from RapidAPI response
+// Golf course from search results
 export interface GolfCourse {
   clubName: string;
   courseName: string;

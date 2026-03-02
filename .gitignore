@@ -24,3 +24,4 @@ data/*
 # Environment variables (contains API keys)
 .env
 .env.local
+.google-api-key

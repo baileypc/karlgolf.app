@@ -28,7 +28,7 @@
 <IfModule mod_headers.c>
   # Content Security Policy
   # Allow self, inline styles/scripts (needed for React), CDN resources (for admin dashboard), and RapidAPI (for GPS course search)
-  Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob:; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self' https://unpkg.com https://cdnjs.cloudflare.com https://golf-course-finder.p.rapidapi.com;"
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob:; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self' https://unpkg.com https://cdnjs.cloudflare.com;"
 
   # Prevent clickjacking
   Header set X-Frame-Options "SAMEORIGIN"

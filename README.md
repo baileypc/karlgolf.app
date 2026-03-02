@@ -1,6 +1,6 @@
 # Karl Golf GIR - Golf Tracking PWA
 
-**Version:** 3.3.1 (Production)
+**Version:** 3.3.2 (Production)
 **Status:** ✅ **LIVE IN PRODUCTION**
 **Domain:** [https://karlgolf.app](https://karlgolf.app)
 
@@ -8,12 +8,12 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 
 ---
 
-## 🎉 Version 3.3.1 - Current Release
+## 🎉 Version 3.3.2 - Current Release
 
 **Deployed:** January 2026
 **Status:** ✅ Fully operational in production
 
-### What's New in v3.3.1
+### What's New in v3.3.2
 - 🐛 **Completed Flag Fix** - Fixed rounds not being marked as complete due to validation stripping the `completed` field
 - 🐛 **Dashboard Stats Display** - Fixed Dashboard not displaying stats (API response parsing issue)
 - 🔧 **TypeScript Types** - Updated `loadStats()` return type to match actual API response
@@ -243,4 +243,4 @@ See **[TODOs](docs/TODOS.md)** for complete list of future features.
 **Website:** [cloudvirtue.com](https://cloudvirtue.com)
 **Repository:** Private
 **License:** Proprietary
-**Version:** 3.3.1 (Production)
+**Version:** 3.3.2 (Production)
