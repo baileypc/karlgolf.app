@@ -61,10 +61,13 @@ if (!$apiKey) {
 }
 
 // Call Google Places Nearby Search API
+// By using "golf OR country club" as a keyword and NOT restricting by type,
+// we force Google to match the concept rather than relying on its messy 'golf_course' tags.
+// This successfully finds courses like Ledgestone which Google tags as 'lodging'.
 $url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?' . http_build_query([
     'location' => "$latitude,$longitude",
     'radius' => $radius,
-    'type' => 'golf_course',
+    'keyword' => 'golf OR country club',
     'key' => $apiKey,
 ]);
 
@@ -73,44 +76,38 @@ $curlOpts = [
     CURLOPT_URL => $url,
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_TIMEOUT => 10,
-    CURLOPT_SSL_VERIFYPEER => true,
+    // Disable SSL verification for development on localhost
+    CURLOPT_SSL_VERIFYPEER => !isDevelopment(),
+    CURLOPT_SSL_VERIFYHOST => !isDevelopment() ? 2 : 0,
 ];
 
-// Disable SSL verification on localhost (Laragon may lack CA certs)
-if (isDevelopment()) {
-    $curlOpts[CURLOPT_SSL_VERIFYPEER] = false;
-    $curlOpts[CURLOPT_SSL_VERIFYHOST] = 0;
-}
-
 curl_setopt_array($ch, $curlOpts);
-
 $response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $curlError = curl_error($ch);
-$curlErrno = curl_errno($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-if ($curlError) {
-    logError('Google Places API curl error: ' . $curlError . ' (errno: ' . $curlErrno . ')');
-    http_response_code(502);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Failed to search for courses. Please try again.',
-        'debug' => isDevelopment() ? $curlError : null,
-    ]);
-    exit;
-}
-
-if ($httpCode !== 200) {
-    logError('Google Places API HTTP error: ' . $httpCode);
-    http_response_code(502);
-    echo json_encode(['success' => false, 'message' => 'Course search service unavailable. Please try again.']);
+if ($response === false) {
+    logError('Golf search request failed', ['error' => $curlError]);
+    
+    // Provide a detailed error message if we're on localhost
+    $errorMsg = isDevelopment() 
+        ? "cURL Error: $curlError. To fix SSL issues on Laragon, update your php.ini curl.cainfo" 
+        : "Failed to search for courses. Please try again.";
+        
+    echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }
 
 $data = json_decode($response, true);
 
-if (!$data || ($data['status'] ?? '') === 'REQUEST_DENIED') {
+if (!isset($data['status'])) {
+    logError('Invalid golf search response format', ['response' => substr($response, 0, 500)]);
+    echo json_encode(['success' => false, 'error' => 'Invalid response from course search service.']);
+    exit;
+}
+
+if ($data['status'] === 'REQUEST_DENIED') {
     $googleError = $data['error_message'] ?? 'Unknown';
     logError('Google Places API denied: ' . $googleError);
     http_response_code(500);
@@ -133,11 +130,34 @@ if ($data['status'] === 'ZERO_RESULTS' || empty($data['results'])) {
 
 // Transform Google Places results
 $courses = [];
+
+// Types that indicate this is NOT a real golf course
+$excludeTypes = ['amusement_park', 'bar', 'restaurant', 'night_club', 'bowling_alley',
+                 'movie_theater', 'shopping_mall', 'department_store', 'clothing_store',
+                 'arcade'];
+
+// Words in the name that indicate it's not a real 9/18 hole outdoor course
+$excludeNameKeywords = ['mini', 'putt', 'adventure', 'indoor', 'simulator', 'lounge', 'dinosaur', 'treasure'];
+
 foreach ($data['results'] as $place) {
     $courseLat = $place['geometry']['location']['lat'] ?? null;
     $courseLng = $place['geometry']['location']['lng'] ?? null;
 
     if (!$courseLat || !$courseLng) continue;
+
+    $placeNameLower = strtolower($place['name'] ?? '');
+
+    // Filter out mini-golf, indoor simulators, and adventure golf by name
+    foreach ($excludeNameKeywords as $keyword) {
+        if (strpos($placeNameLower, $keyword) !== false) {
+            continue 2; // Skip to next place
+        }
+    }
+
+    // Filter out non-golf venues by checking their types
+    $placeTypes = $place['types'] ?? [];
+    $hasExcludedType = !empty(array_intersect($placeTypes, $excludeTypes));
+    if ($hasExcludedType) continue;
 
     // Calculate distance in miles using Haversine
     $distance = haversineDistance($latitude, $longitude, $courseLat, $courseLng);
