@@ -65,6 +65,7 @@ export default function TrackRoundPage() {
   const [courseName, setCourseName] = useState('');
   const [courseMetadata, setCourseMetadata] = useState<CourseMetadata | null>(null);
   const [roundStarted, setRoundStarted] = useState(false);
+  const [coursePar, setCoursePar] = useState<number | null>(null);
   const [serverIncompleteRound, setServerIncompleteRound] = useState<any>(null);
 
   // Modal states
@@ -92,6 +93,7 @@ export default function TrackRoundPage() {
   const [fairway, setFairway] = useState<'l' | 'c' | 'r' | 'na' | 'rough' | null>(null);
   const [shotsToGreen, setShotsToGreen] = useState<number | null>(null);
   const [penalty, setPenalty] = useState('');
+  const [teePenalty, setTeePenalty] = useState(''); // Tee-shot hazard penalty (Par 4/5 only)
   const [proximity, setProximity] = useState<number | null>(null);
 
   // Check server for incomplete rounds on mount (only when logged in)
@@ -141,6 +143,7 @@ export default function TrackRoundPage() {
         }
         setCourseName(localData.courseName || '');
         setCourseMetadata(localData.courseMetadata || null);
+        if (localData.coursePar) setCoursePar(localData.coursePar);
         setRoundStarted(true);
 
         // Restore in-progress form state (half-entered hole)
@@ -249,6 +252,7 @@ export default function TrackRoundPage() {
         holes,
         courseName,
         courseMetadata,
+        coursePar,
         roundStarted,
         formState: {
           par,
@@ -263,7 +267,7 @@ export default function TrackRoundPage() {
         lastUpdated: new Date().toISOString(),
       }));
     }
-  }, [holes, courseName, courseMetadata, roundStarted, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity]);
+  }, [holes, courseName, courseMetadata, coursePar, roundStarted, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity]);
 
   // Helper function to show alert modal
 
@@ -453,11 +457,17 @@ export default function TrackRoundPage() {
         return;
       }
 
-      // Validate shots to green minimum (must be >= par - 2 since tee shot is counted separately)
+      // Validate shots to green minimum
+      // If tee penalty taken (hazard), min is 1 (dropped and played from there)
+      // Otherwise min is par - 2 (GIR standard)
       if (isGirNo && shotsToGreen !== null && par !== null) {
-        const minShots = par - 2;
+        const minShots = teePenalty ? 1 : par - 2;
         if (shotsToGreen < minShots) {
-          setValidationError(`Shots to green must be at least ${minShots} for a par ${par} (GIR would be on in ${par - 2 + 1} shots)`);
+          setValidationError(
+            teePenalty
+              ? 'After a tee shot penalty, enter at least 1 shot to reach the green.'
+              : `Shots to green must be at least ${minShots} for a par ${par} (GIR would be on in ${par - 2 + 1} shots)`
+          );
           validationErrorModal.open();
           setIsSubmitting(false);
           return;
@@ -482,14 +492,15 @@ export default function TrackRoundPage() {
       //   Example Par 3: (3 - 2) + 2 putts = 3 (par)
       // - GIR = No: Tee shot (1) + additional shots to green + putts + penalties
       //   Example Par 3: 1 (tee) + 1 (second shot) + 2 putts = 4
+      const teePenaltyNum = parseInt(teePenalty || '0');
       let score: number;
       if (gir === 'y') {
-        // GIR: Tee shot reached green
-        score = (par - 2) + putts + parseInt(penalty || '0');
+        // GIR: Tee shot reached green (par - 2 shots) + putts + any tee penalty
+        score = (par - 2) + putts + teePenaltyNum + parseInt(penalty || '0');
       } else {
-        // No GIR: Tee shot (1) + additional shots to green + putts + penalties
+        // No GIR: Tee shot (1) + additional shots to green + putts + tee penalty + approach penalty
         const additionalShots = shotsToGreen || 0;
-        score = 1 + additionalShots + putts + parseInt(penalty || '0');
+        score = 1 + additionalShots + putts + teePenaltyNum + parseInt(penalty || '0');
       }
 
       // Use editingHole if editing, otherwise use currentHole for new holes
@@ -506,7 +517,9 @@ export default function TrackRoundPage() {
         puttDistances,
         fairway: par === 3 ? 'na' : fairway!,
         shotsToGreen: shotsToGreen || undefined,
-        penalty,
+        penalty: teePenaltyNum > 0 || parseInt(penalty || '0') > 0
+          ? String(teePenaltyNum + parseInt(penalty || '0'))
+          : undefined,
         proximity: proximity || undefined,
       };
 
@@ -589,6 +602,7 @@ export default function TrackRoundPage() {
       setFairway(null);
       setShotsToGreen(null);
       setPenalty('');
+      setTeePenalty('');
       setProximity(null);
 
       // If we were editing, also ensure editingHole is cleared (redundant but safe)
@@ -722,6 +736,37 @@ export default function TrackRoundPage() {
             </p>
           </div>
 
+          {/* Course Par Selector */}
+          {roundStarted && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.8rem', opacity: 0.7, whiteSpace: 'nowrap' }}>Course Par:</span>
+                {[68, 69, 70, 71, 72].map((cp) => (
+                  <button
+                    key={cp}
+                    onClick={() => setCoursePar(coursePar === cp ? null : cp)}
+                    style={{
+                      padding: '0.25rem 0.6rem',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-primary)',
+                      backgroundColor: coursePar === cp ? 'var(--color-interactive)' : 'transparent',
+                      color: coursePar === cp ? '#000' : 'var(--text-primary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      minWidth: '36px',
+                      textAlign: 'center' as const,
+                    }}
+                  >
+                    {cp}
+                  </button>
+                ))}
+
+              </div>
+            </div>
+          )}
+
           {/* Stats Panel */}
           {holes.length > 0 && (
             <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -769,6 +814,28 @@ export default function TrackRoundPage() {
                   <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.scramblingPct}%</div>
                   <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Scrambling</div>
                 </div>
+                {coursePar && (
+                  <div>
+                    <div style={{
+                      fontSize: '1.75rem',
+                      fontWeight: 'bold',
+                      color: (() => {
+                        const overUnder = holes.reduce((acc, h) => acc + (h.score - h.par), 0);
+                        if (overUnder > 0) return '#ff6b6b';
+                        if (overUnder < 0) return '#51cf66';
+                        return 'var(--text-primary)';
+                      })(),
+                    }}>
+                      {(() => {
+                        const overUnder = holes.reduce((acc, h) => acc + (h.score - h.par), 0);
+                        if (overUnder > 0) return `+${overUnder}`;
+                        if (overUnder < 0) return `${overUnder}`;
+                        return 'E';
+                      })()}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Par</div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -789,10 +856,11 @@ export default function TrackRoundPage() {
                       runningScore = 1 + shotsToGreen;
                     }
                     if (putts) runningScore += putts;
+                    if (teePenalty) runningScore += parseInt(teePenalty) || 0;
                     if (penalty) runningScore += parseInt(penalty) || 0;
 
                     // Only show "1 Stroke" initially, then update as more data comes in
-                    if (!gir && !putts) return `(1 Stroke)`;
+                    if (!gir && !putts && !teePenalty) return `(1 Stroke)`;
                     return `(${runningScore} Stroke${runningScore !== 1 ? 's' : ''})`;
                   })()}
                 </span>
@@ -848,6 +916,8 @@ export default function TrackRoundPage() {
                       onClick={() => {
                         setFairway(option.value as 'l' | 'c' | 'r' | 'na' | 'rough');
                         setPenalty('');
+                        setTeePenalty('');
+                        setGir(null);
                       }}
                       className="btn btn-secondary"
                       style={{
@@ -868,9 +938,9 @@ export default function TrackRoundPage() {
                       key={option.value}
                       onClick={() => {
                         setFairway(option.value as 'l' | 'c' | 'r' | 'na' | 'rough');
-                        if (option.value !== 'na') {
-                          setPenalty('');
-                        }
+                        setPenalty('');
+                        setTeePenalty('');
+                        setGir(null);
                       }}
                       className="btn btn-secondary"
                       style={{
@@ -885,77 +955,104 @@ export default function TrackRoundPage() {
               </div>
             )}
 
-            {/* Penalty Strokes for Par 4 & 5 (only if Hazard selected) */}
+            {/* Tee Shot Penalty (Par 4/5, Hazard only) */}
             {par !== null && par !== 3 && fairway === 'na' && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Hazard / Penalty Strokes
+                  Tee Shot Penalty
                 </label>
                 <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', opacity: 0.8 }}>
                   OB (+1), Water (+1), Unplayable (+2), or Lost Ball (+1) [+3 consider more practice 😉]
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  {[1, 2, 3].map((strokes) => (
-                    <button
-                      key={strokes}
-                      onClick={() => {
-                        setPenalty(strokes.toString());
-                        // If +2 or +3, automatically set GIR to No (impossible to hit GIR)
-                        if (strokes >= 2) {
-                          setGir('n');
-                        } else {
-                          // Reset GIR for +1 (GIR still possible)
-                          setGir(null);
-                        }
-                      }}
-                      className="btn btn-secondary"
-                      style={{
-                        flex: 1,
-                        backgroundColor: penalty === strokes.toString() ? 'var(--color-interactive)' : 'transparent',
-                        color: penalty === strokes.toString() ? '#000' : 'var(--color-interactive)',
-                      }}
-                    >
-                      +{strokes}
-                    </button>
-                  ))}
+                  {[1, 2, 3].map((strokes) => {
+                    const isSelected = teePenalty === strokes.toString();
+                    return (
+                      <button
+                        key={strokes}
+                        onClick={() => {
+                          const newTeePenalty = isSelected ? '' : strokes.toString();
+                          setTeePenalty(newTeePenalty);
+                          // Auto-deny GIR: Par 4 any penalty, Par 5 penalty >= 2
+                          const girDenied =
+                            (par === 4 && strokes >= 1) ||
+                            (par === 5 && strokes >= 2);
+                          if (!isSelected && girDenied) {
+                            setGir('n');
+                          } else {
+                            setGir(null); // Reset so player can choose
+                          }
+                        }}
+                        className="btn btn-secondary"
+                        style={{
+                          flex: 1,
+                          backgroundColor: isSelected ? 'var(--color-interactive)' : 'transparent',
+                          color: isSelected ? '#000' : 'var(--color-interactive)',
+                        }}
+                      >
+                        +{strokes}
+                      </button>
+                    );
+                  })}
                 </div>
+                {/* Show auto-deny message when GIR is auto-set */}
+                {teePenalty !== '' && (
+                  (() => {
+                    const tp = parseInt(teePenalty);
+                    const denied = (par === 4 && tp >= 1) || (par === 5 && tp >= 2);
+                    return denied ? (
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.7, fontStyle: 'italic' }}>
+                        GIR auto-denied — not possible to reach green in regulation with this penalty.
+                      </div>
+                    ) : null;
+                  })()
+                )}
               </div>
             )}
 
             {/* GIR Selection */}
-            {/* For par 3: always show GIR. For par 4/5: show GIR if fairway is selected and GIR is still possible (not hazard +2/+3) */}
-            {par !== null && (par === 3 || (par !== 3 && (fairway !== null && (fairway !== 'na' || penalty === '1')))) && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Green in Regulation (GIR)
-                </label>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  {[
-                    { value: 'y', label: 'Yes' },
-                    { value: 'n', label: 'No' },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setGir(option.value as 'y' | 'n')}
-                      className="btn btn-secondary"
-                      style={{
-                        flex: 1,
-                        backgroundColor: gir === option.value ? 'var(--color-interactive)' : 'transparent',
-                        color: gir === option.value ? '#000' : 'var(--color-interactive)',
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+            {/* For par 3: always show GIR. For par 4/5: show GIR after fairway is selected.
+                If fairway is Hazard (na), also require a tee penalty to be chosen first.
+                If GIR is auto-denied by tee penalty, hide the GIR buttons entirely. */}
+            {par !== null && (
+              par === 3 ||
+              (fairway !== null && fairway !== 'na') ||
+              (fairway === 'na' && teePenalty !== '' && !(
+                (par === 4 && parseInt(teePenalty) >= 1) ||
+                (par === 5 && parseInt(teePenalty) >= 2)
+              ))
+            ) && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                    Green in Regulation (GIR)
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    {[
+                      { value: 'y', label: 'Yes' },
+                      { value: 'n', label: 'No' },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setGir(option.value as 'y' | 'n')}
+                        className="btn btn-secondary"
+                        style={{
+                          flex: 1,
+                          backgroundColor: gir === option.value ? 'var(--color-interactive)' : 'transparent',
+                          color: gir === option.value ? '#000' : 'var(--color-interactive)',
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Penalty Strokes for Par 3 (only if GIR = No) */}
-            {par === 3 && gir === 'n' && (
+            {/* Approach Penalty Strokes (only if GIR = No) */}
+            {gir === 'n' && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Hazard / Penalty Strokes
+                  {fairway === 'na' ? 'Approach / Additional Penalties?' : 'Hazard / Penalty Strokes?'}
                 </label>
                 <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', opacity: 0.8 }}>
                   OB (+1), Water (+1), Unplayable (+2), or Lost Ball (+1) [+3 consider more practice 😉]
@@ -965,7 +1062,7 @@ export default function TrackRoundPage() {
                     <button
                       key={strokes}
                       onClick={() => {
-                        setPenalty(strokes.toString());
+                        setPenalty(penalty === strokes.toString() ? '' : strokes.toString());
                       }}
                       className="btn btn-secondary"
                       style={{
@@ -985,39 +1082,43 @@ export default function TrackRoundPage() {
             {gir === 'n' && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Shots to Green (after tee shot)
+                  {par === 3 ? 'Shots to Green (after tee shot)' : 'Shots to Green (after tee shot and any hazards)'}
                 </label>
                 <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', opacity: 0.8 }}>
                   {par === 3
                     ? 'Tee shot missed the green. How many more shots to reach it?'
-                    : par === 4
-                      ? 'GIR would be on in 2. How many shots after the tee to reach the green? (min 2)'
-                      : 'GIR would be on in 3. How many shots after the tee to reach the green? (min 3)'}
+                    : teePenalty
+                      ? 'After your tee penalty, how many shots to reach the green? (min 1)'
+                      : par === 4
+                        ? 'GIR would be on in 2. How many shots after the tee to reach the green? (min 2)'
+                        : 'GIR would be on in 3. How many shots after the tee to reach the green? (min 3)'}
                 </div>
                 <input
                   type="number"
-                  min={par ? par - 2 : 1}
+                  min={teePenalty ? 1 : par ? par - 2 : 1}
                   max="10"
                   value={shotsToGreen || ''}
                   onChange={(e) => {
                     const val = parseInt(e.target.value) || null;
-                    const minVal = par ? par - 2 : 1;
+                    const minVal = teePenalty ? 1 : par ? par - 2 : 1;
                     if (val !== null && val < minVal) {
                       // Show modal warning instead of silently correcting
                       setShotsToGreen(null); // Reset field
                       setValidationError(
-                        par === 4
-                          ? 'On a Par 4, GIR means reaching the green in 2 shots (tee + approach). Since you missed GIR, you need at least 2 shots after the tee to reach the green.'
-                          : par === 5
-                            ? 'On a Par 5, GIR means reaching the green in 3 shots. Since you missed GIR, you need at least 3 shots after the tee to reach the green.'
-                            : 'Please enter a valid number of shots to reach the green.'
+                        teePenalty
+                          ? 'After a tee shot penalty, enter at least 1 shot to reach the green.'
+                          : par === 4
+                            ? 'On a Par 4, GIR means reaching the green in 2 shots (tee + approach). Since you missed GIR, you need at least 2 shots after the tee to reach the green.'
+                            : par === 5
+                              ? 'On a Par 5, GIR means reaching the green in 3 shots. Since you missed GIR, you need at least 3 shots after the tee to reach the green.'
+                              : 'Please enter a valid number of shots to reach the green.'
                       );
                       validationErrorModal.open();
                     } else {
                       setShotsToGreen(val);
                     }
                   }}
-                  placeholder={`${par ? par - 2 : 1} or more shots`}
+                  placeholder={`${teePenalty ? 1 : par ? par - 2 : 1} or more shots`}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -1123,6 +1224,7 @@ export default function TrackRoundPage() {
                     setFairway(null);
                     setShotsToGreen(null);
                     setPenalty('');
+                    setTeePenalty('');
                     setProximity(null);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}

@@ -37,7 +37,7 @@ export default function IconNav() {
         backgroundColor: '#000',
         zIndex: 999
       }} />
-      
+
       {/* Header with semi-transparent mint green */}
       <nav style={{
         position: 'fixed',
@@ -53,112 +53,110 @@ export default function IconNav() {
         padding: '0 1rem',
         zIndex: 1000
       }}>
-          {/* Logo */}
-          <div style={{ 
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            cursor: 'pointer'
-          }}
+        {/* Logo */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          cursor: 'pointer'
+        }}
           onClick={() => navigate('/dashboard')}
-          >
-        <img 
-          src="./images/karls_gir.png" 
-          alt="Karl Golf GIR" 
-          style={{ 
-            width: '40px', 
-            height: '40px',
-            objectFit: 'contain'
-          }} 
-        />
-        <span style={{
-          fontSize: 'var(--font-lg)',
-          fontWeight: 'bold',
-          color: 'var(--text-primary)'
-        }}>
-          Karl Golf GIR
-        </span>
-      </div>
-
-      {/* Icon Navigation */}
-      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-        {isLoggedIn ? (
-          <>
-            {/* Dashboard - Logged in users only */}
-            <button
-              onClick={() => navigate('/dashboard')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: isActive('/dashboard') ? 'var(--text-primary)' : 'rgba(221, 237, 210, 0.5)',
-                fontSize: '1.25rem',
-                cursor: 'pointer',
-                padding: '0.5rem',
-                transition: 'color 0.2s'
-              }}
-              title="Dashboard (Stats & History)"
-            >
-              <FontAwesomeIcon icon={faChartLine} />
-            </button>
-          </>
-        ) : (
-          <>
-            {/* Create Account - Guest users only */}
-            <button
-              onClick={handleCreateAccount}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'rgba(221, 237, 210, 0.5)',
-                fontSize: '1.25rem',
-                cursor: 'pointer',
-                padding: '0.5rem',
-                transition: 'color 0.2s'
-              }}
-              title="Create Account (Save Your Data)"
-            >
-              <FontAwesomeIcon icon={faUserPlus} />
-            </button>
-          </>
-        )}
-
-        {/* Track Round - Always visible */}
-        <button
-          onClick={() => navigate('/track-round')}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: isActive('/track-round') ? 'var(--text-primary)' : 'rgba(221, 237, 210, 0.5)',
-            fontSize: '1.25rem',
-            cursor: 'pointer',
-            padding: '0.5rem',
-            transition: 'color 0.2s'
-          }}
-          title="Track Round (Record Keeping)"
         >
-          <FontAwesomeIcon icon={faClipboard} />
-        </button>
-
-        {/* Logout - Logged in users only */}
-        {isLoggedIn && (
-          <button
-            onClick={handleLogout}
+          <img
+            src="./images/karls_gir.png"
+            alt="Karl Golf GIR"
             style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(221, 237, 210, 0.5)',
-              fontSize: '1.25rem',
-              cursor: 'pointer',
-              padding: '0.5rem',
-              transition: 'color 0.2s'
+              width: '40px',
+              height: '40px',
+              objectFit: 'contain'
             }}
-            title="Logout"
-          >
-            <FontAwesomeIcon icon={faRightFromBracket} />
-          </button>
-        )}
-      </div>
-    </nav>
+          />
+          <span style={{
+            fontSize: 'var(--font-lg)',
+            fontWeight: 'bold',
+            color: 'var(--text-primary)'
+          }}>
+            Karl Golf GIR
+          </span>
+        </div>
+
+        {/* Icon Navigation */}
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+          {isLoggedIn ? (
+            <>
+              {/* Dashboard - Logged in users only */}
+              <button
+                onClick={() => navigate('/dashboard')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: isActive('/dashboard') ? 'var(--text-primary)' : 'rgba(221, 237, 210, 0.5)',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  transition: 'color 0.2s'
+                }}
+                title="Dashboard (Stats & History)"
+              >
+                <FontAwesomeIcon icon={faChartLine} />
+              </button>
+
+              {/* Track Round - Logged in users only */}
+              <button
+                onClick={() => navigate('/track-round')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: isActive('/track-round') ? 'var(--text-primary)' : 'rgba(221, 237, 210, 0.5)',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  transition: 'color 0.2s'
+                }}
+                title="Track Round (Record Keeping)"
+              >
+                <FontAwesomeIcon icon={faClipboard} />
+              </button>
+
+              {/* Logout - Logged in users only */}
+              <button
+                onClick={handleLogout}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(221, 237, 210, 0.5)',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  transition: 'color 0.2s'
+                }}
+                title="Logout"
+              >
+                <FontAwesomeIcon icon={faRightFromBracket} />
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Create Account - Guest users only, prominent styling */}
+              <button
+                onClick={handleCreateAccount}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-primary)',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  transition: 'color 0.2s'
+                }}
+                title="Create Account (Save Your Data)"
+              >
+                <FontAwesomeIcon icon={faUserPlus} />
+              </button>
+            </>
+          )}
+        </div>
+      </nav>
     </>
   );
 }
