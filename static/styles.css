@@ -830,5 +830,41 @@ input[type="number"] {
 }
 
 /* ============================================
+   21. ACCORDION SUMMARY LINES (Collapsible UI)
+   ============================================ */
+.collapsed-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--font-base);
+    color: var(--text-primary);
+    transition: all var(--transition-base);
+}
+
+.collapsed-summary:hover {
+    background-color: var(--bg-hover);
+}
+
+.collapsed-summary-label {
+    opacity: 0.8;
+}
+
+.collapsed-summary-value {
+    font-weight: 600;
+}
+
+.collapsed-summary-edit {
+    font-size: 0.875rem;
+    opacity: 0.7;
+    margin-left: 0.5rem;
+}
+
+/* ============================================
    END OF STYLES
    ============================================ */

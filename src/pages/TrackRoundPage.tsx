@@ -97,7 +97,9 @@ export default function TrackRoundPage() {
   const [penalty, setPenalty] = useState('');
   const [teePenalty, setTeePenalty] = useState(''); // Tee-shot hazard penalty (Par 4/5 only)
   const [proximity, setProximity] = useState<number | null>(null);
-  const [showApproachPenalty, setShowApproachPenalty] = useState(false);
+
+  const [activeCard, setActiveCard] = useState<number>(1); // 1: Par, 2: Tee, 3: Approach, 4: Result, 5: Green
+  const [isStatsExpanded, setIsStatsExpanded] = useState<boolean>(false);
 
   // Check server for incomplete rounds on mount (only when logged in)
   const { data: incompleteData, refetch: refetchIncomplete } = useQuery({
@@ -628,7 +630,7 @@ export default function TrackRoundPage() {
       setPenalty('');
       setTeePenalty('');
       setProximity(null);
-      setShowApproachPenalty(false);
+      setActiveCard(1);
 
       // If we were editing, also ensure editingHole is cleared (redundant but safe)
       if (wasEditing) {
@@ -848,107 +850,54 @@ export default function TrackRoundPage() {
             </div>
           )}
 
-          {/* Stats Panel */}
-          {holes.length > 0 && (
+          {/* Hole Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
+            <h2 style={{ margin: 0 }}>Hole {editingHole !== null ? editingHole : currentHole}</h2>
+            {par !== null && (
+              <span style={{ fontSize: '0.9rem', opacity: 0.8, color: 'var(--text-primary)' }}>
+                {(() => {
+                  let runningScore = 1; // Tee shot always counts as 1
+                  if (gir === 'y') {
+                    // GIR: on green in par - 2 shots
+                    runningScore = par - 2;
+                  } else if (gir === 'n' && shotsToGreen) {
+                    // Missed GIR: tee + additional shots
+                    runningScore = 1 + shotsToGreen;
+                  }
+                  if (putts) runningScore += putts;
+                  if (teePenalty) runningScore += parseInt(teePenalty) || 0;
+                  if (penalty) runningScore += parseInt(penalty) || 0;
+
+                  // Only show "1 Stroke" initially, then update as more data comes in
+                  if (!gir && !putts && !teePenalty) return `(1 Stroke)`;
+                  return `(${runningScore} Stroke${runningScore !== 1 ? 's' : ''})`;
+                })()}
+              </span>
+            )}
+          </div>
+
+          {/* CARD 1: Par Selection */}
+          {activeCard !== 1 && par !== null ? (
+            <div className="collapsed-summary" onClick={() => setActiveCard(1)}>
+              <span className="collapsed-summary-label">Hole Par:</span>
+              <span><span className="collapsed-summary-value">{par}</span><span className="collapsed-summary-edit">Edit</span></span>
+            </div>
+          ) : activeCard === 1 && (
             <div className="card" style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Current Round Stats</h2>
-                <button
-                  onClick={() => viewHolesModal.open()}
-                  className="btn btn-secondary"
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-                >
-                  <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '0.5rem' }} />
-                  View Holes
-                </button>
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-                gap: '1rem',
-              }}>
-                <div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.totalHoles}</div>
-                  <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Holes</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.totalStrokes}</div>
-                  <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Strokes</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.girPct}%</div>
-                  <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>GIR</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>
-                    {stats.fairwayDisplay !== 'N/A' ? `${stats.fairwayPct}%` : 'N/A'}
-                  </div>
-                  <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
-                    Fairway {stats.fairwayDisplay !== 'N/A' && `(${stats.fairwayDisplay})`}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.avgPutts}</div>
-                  <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Avg Putts/Hole</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.scramblingPct}%</div>
-                  <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Scrambling</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.avgApproach === 'N/A' ? 'N/A' : `${stats.avgApproach}yd`}</div>
-                  <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Approach</div>
-                </div>
-
-              </div>
-            </div>
-          )}
-
-          {/* Hole Form */}
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.5rem' }}>
-              <h2 style={{ margin: 0 }}>Hole {editingHole !== null ? editingHole : currentHole}</h2>
-              {par !== null && (
-                <span style={{ fontSize: '0.9rem', opacity: 0.8, color: 'var(--text-primary)' }}>
-                  {(() => {
-                    let runningScore = 1; // Tee shot always counts as 1
-                    if (gir === 'y') {
-                      // GIR: on green in par - 2 shots
-                      runningScore = par - 2;
-                    } else if (gir === 'n' && shotsToGreen) {
-                      // Missed GIR: tee + additional shots
-                      runningScore = 1 + shotsToGreen;
-                    }
-                    if (putts) runningScore += putts;
-                    if (teePenalty) runningScore += parseInt(teePenalty) || 0;
-                    if (penalty) runningScore += parseInt(penalty) || 0;
-
-                    // Only show "1 Stroke" initially, then update as more data comes in
-                    if (!gir && !putts && !teePenalty) return `(1 Stroke)`;
-                    return `(${runningScore} Stroke${runningScore !== 1 ? 's' : ''})`;
-                  })()}
-                </span>
-              )}
-            </div>
-
-            {/* Par Selection */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                Par (Tee Shot)
-              </label>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Par (Tee Shot)</label>
+              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: par !== null ? '1rem' : '0' }}>
                 {[3, 4, 5].map((p) => (
                   <button
                     key={p}
                     onClick={() => {
                       setPar(p);
-                      // If changing to par 3, clear fairway (par 3s don't have fairways)
                       if (p === 3) {
                         setFairway(null);
-                        setPenalty('');
+                        setTeePenalty('');
+                        setActiveCard(3); // Skip to Approach (Card 3)
+                      } else {
+                        setActiveCard(2); // Auto-advance to Tee Shot (Card 2)
                       }
-                      // If changing from par 3 to par 4/5, ensure fairway can be set
-                      // (fairway state will remain as-is, user can select)
                     }}
                     className="btn btn-secondary"
                     style={{
@@ -962,37 +911,50 @@ export default function TrackRoundPage() {
                 ))}
               </div>
             </div>
+          )}
 
-            {/* Fairway Selection (Par 4 & 5 only) */}
-            {par !== null && par !== 3 && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Fairway
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                  {[
-                    { value: 'l', label: 'Left' },
-                    { value: 'c', label: 'Center' },
-                    { value: 'r', label: 'Right' },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setFairway(option.value as 'l' | 'c' | 'r' | 'na' | 'rough');
-                        setPenalty('');
-                        setTeePenalty('');
-                        setGir(null);
-                      }}
-                      className="btn btn-secondary"
-                      style={{
-                        backgroundColor: fairway === option.value ? 'var(--color-interactive)' : 'transparent',
-                        color: fairway === option.value ? '#000' : 'var(--color-interactive)',
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+          {/* CARD 2: Tee Shot (Fairway / Hazard) */}
+          {/* Only relevant for Par 4/5. Par 3 skips to Card 3. */}
+          {par !== null && par !== 3 && (
+            activeCard !== 2 && (fairway !== null || teePenalty !== '') ? (
+              <div className="collapsed-summary" onClick={() => setActiveCard(2)}>
+                <span className="collapsed-summary-label">Tee Shot:</span>
+                <span>
+                  <span className="collapsed-summary-value">
+                    {fairway === 'c' || fairway === 'l' || fairway === 'r' ? 'Fairway' : 
+                     fairway === 'rough' ? 'Rough/Trees' : 
+                     fairway === 'na' ? `Hazard ${teePenalty ? '(+'+teePenalty+')' : ''}` : ''}
+                  </span>
+                  <span className="collapsed-summary-edit">Edit</span>
+                </span>
+              </div>
+            ) : activeCard === 2 && (
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Tee Shot Result</label>
+                
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <button
+                    onClick={() => {
+                      // We save 'c' just as a generic fairway hit since L/R are removed
+                      setFairway('c');
+                      setPenalty('');
+                      setTeePenalty('');
+                      setGir(null);
+                      setActiveCard(3); // Auto-advance
+                    }}
+                    className="btn btn-secondary"
+                    style={{
+                      width: '100%',
+                      backgroundColor: ['c', 'l', 'r'].includes(fairway || '') ? 'var(--color-interactive)' : 'transparent',
+                      color: ['c', 'l', 'r'].includes(fairway || '') ? '#000' : 'var(--color-interactive)',
+                      padding: '1rem',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Hit Fairway
+                  </button>
                 </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
                   {[
                     { value: 'rough', label: 'Rough/Trees' },
@@ -1001,10 +963,14 @@ export default function TrackRoundPage() {
                     <button
                       key={option.value}
                       onClick={() => {
-                        setFairway(option.value as 'l' | 'c' | 'r' | 'na' | 'rough');
+                        setFairway(option.value as 'rough' | 'na');
                         setPenalty('');
                         setTeePenalty('');
                         setGir(null);
+                        if (option.value === 'rough') {
+                           setActiveCard(3); // Rough auto-advances
+                        }
+                        // Hazard stays on Card 2 to reveal Tee Shot Penalty
                       }}
                       className="btn btn-secondary"
                       style={{
@@ -1016,230 +982,220 @@ export default function TrackRoundPage() {
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
 
-            {/* Tee Shot Penalty (Par 4/5, Hazard only) */}
-            {par !== null && par !== 3 && fairway === 'na' && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Tee Shot Penalty
-                </label>
-                <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', opacity: 0.8 }}>
-                  OB (+1), Water (+1), Unplayable (+2), or Lost Ball (+1) [+3 consider more practice 😉]
-                </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  {[1, 2, 3].map((strokes) => {
-                    const isSelected = teePenalty === strokes.toString();
-                    return (
-                      <button
-                        key={strokes}
-                        onClick={() => {
-                          const newTeePenalty = isSelected ? '' : strokes.toString();
-                          setTeePenalty(newTeePenalty);
-                          // Auto-deny GIR: Par 4 any penalty, Par 5 penalty >= 2
-                          const girDenied =
-                            (par === 4 && strokes >= 1) ||
-                            (par === 5 && strokes >= 2);
-                          if (!isSelected && girDenied) {
-                            setGir('n');
-                          } else {
-                            setGir(null); // Reset so player can choose
-                          }
-                        }}
-                        className="btn btn-secondary"
-                        style={{
-                          flex: 1,
-                          backgroundColor: isSelected ? 'var(--color-interactive)' : 'transparent',
-                          color: isSelected ? '#000' : 'var(--color-interactive)',
-                        }}
-                      >
-                        +{strokes}
-                      </button>
-                    );
-                  })}
-                </div>
-                {/* Show auto-deny message when GIR is auto-set */}
-                {teePenalty !== '' && (
-                  (() => {
-                    const tp = parseInt(teePenalty);
-                    const denied = (par === 4 && tp >= 1) || (par === 5 && tp >= 2);
-                    return denied ? (
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.7, fontStyle: 'italic' }}>
-                        GIR auto-denied — not possible to reach green in regulation with this penalty.
-                      </div>
-                    ) : null;
-                  })()
-                )}
-              </div>
-            )}
-
-            {/* GIR Selection */}
-            {/* For par 3: always show GIR. For par 4/5: show GIR after fairway is selected.
-                If fairway is Hazard (na), also require a tee penalty to be chosen first.
-                If GIR is auto-denied by tee penalty, hide the GIR buttons entirely. */}
-            {par !== null && (
-              par === 3 ||
-              (fairway !== null && fairway !== 'na') ||
-              (fairway === 'na' && teePenalty !== '' && !(
-                (par === 4 && parseInt(teePenalty) >= 1) ||
-                (par === 5 && parseInt(teePenalty) >= 2)
-              ))
-            ) && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                    Green in Regulation (GIR)
-                  </label>
-                  <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    {[
-                      { value: 'y', label: 'Yes' },
-                      { value: 'n', label: 'No' },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setGir(option.value as 'y' | 'n')}
-                        className="btn btn-secondary"
-                        style={{
-                          flex: 1,
-                          backgroundColor: gir === option.value ? 'var(--color-interactive)' : 'transparent',
-                          color: gir === option.value ? '#000' : 'var(--color-interactive)',
-                        }}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-            {/* Approach Penalty Strokes (only if GIR = No) */}
-            {gir === 'n' && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                {/* Tappable reveal header */}
-                <button
-                  onClick={() => setShowApproachPenalty(prev => !prev)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    width: '100%',
-                    background: 'none',
-                    border: 'none',
-                    borderBottom: '1px solid var(--border-primary)',
-                    borderRadius: 0,
-                    padding: '0.4rem 0',
-                    cursor: 'pointer',
-                    color: 'var(--text-primary)',
-                    fontWeight: 'bold',
-                    fontSize: '1rem',
-                    textAlign: 'left',
-                  }}
-                >
-                  <span>{fairway === 'na' ? 'Approach / Additional Penalties?' : 'Hazard / Penalty Strokes?'}</span>
-                  <span style={{ fontSize: '0.75rem', opacity: 0.6, marginLeft: '0.5rem', transition: 'transform 0.2s', display: 'inline-block', transform: showApproachPenalty ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
-                </button>
-                {/* Revealed content */}
-                {showApproachPenalty && (
-                  <div style={{ marginTop: '0.75rem' }}>
+                {fairway === 'na' && (
+                  <div style={{ marginTop: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Tee Shot Penalty</label>
                     <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', opacity: 0.8 }}>
-                      OB (+1), Water (+1), Unplayable (+2), or Lost Ball (+1) [+3 consider more practice 😉]
+                      OB (+1), Water (+1), Unplayable (+2), or Lost Ball (+1)
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                      {[1, 2, 3].map((strokes) => (
-                        <button
-                          key={strokes}
-                          onClick={() => {
-                            setPenalty(penalty === strokes.toString() ? '' : strokes.toString());
-                          }}
-                          className="btn btn-secondary"
-                          style={{
-                            flex: 1,
-                            backgroundColor: penalty === strokes.toString() ? 'var(--color-interactive)' : 'transparent',
-                            color: penalty === strokes.toString() ? '#000' : 'var(--color-interactive)',
-                          }}
-                        >
-                          +{strokes}
-                        </button>
-                      ))}
+                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+                      {[1, 2, 3].map((strokes) => {
+                        const isSelected = teePenalty === strokes.toString();
+                        return (
+                          <button
+                            key={strokes}
+                            onClick={() => {
+                              const newTeePenalty = isSelected ? '' : strokes.toString();
+                              setTeePenalty(newTeePenalty);
+                              const girDenied = (par === 4 && strokes >= 1) || (par === 5 && strokes >= 2);
+                              if (newTeePenalty && girDenied) {
+                                setGir('n');
+                              } else {
+                                setGir(null);
+                              }
+                            }}
+                            className="btn btn-secondary"
+                            style={{
+                              flex: 1,
+                              backgroundColor: isSelected ? 'var(--color-interactive)' : 'transparent',
+                              color: isSelected ? '#000' : 'var(--color-interactive)',
+                            }}
+                          >
+                            +{strokes}
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div style={{ borderBottom: '1px solid var(--border-primary)', marginTop: '0.75rem' }} />
+                    {teePenalty !== '' && (
+                      <button 
+                        className="btn btn-primary" 
+                        style={{ width: '100%' }}
+                        onClick={() => setActiveCard(3)}
+                      >
+                        Next
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
-            )}
+            )
+          )}
 
-            {/* Approach Distance (yards from rangefinder) - optional */}
-            {gir !== null && (
-              <div style={{ marginBottom: '1.5rem' }}>
+          {/* CARD 3: Approach Distance (Setup) */}
+          {/* Unlocked if Par is set, and (if par 4/5) fairway is resolved (fairway known, and if hazard, penalty known) */}
+          {par !== null && (par === 3 || fairway !== null) && (par === 3 || fairway !== 'na' || teePenalty !== '') && (
+            activeCard !== 3 && proximity !== null ? (
+              <div className="collapsed-summary" onClick={() => setActiveCard(3)}>
+                <span className="collapsed-summary-label">Approach Distance:</span>
+                <span><span className="collapsed-summary-value">{proximity} yds</span><span className="collapsed-summary-edit">Edit</span></span>
+              </div>
+            ) : activeCard === 3 && (
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
-                  Approach Distance
-                  <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>
-                    (yards, optional)
-                  </span>
+                  Approach Distance <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>(yards, optional)</span>
                 </label>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '0.75rem', fontStyle: 'italic' }}>
                   Distance of the shot intended to hit the green
                 </div>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="e.g. 150"
-                  value={proximity ?? ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setProximity(val === '' ? null : parseInt(val));
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    backgroundColor: 'var(--bg-secondary)',
-                    border: '2px solid var(--border-primary)',
-                    borderRadius: 'var(--radius-md)',
-                    color: 'var(--text-primary)',
-                    fontSize: 'var(--font-base)',
-                  }}
-                />
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="e.g. 150"
+                    value={proximity ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setProximity(val === '' ? null : parseInt(val));
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem',
+                      backgroundColor: 'var(--bg-secondary)',
+                      border: '2px solid var(--border-primary)',
+                      borderRadius: 'var(--radius-md)',
+                      color: 'var(--text-primary)',
+                      fontSize: 'var(--font-base)',
+                    }}
+                  />
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => setActiveCard(4)}
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
-            )}
+            )
+          )}
 
-            {/* Shots to Green (only if GIR = No) */}
-            {gir === 'n' && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Shots to Green
-                  <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>
-                    (after tee shot)
+          {/* CARD 4: Result (GIR, Approach Penalty, Shots to Green) */}
+          {par !== null && (par === 3 || fairway !== null) && activeCard >= 4 && (
+            activeCard !== 4 && gir !== null ? (
+              <div className="collapsed-summary" onClick={() => setActiveCard(4)}>
+                <span className="collapsed-summary-label">GIR:</span>
+                <span>
+                  <span className="collapsed-summary-value">
+                    {gir === 'y' ? 'Hit' : `Missed (${shotsToGreen || '?'} shots)`}
+                    {penalty ? ` (+${penalty})` : ''}
                   </span>
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={par === 3 ? 1 : par === 4 ? 2 : 3}
-                  placeholder={par === 3 ? '1+' : par === 4 ? '2+' : '3+'}
-                  value={shotsToGreen ?? ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setShotsToGreen(val === '' ? null : parseInt(val));
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    backgroundColor: 'var(--bg-secondary)',
-                    border: '2px solid var(--border-primary)',
-                    borderRadius: 'var(--radius-md)',
-                    color: 'var(--text-primary)',
-                    fontSize: 'var(--font-base)',
-                  }}
-                />
+                  <span className="collapsed-summary-edit">Edit</span>
+                </span>
               </div>
-            )}
+            ) : activeCard === 4 && (
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                {/* GIR Buttons (Skip showing if auto-denied by tee penalty) */}
+                {!(fairway === 'na' && teePenalty !== '' && ((par === 4 && parseInt(teePenalty) >= 1) || (par === 5 && parseInt(teePenalty) >= 2))) && (
+                  <div style={{ marginBottom: gir === 'n' ? '1.5rem' : '0' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Green in Regulation (GIR)</label>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      {[ { value: 'y', label: 'Hit' }, { value: 'n', label: 'Missed' } ].map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setGir(option.value as 'y' | 'n');
+                            if (option.value === 'y') {
+                               setActiveCard(5); // Auto jump to putts
+                            }
+                          }}
+                          className="btn btn-secondary"
+                          style={{
+                            flex: 1,
+                            backgroundColor: gir === option.value ? 'var(--color-interactive)' : 'transparent',
+                            color: gir === option.value ? '#000' : 'var(--color-interactive)',
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {/* Putts */}
-            {gir !== null && (gir === 'y' || (gir === 'n' && shotsToGreen !== null)) && (
+                {/* If GIR is No (either manually chosen or auto-denied) */}
+                {(gir === 'n' || (fairway === 'na' && teePenalty !== '' && ((par === 4 && parseInt(teePenalty) >= 1) || (par === 5 && parseInt(teePenalty) >= 2)))) && (
+                  <>
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Additional Penalties?</label>
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        {['None', '1', '2', '3'].map((opt) => {
+                          const strokes = opt === 'None' ? '' : opt;
+                          const isSelected = penalty === strokes;
+                          return (
+                            <button
+                              key={opt}
+                              onClick={() => setPenalty(isSelected ? '' : strokes)}
+                              className="btn btn-secondary"
+                              style={{
+                                flex: 1,
+                                fontSize: '0.85rem',
+                                padding: '0.5rem',
+                                backgroundColor: isSelected ? 'var(--color-interactive)' : 'transparent',
+                                color: isSelected ? '#000' : 'var(--color-interactive)',
+                              }}
+                            >
+                              {opt === 'None' ? 'None' : `+${opt}`}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                        Approach Shot(s)
+                      </label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={par === 3 ? 1 : par === 4 ? 2 : 3}
+                          value={shotsToGreen ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setShotsToGreen(val === '' ? null : parseInt(val));
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '0.75rem',
+                            backgroundColor: 'var(--bg-secondary)',
+                            border: '2px solid var(--border-primary)',
+                            borderRadius: 'var(--radius-md)',
+                            color: 'var(--text-primary)',
+                            fontSize: 'var(--font-base)',
+                          }}
+                        />
+                        <button 
+                          className="btn btn-primary"
+                          onClick={() => setActiveCard(5)}
+                          disabled={!shotsToGreen}
+                          style={{ opacity: shotsToGreen ? 1 : 0.5 }}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          )}
+
+          {/* CARD 5: The Green (Putting & Finish) */}
+          {par !== null && activeCard === 5 && (
+            <div className="card" style={{ marginBottom: '1.5rem' }}>
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Number of Putts
-                </label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Number of Putts</label>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   {[1, 2, 3].map((p) => (
                     <button
@@ -1257,86 +1213,158 @@ export default function TrackRoundPage() {
                   ))}
                 </div>
               </div>
-            )}
 
-            {/* Putt Distances */}
-            {putts !== null && putts > 0 && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Putt Distances (feet)
-                </label>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  {puttDistances.map((_, index) => (
-                    <div key={index} style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', opacity: 0.8 }}>
-                        {index === 0 ? '1st' : index === 1 ? '2nd' : '3rd'}
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={puttDistances[index] || ''}
-                        onChange={(e) => {
-                          const newDistances = [...puttDistances];
-                          newDistances[index] = parseFloat(e.target.value) || 0;
-                          setPuttDistances(newDistances);
-                        }}
-                        placeholder="ft"
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem',
-                          backgroundColor: 'rgba(221, 237, 210, 0.3)',
-                          border: '2px solid var(--border-primary)',
-                          borderRadius: '8px',
-                          color: '#DDEDD2',
-                          fontSize: '1rem',
-                          fontWeight: '500',
-                        }}
-                      />
-                    </div>
-                  ))}
+              {putts !== null && putts > 0 && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Putt Distances (feet)</label>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    {puttDistances.map((_, index) => (
+                      <div key={index} style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem', opacity: 0.8 }}>
+                          {index === 0 ? '1st' : index === 1 ? '2nd' : '3rd'}
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={puttDistances[index] || ''}
+                          onChange={(e) => {
+                            const newDistances = [...puttDistances];
+                            newDistances[index] = parseFloat(e.target.value) || 0;
+                            setPuttDistances(newDistances);
+                          }}
+                          placeholder="ft"
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            backgroundColor: 'rgba(221, 237, 210, 0.3)',
+                            border: '2px solid var(--border-primary)',
+                            borderRadius: '8px',
+                            color: '#DDEDD2',
+                            fontSize: '1rem',
+                            fontWeight: '500',
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Submit and Cancel Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSubmitHole();
-                }}
-                className="btn btn-primary"
-                style={{ width: '100%' }}
-              >
-                {editingHole !== null ? `Update Hole ${editingHole}` : `Submit Hole ${currentHole}`}
-              </button>
-              {editingHole !== null && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
                 <button
-                  onClick={() => {
-                    setEditingHole(null);
-                    // Reset form to current hole
-                    setPar(null);
-                    setGir(null);
-                    setPutts(null);
-                    setPuttDistances([]);
-                    setFairway(null);
-                    setShotsToGreen(null);
-                    setPenalty('');
-                    setTeePenalty('');
-                    setProximity(null);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSubmitHole();
                   }}
-                  className="btn btn-secondary"
+                  className="btn btn-primary"
                   style={{ width: '100%' }}
                 >
-                  Cancel Edit
+                  {editingHole !== null ? `Update Hole ${editingHole}` : `Submit Hole ${currentHole}`}
                 </button>
+                {editingHole !== null && (
+                  <button
+                    onClick={() => {
+                      setEditingHole(null);
+                      setPar(null);
+                      setGir(null);
+                      setPutts(null);
+                      setPuttDistances([]);
+                      setFairway(null);
+                      setShotsToGreen(null);
+                      setPenalty('');
+                      setTeePenalty('');
+                      setProximity(null);
+                      setActiveCard(1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="btn btn-secondary"
+                    style={{ width: '100%' }}
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Stats Panel (Moved to Bottom) */}
+          {holes.length > 0 && (
+            <div className="card" style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem' }}>
+              <div 
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                onClick={() => setIsStatsExpanded(!isStatsExpanded)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Current Round Stats</h2>
+                  <span style={{ 
+                    fontSize: '0.875rem', 
+                    opacity: 0.6, 
+                    transition: 'transform 0.2s', 
+                    display: 'inline-block', 
+                    transform: isStatsExpanded ? 'rotate(180deg)' : 'rotate(0deg)' 
+                  }}>▼</span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    viewHolesModal.open();
+                  }}
+                  className="btn btn-secondary"
+                  style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                >
+                  <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '0.4rem' }} />
+                  View
+                </button>
+              </div>
+              
+              {isStatsExpanded && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                  gap: '1rem',
+                  marginTop: '1.5rem',
+                  borderTop: '1px solid var(--border-primary)',
+                  paddingTop: '1.5rem'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.totalHoles}</div>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Holes</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.totalStrokes}</div>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Strokes</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.girPct}%</div>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>GIR</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>
+                      {stats.fairwayDisplay !== 'N/A' ? `${stats.fairwayPct}%` : 'N/A'}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
+                      Fairway {stats.fairwayDisplay !== 'N/A' && `(${stats.fairwayDisplay})`}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.avgPutts}</div>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Avg Putts</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.scramblingPct}%</div>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Scrambling</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.avgApproach === 'N/A' ? 'N/A' : `${stats.avgApproach}yd`}</div>
+                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Approach</div>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
+          )}
 
           {/* End/Pause Round Button */}
           {holes.length > 0 && (
