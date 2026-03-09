@@ -52,6 +52,7 @@ const convertToAPIHole = (localHole: LocalHole): APIHole => {
     fairway: apiFairway, // Keep as 'y'/'n'/null string
     shotsToGreen: localHole.shotsToGreen,
     penalty: null, // Penalty is stored in score, not sent separately
+    proximity: localHole.proximity,
   };
 };
 
@@ -67,6 +68,7 @@ export default function TrackRoundPage() {
   const [roundStarted, setRoundStarted] = useState(false);
   const [coursePar, setCoursePar] = useState<number | null>(null);
   const [serverIncompleteRound, setServerIncompleteRound] = useState<any>(null);
+  const [editingRoundNumber, setEditingRoundNumber] = useState<number | null>(null);
 
   // Modal states
   const discardModal = useModal();
@@ -75,7 +77,7 @@ export default function TrackRoundPage() {
   const endRoundCompleteModal = useModal();
   const accountPromptModal = useModal(); // New: prompt guest to create account
   const validationErrorModal = useModal(); // Validation error modal
-  const [modalMessage, setModalMessage] = useState('');
+  const [modalMessage, setModalMessage] = useState<string | React.ReactNode>('');
   const [modalAction, setModalAction] = useState<() => Promise<void> | void>(() => { });
   const [validationError, setValidationError] = useState('');
 
@@ -95,6 +97,7 @@ export default function TrackRoundPage() {
   const [penalty, setPenalty] = useState('');
   const [teePenalty, setTeePenalty] = useState(''); // Tee-shot hazard penalty (Par 4/5 only)
   const [proximity, setProximity] = useState<number | null>(null);
+  const [showApproachPenalty, setShowApproachPenalty] = useState(false);
 
   // Check server for incomplete rounds on mount (only when logged in)
   const { data: incompleteData, refetch: refetchIncomplete } = useQuery({
@@ -122,7 +125,43 @@ export default function TrackRoundPage() {
     const serverRounds = incompleteData?.success ? incompleteData.incompleteRounds : null;
     const firstServer = serverRounds && serverRounds.length > 0 ? serverRounds[0] : null;
     if (firstServer) setServerIncompleteRound(firstServer);
-  }, [incompleteData, isLoggedIn]);
+  }, [location.state, incompleteData, isLoggedIn]);
+
+  // Handle editing a completed round from Dashboard
+  useEffect(() => {
+    const state = location.state as { editRound?: boolean; roundData?: any; roundNumber?: number } | null;
+    if (!state?.editRound || !state.roundData) return;
+
+    // Clear the navigation state to prevent re-loading on refresh
+    navigate(location.pathname, { replace: true, state: {} });
+
+    const rd = state.roundData;
+    setEditingRoundNumber(state.roundNumber ?? null);
+    setCourseName(rd.courseName || '');
+    setCourseMetadata(rd.courseMetadata || null);
+    if (rd.coursePar) setCoursePar(rd.coursePar);
+
+    // Convert API holes back to LocalHole format
+    const loadedHoles: LocalHole[] = (rd.holes || []).map((h: any) => ({
+      holeNumber: h.holeNumber,
+      par: h.par,
+      score: h.score,
+      gir: h.gir || 'n',
+      putts: h.putts || 0,
+      puttDistances: h.puttDistances || [],
+      fairway: h.fairway === 'y' ? 'c' : h.fairway === 'n' ? 'rough' : h.fairway || undefined,
+      shotsToGreen: h.shotsToGreen,
+      penalty: h.penalty || '',
+      proximity: h.proximity || 0,
+    }));
+
+    setHoles(loadedHoles);
+    setCurrentHole(loadedHoles.length + 1);
+    setRoundStarted(true);
+
+    // Open view holes modal so user can pick which hole to edit
+    setTimeout(() => viewHolesModal.open(), 100);
+  }, []);
 
   // Auto-recover round from localStorage on page refresh / accidental swipe
   // This ensures in-progress rounds survive a page reload
@@ -457,22 +496,7 @@ export default function TrackRoundPage() {
         return;
       }
 
-      // Validate shots to green minimum
-      // If tee penalty taken (hazard), min is 1 (dropped and played from there)
-      // Otherwise min is par - 2 (GIR standard)
-      if (isGirNo && shotsToGreen !== null && par !== null) {
-        const minShots = teePenalty ? 1 : par - 2;
-        if (shotsToGreen < minShots) {
-          setValidationError(
-            teePenalty
-              ? 'After a tee shot penalty, enter at least 1 shot to reach the green.'
-              : `Shots to green must be at least ${minShots} for a par ${par} (GIR would be on in ${par - 2 + 1} shots)`
-          );
-          validationErrorModal.open();
-          setIsSubmitting(false);
-          return;
-        }
-      }
+
       if (putts === null || putts === 0) {
         setValidationError('Please enter number of putts');
         validationErrorModal.open();
@@ -604,6 +628,7 @@ export default function TrackRoundPage() {
       setPenalty('');
       setTeePenalty('');
       setProximity(null);
+      setShowApproachPenalty(false);
 
       // If we were editing, also ensure editingHole is cleared (redundant but safe)
       if (wasEditing) {
@@ -624,8 +649,14 @@ export default function TrackRoundPage() {
         fairwayDisplay: 'N/A',
         fairwaysHit: 0,
         eligibleFairways: 0,
-        avgPutts: 0,
         scramblingPct: 0,
+        avgApproach: 'N/A',
+        approachCategories: {
+          '0-50': { range: '0-50', attempts: 0, hits: 0, girPct: '0.0' },
+          '50-100': { range: '50-100', attempts: 0, hits: 0, girPct: '0.0' },
+          '100-150': { range: '100-150', attempts: 0, hits: 0, girPct: '0.0' },
+          '150+': { range: '150+', attempts: 0, hits: 0, girPct: '0.0' },
+        },
       };
     }
 
@@ -656,6 +687,40 @@ export default function TrackRoundPage() {
       fairwayDisplay = `${fairwaysHit}/${par45HolesCount}`;
     }
 
+    // Calculate approach categories
+    const approachCategories: Record<string, { range: string; attempts: number; hits: number; girPct: string }> = {
+      '0-50': { range: '0-50', attempts: 0, hits: 0, girPct: '0.0' },
+      '50-100': { range: '50-100', attempts: 0, hits: 0, girPct: '0.0' },
+      '100-150': { range: '100-150', attempts: 0, hits: 0, girPct: '0.0' },
+      '150+': { range: '150+', attempts: 0, hits: 0, girPct: '0.0' },
+    };
+
+    holes.forEach((h) => {
+      if (h.proximity && h.proximity > 0) {
+        const isHit = h.gir === 'y';
+        if (h.proximity <= 50) {
+          approachCategories['0-50'].attempts++;
+          if (isHit) approachCategories['0-50'].hits++;
+        } else if (h.proximity <= 100) {
+          approachCategories['50-100'].attempts++;
+          if (isHit) approachCategories['50-100'].hits++;
+        } else if (h.proximity <= 150) {
+          approachCategories['100-150'].attempts++;
+          if (isHit) approachCategories['100-150'].hits++;
+        } else {
+          approachCategories['150+'].attempts++;
+          if (isHit) approachCategories['150+'].hits++;
+        }
+      }
+    });
+
+    Object.keys(approachCategories).forEach((key) => {
+      const cat = approachCategories[key];
+      if (cat.attempts > 0) {
+        cat.girPct = ((cat.hits / cat.attempts) * 100).toFixed(1);
+      }
+    });
+
     return {
       totalHoles: holes.length,
       totalStrokes: totalStrokes,
@@ -666,6 +731,13 @@ export default function TrackRoundPage() {
       eligibleFairways: par45HolesCount,
       avgPutts: (totalPutts / holes.length).toFixed(1),
       scramblingPct: missedGirs.length > 0 ? ((scrambles / missedGirs.length) * 100).toFixed(1) : '0.0',
+      avgApproach: (() => {
+        const approachHoles = holes.filter(h => h.proximity && h.proximity > 0);
+        if (approachHoles.length === 0) return 'N/A';
+        const avg = approachHoles.reduce((sum, h) => sum + (h.proximity || 0), 0) / approachHoles.length;
+        return `${Math.round(avg)}`;
+      })(),
+      approachCategories,
     };
   };
 
@@ -762,7 +834,16 @@ export default function TrackRoundPage() {
                     {cp}
                   </button>
                 ))}
-
+                {coursePar && holes.length > 0 && (() => {
+                  const overUnder = holes.reduce((acc, h) => acc + (h.score - h.par), 0);
+                  const color = overUnder > 0 ? '#ff6b6b' : overUnder < 0 ? '#51cf66' : '#51cf66';
+                  const label = overUnder > 0 ? `+${overUnder}` : overUnder < 0 ? `${overUnder}` : 'E';
+                  return (
+                    <span style={{ fontSize: '1rem', fontWeight: '700', color, marginLeft: '0.25rem', alignSelf: 'center' }}>
+                      {label}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -814,28 +895,11 @@ export default function TrackRoundPage() {
                   <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.scramblingPct}%</div>
                   <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Scrambling</div>
                 </div>
-                {coursePar && (
-                  <div>
-                    <div style={{
-                      fontSize: '1.75rem',
-                      fontWeight: 'bold',
-                      color: (() => {
-                        const overUnder = holes.reduce((acc, h) => acc + (h.score - h.par), 0);
-                        if (overUnder > 0) return '#ff6b6b';
-                        if (overUnder < 0) return '#51cf66';
-                        return 'var(--text-primary)';
-                      })(),
-                    }}>
-                      {(() => {
-                        const overUnder = holes.reduce((acc, h) => acc + (h.score - h.par), 0);
-                        if (overUnder > 0) return `+${overUnder}`;
-                        if (overUnder < 0) return `${overUnder}`;
-                        return 'E';
-                      })()}
-                    </div>
-                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Par</div>
-                  </div>
-                )}
+                <div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.avgApproach === 'N/A' ? 'N/A' : `${stats.avgApproach}yd`}</div>
+                  <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Approach</div>
+                </div>
+
               </div>
             </div>
           )}
@@ -1051,30 +1115,90 @@ export default function TrackRoundPage() {
             {/* Approach Penalty Strokes (only if GIR = No) */}
             {gir === 'n' && (
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  {fairway === 'na' ? 'Approach / Additional Penalties?' : 'Hazard / Penalty Strokes?'}
+                {/* Tappable reveal header */}
+                <button
+                  onClick={() => setShowApproachPenalty(prev => !prev)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: '1px solid var(--border-primary)',
+                    borderRadius: 0,
+                    padding: '0.4rem 0',
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)',
+                    fontWeight: 'bold',
+                    fontSize: '1rem',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span>{fairway === 'na' ? 'Approach / Additional Penalties?' : 'Hazard / Penalty Strokes?'}</span>
+                  <span style={{ fontSize: '0.75rem', opacity: 0.6, marginLeft: '0.5rem', transition: 'transform 0.2s', display: 'inline-block', transform: showApproachPenalty ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                </button>
+                {/* Revealed content */}
+                {showApproachPenalty && (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', opacity: 0.8 }}>
+                      OB (+1), Water (+1), Unplayable (+2), or Lost Ball (+1) [+3 consider more practice 😉]
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      {[1, 2, 3].map((strokes) => (
+                        <button
+                          key={strokes}
+                          onClick={() => {
+                            setPenalty(penalty === strokes.toString() ? '' : strokes.toString());
+                          }}
+                          className="btn btn-secondary"
+                          style={{
+                            flex: 1,
+                            backgroundColor: penalty === strokes.toString() ? 'var(--color-interactive)' : 'transparent',
+                            color: penalty === strokes.toString() ? '#000' : 'var(--color-interactive)',
+                          }}
+                        >
+                          +{strokes}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ borderBottom: '1px solid var(--border-primary)', marginTop: '0.75rem' }} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Approach Distance (yards from rangefinder) - optional */}
+            {gir !== null && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+                  Approach Distance
+                  <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+                    (yards, optional)
+                  </span>
                 </label>
-                <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', opacity: 0.8 }}>
-                  OB (+1), Water (+1), Unplayable (+2), or Lost Ball (+1) [+3 consider more practice 😉]
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '0.75rem', fontStyle: 'italic' }}>
+                  Distance of the shot intended to hit the green
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  {[1, 2, 3].map((strokes) => (
-                    <button
-                      key={strokes}
-                      onClick={() => {
-                        setPenalty(penalty === strokes.toString() ? '' : strokes.toString());
-                      }}
-                      className="btn btn-secondary"
-                      style={{
-                        flex: 1,
-                        backgroundColor: penalty === strokes.toString() ? 'var(--color-interactive)' : 'transparent',
-                        color: penalty === strokes.toString() ? '#000' : 'var(--color-interactive)',
-                      }}
-                    >
-                      +{strokes}
-                    </button>
-                  ))}
-                </div>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="e.g. 150"
+                  value={proximity ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProximity(val === '' ? null : parseInt(val));
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    backgroundColor: 'var(--bg-secondary)',
+                    border: '2px solid var(--border-primary)',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--text-primary)',
+                    fontSize: 'var(--font-base)',
+                  }}
+                />
               </div>
             )}
 
@@ -1082,52 +1206,29 @@ export default function TrackRoundPage() {
             {gir === 'n' && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  {par === 3 ? 'Shots to Green (after tee shot)' : 'Shots to Green (after tee shot and any hazards)'}
+                  Shots to Green
+                  <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+                    (after tee shot)
+                  </span>
                 </label>
-                <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', opacity: 0.8 }}>
-                  {par === 3
-                    ? 'Tee shot missed the green. How many more shots to reach it?'
-                    : teePenalty
-                      ? 'After your tee penalty, how many shots to reach the green? (min 1)'
-                      : par === 4
-                        ? 'GIR would be on in 2. How many shots after the tee to reach the green? (min 2)'
-                        : 'GIR would be on in 3. How many shots after the tee to reach the green? (min 3)'}
-                </div>
                 <input
                   type="number"
-                  min={teePenalty ? 1 : par ? par - 2 : 1}
-                  max="10"
-                  value={shotsToGreen || ''}
+                  inputMode="numeric"
+                  min={par === 3 ? 1 : par === 4 ? 2 : 3}
+                  placeholder={par === 3 ? '1+' : par === 4 ? '2+' : '3+'}
+                  value={shotsToGreen ?? ''}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value) || null;
-                    const minVal = teePenalty ? 1 : par ? par - 2 : 1;
-                    if (val !== null && val < minVal) {
-                      // Show modal warning instead of silently correcting
-                      setShotsToGreen(null); // Reset field
-                      setValidationError(
-                        teePenalty
-                          ? 'After a tee shot penalty, enter at least 1 shot to reach the green.'
-                          : par === 4
-                            ? 'On a Par 4, GIR means reaching the green in 2 shots (tee + approach). Since you missed GIR, you need at least 2 shots after the tee to reach the green.'
-                            : par === 5
-                              ? 'On a Par 5, GIR means reaching the green in 3 shots. Since you missed GIR, you need at least 3 shots after the tee to reach the green.'
-                              : 'Please enter a valid number of shots to reach the green.'
-                      );
-                      validationErrorModal.open();
-                    } else {
-                      setShotsToGreen(val);
-                    }
+                    const val = e.target.value;
+                    setShotsToGreen(val === '' ? null : parseInt(val));
                   }}
-                  placeholder={`${teePenalty ? 1 : par ? par - 2 : 1} or more shots`}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    backgroundColor: 'rgba(221, 237, 210, 0.3)',
+                    backgroundColor: 'var(--bg-secondary)',
                     border: '2px solid var(--border-primary)',
-                    borderRadius: '8px',
-                    color: '#DDEDD2',
-                    fontSize: '1rem',
-                    fontWeight: '500',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--text-primary)',
+                    fontSize: 'var(--font-base)',
                   }}
                 />
               </div>
@@ -1288,7 +1389,33 @@ export default function TrackRoundPage() {
                     endRoundIncompleteModal.open();
                   } else {
                     // Complete round (9/18/36/54/72)
-                    setModalMessage(`End round and save ${holes.length} holes?`);
+                    setModalMessage(
+                      <div>
+                        <div style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>
+                          End round and save {holes.length} holes?
+                        </div>
+                        {Object.values(stats.approachCategories || {}).some(c => c.attempts > 0) && (
+                          <div style={{ textAlign: 'left', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '1rem', color: 'var(--text-primary)' }}>
+                              Approach Distance Stats
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
+                              {Object.values(stats.approachCategories || {}).map((cat) => (
+                                <div key={cat.range} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{cat.range} yds</span>
+                                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>{cat.hits}/{cat.attempts} GIR</span>
+                                    <span style={{ fontWeight: 'bold', minWidth: '3.5rem', textAlign: 'right', color: cat.attempts > 0 ? 'var(--color-interactive)' : 'inherit', opacity: cat.attempts > 0 ? 1 : 0.5 }}>
+                                      {cat.attempts > 0 ? `${cat.girPct}%` : 'N/A'}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
                     setModalAction(() => async () => {
                       // Save all holes to API
                       const holesToSave = holes.map(convertToAPIHole);
@@ -1297,7 +1424,8 @@ export default function TrackRoundPage() {
                           courseName,
                           courseMetadata,
                           holes: holesToSave as any,
-                          completed: true, // Mark round as completed so it won't show in "Resume Round"
+                          completed: true,
+                          ...(editingRoundNumber != null ? { replaceRoundNumber: editingRoundNumber } : {}),
                         } as any);
 
                         // Track round save event
@@ -1342,7 +1470,7 @@ export default function TrackRoundPage() {
                           courseName,
                           courseMetadata,
                           holes: holesToSave as any,
-                          // NO completed flag - this allows the round to be resumed
+                          ...(editingRoundNumber != null ? { replaceRoundNumber: editingRoundNumber } : {}),
                         } as any);
 
                         // Invalidate queries so dashboard shows the paused round
@@ -1419,10 +1547,10 @@ export default function TrackRoundPage() {
           // Use modalAction for all cases (delete hole or discard round)
           await modalAction();
         }}
-        title={modalMessage && modalMessage.includes('Delete hole') ? "Delete Hole?" : "Discard Round?"}
+        title={typeof modalMessage === 'string' && modalMessage.includes('Delete hole') ? "Delete Hole?" : "Discard Round?"}
         message={modalMessage || "This will delete your incomplete round. Are you sure?"}
         type="confirm"
-        confirmText={modalMessage && modalMessage.includes('Delete hole') ? "Delete" : "Discard"}
+        confirmText={typeof modalMessage === 'string' && modalMessage.includes('Delete hole') ? "Delete" : "Discard"}
         cancelText="Cancel"
       />
 

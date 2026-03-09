@@ -168,6 +168,58 @@ if ($isMerging && $mergeIntoRoundId >= 0 && $mergeIntoRoundId < count($rounds)) 
         exit;
 }
 
+// Handle round replacement (editing a completed round)
+$replaceRoundNumber = $roundData['replaceRoundNumber'] ?? null;
+if ($replaceRoundNumber !== null) {
+    // Find the round by roundNumber (1-indexed)
+    $found = false;
+    foreach ($rounds as $idx => &$existingRound) {
+        if (($existingRound['roundNumber'] ?? ($idx + 1)) == $replaceRoundNumber) {
+            // Recalculate stats with new holes
+            $newStats = calculateStats($roundData['holes']);
+            
+            // Replace the round data
+            $existingRound['holes'] = $roundData['holes'];
+            $existingRound['stats'] = $newStats;
+            $existingRound['courseName'] = $courseName;
+            if ($completed) {
+                $existingRound['completed'] = true;
+            }
+            $existingRound['lastEdited'] = date('c');
+            
+            $found = true;
+            break;
+        }
+    }
+    unset($existingRound);
+    
+    if (!$found) {
+        logWarning('Round not found for replacement', ['roundNumber' => $replaceRoundNumber]);
+        echo json_encode(['success' => false, 'message' => 'Round not found']);
+        exit;
+    }
+    
+    if (!writeJsonFile($roundsFile, $rounds)) {
+        logError('Failed to save replaced round', ['roundNumber' => $replaceRoundNumber]);
+        echo json_encode(['success' => false, 'message' => 'Failed to save edited round']);
+        exit;
+    }
+    
+    logInfo('Round replaced successfully', [
+        'roundNumber' => $replaceRoundNumber,
+        'totalHoles' => count($roundData['holes'])
+    ]);
+    
+    echo json_encode([
+        'success' => true,
+        'message' => 'Round updated successfully',
+        'roundNumber' => $replaceRoundNumber,
+        'totalRounds' => count($rounds),
+        'replaced' => true
+    ]);
+    exit;
+}
+
 // Check for auto-merge (incomplete round with same course name)
 if (!$isMerging) {
     $incompleteRoundIdx = findIncompleteRoundByCourse($rounds, $courseName);

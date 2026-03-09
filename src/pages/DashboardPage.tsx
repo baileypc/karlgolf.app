@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faDownload, faRotateRight, faUserSlash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faDownload, faRotateRight, faUserSlash, faPencil } from '@fortawesome/free-solid-svg-icons';
 import IconNav from '@/components/IconNav';
 import { roundsAPI, authAPI } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,6 +21,17 @@ export default function DashboardPage() {
   const errorModal = useModal();
   const [errorMessage, setErrorMessage] = useState('');
   const [roundToDelete, setRoundToDelete] = useState<{ roundNumber: number; courseName: string; isIncompleteCard?: boolean } | null>(null);
+  
+  // Track which recent rounds are expanded (by roundNumber)
+  const [expandedRounds, setExpandedRounds] = useState<number[]>([]);
+
+  const toggleRoundExpanded = (roundNumber: number) => {
+    setExpandedRounds(prev => 
+      prev.includes(roundNumber) 
+        ? prev.filter(r => r !== roundNumber)
+        : [...prev, roundNumber]
+    );
+  };
 
   // Check for incomplete round (localStorage OR server)
   const [incompleteRound, setIncompleteRound] = useState<{
@@ -305,14 +316,28 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                    Proximity
+                <div className="card" style={{ padding: '1.5rem', gridColumn: '1 / -1' }}>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '1rem', textAlign: 'center', fontWeight: 'bold' }}>
+                    Approach Shot Performance (GIR %)
                   </div>
-                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    {statsData.cumulative.avgProximity.toFixed(1)}ft
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem' }}>
+                    {Object.values(statsData.cumulative.approachCategories || {}).map((cat: any) => (
+                      <div key={cat.range} style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }}>
+                        <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{cat.range} yds</div>
+                        <div style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                          {cat.attempts > 0 ? `${cat.girPct}%` : 'N/A'}
+                        </div>
+                        <div style={{ fontSize: 'var(--font-xs)', opacity: 0.7, marginTop: '0.25rem' }}>
+                          {cat.hits}/{cat.attempts} GIR
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: 'var(--font-xs)', opacity: 0.7 }}>
+                    Overall Average Distance: {statsData.cumulative.avgProximity > 0 ? `${Math.round(statsData.cumulative.avgProximity)}yd` : 'N/A'}
                   </div>
                 </div>
+
               </div>
 
               {/* Recent Rounds - Grouped by 10 */}
@@ -324,9 +349,20 @@ export default function DashboardPage() {
                   const holeCount = group.rounds[0]?.holes?.length || 0;
                   const isIncomplete = holeCount > 0 && holeCount < 9;
 
+                  const isExpanded = expandedRounds.includes(group.roundNumber);
+
                   return (
                     <div key={group.roundNumber} className="card" style={{ marginBottom: '1rem', padding: '1.5rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div 
+                        onClick={() => toggleRoundExpanded(group.roundNumber)}
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          marginBottom: isExpanded ? '1rem' : '0',
+                          cursor: 'pointer' 
+                        }}
+                      >
                         <div>
                           <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                             {group.courseName}
@@ -349,60 +385,88 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </div>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-                        gap: '1rem',
-                        paddingTop: '1rem',
-                        borderTop: '1px solid var(--border-primary)'
-                      }}>
-                        <div>
-                          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Fairways</div>
-                          <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
-                            {group.stats.fairwayPct.toFixed(1)}%
+                      
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <>
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                              gap: '1rem',
+                              paddingTop: '1rem',
+                              borderTop: '1px solid var(--border-primary)'
+                            }}>
+                              <div>
+                                <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Fairways</div>
+                                <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                  {group.stats.fairwayPct.toFixed(1)}%
+                                </div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Avg Putts</div>
+                                <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                  {group.stats.avgPutts.toFixed(1)}
+                                </div>
+                              </div>
+                              <div style={{ gridColumn: '1 / -1' }}>
+                              <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Hole Scores</div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                {(group.rounds[0]?.holes || []).map((h: any) => {
+                                  const diff = h.score - h.par;
+                                  const color = diff < 0 ? '#6BCB77' : diff > 0 ? '#FF6B6B' : 'var(--text-primary)';
+                                  const label = diff === 0 ? 'E' : (diff > 0 ? `+${diff}` : `${diff}`);
+                                  return (
+                                    <div key={h.holeNumber} style={{
+                                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                      minWidth: '28px', padding: '2px 4px',
+                                      borderRadius: '4px',
+                                      backgroundColor: 'rgba(221, 237, 210, 0.1)',
+                                    }}>
+                                      <span style={{ fontSize: '0.6rem', opacity: 0.6, color: 'var(--text-primary)' }}>{h.holeNumber}</span>
+                                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color }}>{label}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Avg Putts</div>
-                          <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
-                            {group.stats.avgPutts.toFixed(1)}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Scrambling</div>
-                          <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
-                            {group.stats.scramblingPct.toFixed(1)}%
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Proximity</div>
-                          <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
-                            {group.stats.avgProximity.toFixed(1)}ft
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-primary)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {isIncomplete && (
-                          <>
-                            <button
-                              onClick={() => navigate('/track-round', { state: { continueRound: true } })}
-                              className="btn btn-primary"
-                              style={{ width: '100%' }}
-                            >
-                              Continue Round
-                            </button>
-                            {/* Only show End Round button if >= 9 holes */}
-                            {holeCount >= 9 && (
-                              <button
-                                onClick={() => endRoundModal.open()}
-                                className="btn btn-secondary"
-                                style={{ width: '100%' }}
-                              >
-                                End Round
-                              </button>
+                          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-primary)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {isIncomplete && (
+                              <>
+                                <button
+                                  onClick={() => navigate('/track-round', { state: { continueRound: true } })}
+                                  className="btn btn-primary"
+                                  style={{ width: '100%' }}
+                                >
+                                  Continue Round
+                                </button>
+                                {/* Only show End Round button if >= 9 holes */}
+                                {holeCount >= 9 && (
+                                  <button
+                                    onClick={() => endRoundModal.open()}
+                                    className="btn btn-secondary"
+                                    style={{ width: '100%' }}
+                                  >
+                                    End Round
+                                  </button>
+                                )}
+                              </>
                             )}
-                          </>
-                        )}
+                        <button
+                          onClick={() => navigate('/track-round', { state: { editRound: true, roundData: group.rounds[0], roundNumber: group.roundNumber } })}
+                          className="btn btn-secondary"
+                          style={{
+                            width: '100%',
+                            fontSize: '0.875rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faPencil} />
+                          Edit Round
+                        </button>
                         <button
                           onClick={() => {
                             setRoundToDelete({ roundNumber: group.roundNumber, courseName: group.courseName });
@@ -424,6 +488,8 @@ export default function DashboardPage() {
                           Delete Round
                         </button>
                       </div>
+                    </>
+                  )}
                     </div>
                   );
                 })}

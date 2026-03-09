@@ -46,6 +46,14 @@ function calculateStats($holes) {
     $missedGirApproachesSum = 0;
     $missedGirApproachesCount = 0;
     
+    // Approach categories tracking
+    $approachCategories = [
+        '0-50' => ['range' => '0-50', 'attempts' => 0, 'hits' => 0, 'girPct' => '0.0'],
+        '50-100' => ['range' => '50-100', 'attempts' => 0, 'hits' => 0, 'girPct' => '0.0'],
+        '100-150' => ['range' => '100-150', 'attempts' => 0, 'hits' => 0, 'girPct' => '0.0'],
+        '150+' => ['range' => '150+', 'attempts' => 0, 'hits' => 0, 'girPct' => '0.0']
+    ];
+    
     // Process each hole
     foreach ($validHoles as $h) {
         // Par and Score (required)
@@ -58,8 +66,8 @@ function calculateStats($holes) {
         $putts = isset($h['putts']) ? (int)$h['putts'] : 0;
         $totalPutts += $putts;
         
-        // GIR stats
-        if (!empty($h['gir'])) {
+        // GIR stats — must be strict === 'y' check; !empty() returns true for 'n' too
+        if (($h['gir'] ?? '') === 'y') {
             $girsHit++;
             $girHolesCount++;
             $puttsOnGIR += $putts;
@@ -86,17 +94,34 @@ function calculateStats($holes) {
         }
         
         // Approach proximity
-        if (isset($h['approachDistance']) && $h['approachDistance'] > 0) {
-            $distance = (float)$h['approachDistance'];
+        if (isset($h['proximity']) && $h['proximity'] > 0) {
+            $distance = (float)$h['proximity'];
             $allApproachesSum += $distance;
             $allApproachesCount++;
             
-            if (!empty($h['gir'])) {
+            if (($h['gir'] ?? '') === 'y') {
                 $girApproachesSum += $distance;
                 $girApproachesCount++;
+                $isHit = true;
             } else {
                 $missedGirApproachesSum += $distance;
                 $missedGirApproachesCount++;
+                $isHit = false;
+            }
+            
+            // Bucket by distance
+            if ($distance <= 50) {
+                $approachCategories['0-50']['attempts']++;
+                if ($isHit) $approachCategories['0-50']['hits']++;
+            } else if ($distance <= 100) {
+                $approachCategories['50-100']['attempts']++;
+                if ($isHit) $approachCategories['50-100']['hits']++;
+            } else if ($distance <= 150) {
+                $approachCategories['100-150']['attempts']++;
+                if ($isHit) $approachCategories['100-150']['hits']++;
+            } else {
+                $approachCategories['150+']['attempts']++;
+                if ($isHit) $approachCategories['150+']['hits']++;
             }
         }
     }
@@ -112,6 +137,13 @@ function calculateStats($holes) {
     $avgProximity = $allApproachesCount > 0 ? round($allApproachesSum / $allApproachesCount, 1) : 0;
     $avgProximityGIR = $girApproachesCount > 0 ? round($girApproachesSum / $girApproachesCount, 1) : 0;
     $avgProximityMissed = $missedGirApproachesCount > 0 ? round($missedGirApproachesSum / $missedGirApproachesCount, 1) : 0;
+    
+    // Calculate percentages for approach categories
+    foreach ($approachCategories as $key => $cat) {
+        if ($cat['attempts'] > 0) {
+            $approachCategories[$key]['girPct'] = number_format(($cat['hits'] / $cat['attempts']) * 100, 1);
+        }
+    }
     
     return [
         'totalHoles' => $totalHoles,
@@ -134,7 +166,8 @@ function calculateStats($holes) {
         'totalPenaltyStrokes' => $totalPenaltyStrokes,
         'avgProximity' => $avgProximity,
         'avgProximityGIR' => $avgProximityGIR,
-        'avgProximityMissed' => $avgProximityMissed
+        'avgProximityMissed' => $avgProximityMissed,
+        'approachCategories' => $approachCategories
     ];
 }
 

@@ -8,7 +8,7 @@ require_once __DIR__ . '/../common/session.php';
 require_once __DIR__ . '/../common/file-lock.php';
 require_once __DIR__ . '/../common/logger.php';
 require_once __DIR__ . '/../common/data-path.php';
-require_once __DIR__ . '/../common/rate-limiter.php';
+
 
 // Initialize session
 initSession();
@@ -79,20 +79,6 @@ if ($action === 'logout') {
 
 // Login
 if ($action === 'login') {
-    // Rate limiting for admin login (stricter than regular login)
-    $rateLimit = checkRateLimit('admin-login', 3, 15);
-    
-    if (!$rateLimit['allowed']) {
-        http_response_code(429);
-        logWarning('Admin login rate limit exceeded');
-        echo json_encode([
-            'success' => false,
-            'message' => $rateLimit['message'],
-            'retryAfter' => $rateLimit['retryAfter']
-        ]);
-        exit;
-    }
-
     if (!$data) {
         echo json_encode(['success' => false, 'message' => 'Invalid request']);
         exit;

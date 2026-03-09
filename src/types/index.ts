@@ -13,6 +13,14 @@ export interface Hole {
   shotsToGreen?: number;
   approachDistance?: number;
   penalty?: 'ob' | 'water' | 'lost' | 'wrong' | 'other' | null;
+  proximity?: number;
+}
+
+export interface ApproachCategory {
+  range: string;
+  attempts: number;
+  hits: number;
+  girPct: string;
 }
 
 export interface RoundStats {
@@ -23,15 +31,19 @@ export interface RoundStats {
   girsHit: number;
   girPercentage: number;
   totalGirs: number;
-  avgProximity: number;
   fairwaysHit: number;
   eligibleFairways: number;
   fairwayPercentage: number;
   totalPutts: number;
   avgPutts: number;
   scrambling: number;
-  scramblingPercentage: number;
-  penalties: number;
+  scramblingPercentage: string | number;
+  penalties?: number;
+  totalPenaltyStrokes?: number;
+  avgProximity?: number;
+  avgProximityGIR?: number;
+  avgProximityMissed?: number;
+  approachCategories?: Record<string, ApproachCategory>;
 }
 
 // Golf course metadata from GPS search (OpenStreetMap)

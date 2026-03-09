@@ -36,11 +36,11 @@ export function exportToCSV(holes: Hole[], roundName = 'Round'): void {
     `Total Score,${stats.totalScore}\n` +
     `Total Par,${stats.totalPar}\n` +
     `To Par,${toParStr}\n` +
-    `GIR,${stats.girsHit}/${stats.totalHoles} (${stats.girPercentage.toFixed(1)}%)\n` +
-    `Avg Proximity,${stats.avgProximity.toFixed(1)} feet\n` +
-    `Fairways,${stats.fairwaysHit}/${stats.eligibleFairways} (${stats.fairwayPercentage.toFixed(1)}%)\n` +
-    `Total Putts,${stats.totalPutts} (${stats.avgPutts.toFixed(2)} avg)\n` +
-    `Scrambling,${stats.scrambling}/${stats.totalHoles - stats.girsHit} (${stats.scramblingPercentage.toFixed(1)}%)\n` +
+    `GIR,${stats.girsHit}/${stats.totalHoles} (${stats.girPercentage?.toFixed(1) || '0.0'}%)\n` +
+    `Avg Proximity,${Number(stats.avgProximity || 0).toFixed(1)} feet\n` +
+    `Fairways,${stats.fairwaysHit}/${stats.eligibleFairways} (${stats.fairwayPercentage?.toFixed(1) || '0.0'}%)\n` +
+    `Total Putts,${stats.totalPutts} (${stats.avgPutts?.toFixed(2) || '0.00'} avg)\n` +
+    `Scrambling,${stats.scrambling}/${stats.totalHoles - stats.girsHit} (${Number(stats.scramblingPercentage || 0).toFixed(1)}%)\n` +
     `Penalties,${stats.penalties}\n` +
     `Date,${new Date().toISOString().split('T')[0]}`;
 

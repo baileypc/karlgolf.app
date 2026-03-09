@@ -1541,12 +1541,14 @@ button.icon-button.btn-logout i,
 .admin-table-wrapper {
     margin-top: var(--space-sm);
     -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
 }
 
 .admin-table {
     border-collapse: separate;
     border-spacing: 0;
-    min-width: 600px;
+    min-width: 320px;
+    width: 100%;
 }
 
 .admin-table-header {
