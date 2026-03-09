@@ -58,3 +58,55 @@ export function exportToCSV(holes: Hole[], roundName = 'Round'): void {
   a.click();
   window.URL.revokeObjectURL(url);
 }
+
+export function exportAllRoundsToCSV(rounds: any[]): void {
+  // Sort rounds chronologically (oldest first or newest first - usually newest is first in the array already)
+  
+  const header = 'Date,Course,Hole,Par,Score,To Par,GIR,Putts,Fairway,Approach Dist (yds),Penalty,Scrambled\n';
+  
+  let csv = '';
+  
+  rounds.forEach(round => {
+    const course = `"${(round.courseName || 'Unknown Course').replace(/"/g, '""')}"`;
+    const date = round.date || '';
+    
+    if (!round.holes || !Array.isArray(round.holes)) return;
+    
+    round.holes.forEach((h: Hole) => {
+      const toPar = h.score - h.par;
+      const toParStr = toPar === 0 ? 'E' : toPar > 0 ? `+${toPar}` : `${toPar}`;
+      const scrambled = h.gir === 'n' && h.score <= h.par;
+      
+      const row = [
+        date,
+        course,
+        h.holeNumber,
+        h.par,
+        h.score,
+        toParStr,
+        h.gir === 'y' ? 'Yes' : 'No',
+        h.putts,
+        h.fairway ? (h.fairway === 'y' ? 'Yes' : 'No') : 'N/A',
+        h.approachDistance || '',
+        h.penalty || 'None',
+        scrambled ? 'Yes' : 'No',
+      ];
+      
+      csv += row.join(',') + '\n';
+    });
+  });
+
+  // Create and download
+  const blob = new Blob([header + csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+
+  const dateStr = new Date().toISOString().split('T')[0];
+  a.download = `karls-gir-all-rounds-${dateStr}.csv`;
+
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}

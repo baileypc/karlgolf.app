@@ -8,6 +8,7 @@ import IconNav from '@/components/IconNav';
 import { roundsAPI, authAPI } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import Modal, { useModal } from '@/components/Modal';
+import { exportAllRoundsToCSV } from '@/lib/export';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -521,25 +522,8 @@ export default function DashboardPage() {
                         }
                       });
 
-                      // Create export object
-                      const exportData = {
-                        exportDate: new Date().toISOString(),
-                        totalRounds: statsData.totalRounds || allRounds.length,
-                        cumulativeStats: statsData.cumulative || null,
-                        rounds: allRounds,
-                      };
-
-                      // Create and download JSON file
-                      const jsonStr = JSON.stringify(exportData, null, 2);
-                      const blob = new Blob([jsonStr], { type: 'application/json' });
-                      const url = URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.href = url;
-                      link.download = `karls-gir-export-${new Date().toISOString().split('T')[0]}.json`;
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      URL.revokeObjectURL(url);
+                      // Call the CSV export function
+                      exportAllRoundsToCSV(allRounds);
                     }}
                     className="btn btn-secondary"
                     style={{
@@ -633,25 +617,8 @@ export default function DashboardPage() {
                     }
                   });
 
-                  // Create export object
-                  const exportData = {
-                    exportDate: new Date().toISOString(),
-                    totalRounds: statsData.totalRounds || allRounds.length,
-                    cumulativeStats: statsData.cumulative || null,
-                    rounds: allRounds,
-                  };
-
-                  // Create and download JSON file
-                  const jsonStr = JSON.stringify(exportData, null, 2);
-                  const blob = new Blob([jsonStr], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `karls-gir-export-${new Date().toISOString().split('T')[0]}.json`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(url);
+                  // Call the CSV export function
+                  exportAllRoundsToCSV(allRounds);
                 }}
                 className="btn btn-secondary"
                 style={{

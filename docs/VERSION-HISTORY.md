@@ -174,6 +174,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.3.4 (Production)
+**Current Version:** 3.3.5 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 
