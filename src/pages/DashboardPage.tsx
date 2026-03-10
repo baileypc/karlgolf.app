@@ -267,27 +267,27 @@ export default function DashboardPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', textAlign: 'center' }}>
                   <div style={{ padding: '0.5rem 0' }}>
                     <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.totalHoles}</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Holes</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Holes</div>
                   </div>
                   <div style={{ padding: '0.5rem 0' }}>
                     <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.fairwayPct.toFixed(1)}%</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Fairways</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Fairways</div>
                   </div>
                   <div style={{ padding: '0.5rem 0' }}>
                     <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.avgPutts.toFixed(1)}</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Putts/Hole</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Putts/Hole</div>
                   </div>
                   <div style={{ padding: '0.5rem 0' }}>
                     <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.totalScore}</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Strokes</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Strokes</div>
                   </div>
                   <div style={{ padding: '0.5rem 0' }}>
                     <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.scramblingPct.toFixed(1)}%</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Scrambling</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Scrambling</div>
                   </div>
                   <div style={{ padding: '0.5rem 0' }}>
                     <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.avgProximity > 0 ? `${Math.round(statsData.cumulative.avgProximity)}yd` : 'N/A'}</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Avg Approach</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Approach</div>
                   </div>
                 </div>
               </div>
@@ -297,14 +297,14 @@ export default function DashboardPage() {
                 <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.75rem', textAlign: 'center', fontWeight: 'bold' }}>
                   Approach GIR %
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
                   {Object.values(statsData.cumulative.approachCategories || {}).map((cat: any) => (
-                    <div key={cat.range} style={{ textAlign: 'center', padding: '0.5rem 0.25rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-sm)' }}>
-                      <div style={{ fontSize: '0.7rem', opacity: 0.6, marginBottom: '0.15rem' }}>{cat.range}</div>
-                      <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>
+                    <div key={cat.range} style={{ textAlign: 'center', padding: '0.4rem 0.15rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.6, marginBottom: '0.1rem' }}>{cat.range}</div>
+                      <div style={{ fontSize: 'var(--font-base)', fontWeight: '700' }}>
                         {cat.attempts > 0 ? `${cat.girPct}%` : 'N/A'}
                       </div>
-                      <div style={{ fontSize: '0.6rem', opacity: 0.5, marginTop: '0.15rem' }}>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '0.1rem' }}>
                         {cat.hits}/{cat.attempts}
                       </div>
                     </div>
@@ -337,14 +337,15 @@ export default function DashboardPage() {
                           backgroundColor: 'rgba(221, 237, 210, 0.08)',
                           borderRadius: 'var(--radius-md)',
                           borderLeft: `3px solid ${isGood ? '#6BCB77' : '#FF6B6B'}`,
+                          gap: '0.75rem',
                         }}>
-                          <div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontSize: 'var(--font-sm)', fontWeight: '500', color: 'var(--text-primary)' }}>{item.label}</div>
                             <div style={{ fontSize: 'var(--font-xs)', opacity: 0.5 }}>avg {item.avg} / round</div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700', color: 'var(--text-primary)' }}>{item.value}</div>
-                            <div style={{ fontSize: '0.65rem', opacity: 0.4 }}>Goal: {item.goal}</div>
+                            <div style={{ fontSize: '0.75rem', opacity: 0.4 }}>Goal: {item.goal}</div>
                           </div>
                         </div>
                       );
@@ -413,13 +414,13 @@ export default function DashboardPage() {
                           {items.map((item) => (
                             <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                               <div style={{ fontSize: '0.75rem', width: '50px', textAlign: 'right', fontWeight: '500', color: item.color }}>{item.label}</div>
-                              <div style={{ flex: 1, height: '22px', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
+                              <div style={{ flex: 1, minWidth: 0, height: '22px', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
                                 <div style={{
                                   height: '100%', width: `${Math.max((item.count / maxCount) * 100, 2)}%`,
                                   backgroundColor: item.color, borderRadius: '4px', opacity: 0.8,
                                   transition: 'width 0.6s ease',
                                 }} />
-                                <span style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.7rem', fontWeight: '600' }}>{item.count}</span>
+                                <span style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', fontWeight: '600' }}>{item.count}</span>
                               </div>
                               <div style={{ fontSize: '0.75rem', width: '36px', fontWeight: '600' }}>{total > 0 ? `${Math.round((item.count / total) * 100)}%` : '0%'}</div>
                             </div>
@@ -461,8 +462,8 @@ export default function DashboardPage() {
                     const areaPoints = `${pad},${h - pad} ${points.join(' ')} ${w - pad},${h - pad}`;
                     return (
                       <div key={trend.key} className="card" style={{ padding: '0.75rem 1rem', marginBottom: '0.75rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <div style={{ fontSize: 'var(--font-sm)', fontWeight: '600' }}>{trend.label}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.25rem' }}>
+                          <div style={{ fontSize: 'var(--font-sm)', fontWeight: '600', minWidth: 0 }}>{trend.label}</div>
                           <div>
                             <span style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>{typeof current === 'number' ? current.toFixed(1) : current}{trend.key !== 'avgPutts' ? '%' : ''}</span>
                             <span style={{ fontSize: 'var(--font-xs)', marginLeft: '0.4rem', color: improving ? '#6BCB77' : '#FF6B6B' }}>
@@ -489,10 +490,10 @@ export default function DashboardPage() {
                   </h2>
                   <div className="card" style={{ padding: '0.75rem 1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 0, marginBottom: '0.5rem', paddingRight: '4px' }}>
-                      <div style={{ fontSize: '0.65rem', opacity: 0.4, width: '50px', textAlign: 'center' }}>You</div>
-                      <div style={{ fontSize: '0.65rem', opacity: 0.4, width: '20px', textAlign: 'center' }}>vs</div>
-                      <div style={{ fontSize: '0.65rem', opacity: 0.4, width: '50px', textAlign: 'center' }}>Tour</div>
-                      <div style={{ fontSize: '0.65rem', opacity: 0.4, width: '45px', textAlign: 'right' }}>Gap</div>
+                      <div style={{ fontSize: '0.75rem', opacity: 0.4, width: '50px', textAlign: 'center' }}>You</div>
+                      <div style={{ fontSize: '0.75rem', opacity: 0.4, width: '20px', textAlign: 'center' }}>vs</div>
+                      <div style={{ fontSize: '0.75rem', opacity: 0.4, width: '50px', textAlign: 'center' }}>Tour</div>
+                      <div style={{ fontSize: '0.75rem', opacity: 0.4, width: '45px', textAlign: 'right' }}>Gap</div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       {[
@@ -511,11 +512,11 @@ export default function DashboardPage() {
                             backgroundColor: 'rgba(221, 237, 210, 0.08)',
                             borderRadius: 'var(--radius-md)',
                           }}>
-                            <div style={{ flex: 1, fontSize: 'var(--font-sm)', fontWeight: '500' }}>{item.label}</div>
-                            <div style={{ fontSize: 'var(--font-sm)', fontWeight: '700', width: '50px', textAlign: 'center' }}>{item.yours.toFixed(1)}{item.suffix}</div>
-                            <div style={{ fontSize: '0.65rem', opacity: 0.4, width: '20px', textAlign: 'center' }}>vs</div>
-                            <div style={{ fontSize: 'var(--font-sm)', opacity: 0.5, width: '50px', textAlign: 'center' }}>{item.tour}{item.suffix}</div>
-                            <div style={{ fontSize: 'var(--font-sm)', fontWeight: '700', width: '45px', textAlign: 'right', color: isGood ? '#6BCB77' : '#FF6B6B' }}>{gapStr}</div>
+                            <div style={{ flex: 1, minWidth: 0, fontSize: 'var(--font-sm)', fontWeight: '500' }}>{item.label}</div>
+                            <div style={{ fontSize: 'var(--font-sm)', fontWeight: '700', width: '50px', textAlign: 'center', flexShrink: 0 }}>{item.yours.toFixed(1)}{item.suffix}</div>
+                            <div style={{ fontSize: '0.75rem', opacity: 0.4, width: '20px', textAlign: 'center', flexShrink: 0 }}>vs</div>
+                            <div style={{ fontSize: 'var(--font-sm)', opacity: 0.5, width: '50px', textAlign: 'center', flexShrink: 0 }}>{item.tour}{item.suffix}</div>
+                            <div style={{ fontSize: 'var(--font-sm)', fontWeight: '700', width: '45px', textAlign: 'right', flexShrink: 0, color: isGood ? '#6BCB77' : '#FF6B6B' }}>{gapStr}</div>
                           </div>
                         );
                       })}
@@ -537,35 +538,35 @@ export default function DashboardPage() {
                       </h2>
                       <div className="card" style={{ padding: '1rem' }}>
                         <div style={{ fontSize: 'var(--font-xs)', opacity: 0.5, textAlign: 'center', marginBottom: '0.75rem' }}>1-Putt % by First Putt Distance</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
                           {[
                             { label: '< 5ft', data: pb.under5, color: '#6BCB77' },
                             { label: '5-15ft', data: pb['5to15'], color: '#FFD93D' },
                             { label: '15-30ft', data: pb['15to30'], color: '#DDEDD2' },
                             { label: '30+ft', data: pb.over30, color: '#FF6B6B' },
                           ].map((b) => (
-                            <div key={b.label} style={{ textAlign: 'center', padding: '0.75rem 0.25rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-md)' }}>
-                              <div style={{ fontSize: '0.7rem', opacity: 0.6, marginBottom: '0.25rem' }}>{b.label}</div>
-                              <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700', color: b.data.total > 0 ? b.color : 'var(--text-primary)' }}>
+                            <div key={b.label} style={{ textAlign: 'center', padding: '0.5rem 0.15rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-md)' }}>
+                              <div style={{ fontSize: '0.7rem', opacity: 0.6, marginBottom: '0.15rem' }}>{b.label}</div>
+                              <div style={{ fontSize: 'var(--font-base)', fontWeight: '700', color: b.data.total > 0 ? b.color : 'var(--text-primary)' }}>
                                 {b.data.total > 0 ? `${b.data.pct}%` : 'N/A'}
                               </div>
-                              <div style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '0.25rem' }}>{b.data.onePutts}/{b.data.total}</div>
+                              <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '0.15rem' }}>{b.data.onePutts}/{b.data.total}</div>
                             </div>
                           ))}
                         </div>
                         {(statsData.cumulative.avgFirstPuttDistGir > 0 || statsData.cumulative.avgFirstPuttDistMissed > 0) && (
                           <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(221, 237, 210, 0.1)', textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.7rem', opacity: 0.5, marginBottom: '0.4rem' }}>Avg First Putt Distance</div>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
+                            <div style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '0.4rem' }}>Avg First Putt Distance</div>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
                               {statsData.cumulative.avgFirstPuttDistGir > 0 && (
                                 <div>
-                                  <div style={{ fontSize: '0.65rem', opacity: 0.4 }}>On GIR</div>
+                                  <div style={{ fontSize: '0.75rem', opacity: 0.4 }}>On GIR</div>
                                   <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>{statsData.cumulative.avgFirstPuttDistGir} ft</div>
                                 </div>
                               )}
                               {statsData.cumulative.avgFirstPuttDistMissed > 0 && (
                                 <div>
-                                  <div style={{ fontSize: '0.65rem', opacity: 0.4 }}>Missed GIR</div>
+                                  <div style={{ fontSize: '0.75rem', opacity: 0.4 }}>Missed GIR</div>
                                   <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>{statsData.cumulative.avgFirstPuttDistMissed} ft</div>
                                 </div>
                               )}
@@ -605,7 +606,7 @@ export default function DashboardPage() {
                               <div style={{ fontSize: 'var(--font-2xl)', fontWeight: '700', color: item.data.total > 0 ? item.color : 'var(--text-primary)' }}>
                                 {item.data.total > 0 ? `${item.data.pct}%` : 'N/A'}
                               </div>
-                              <div style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '0.25rem' }}>{item.data.gir}/{item.data.total} GIR</div>
+                              <div style={{ fontSize: '0.75rem', opacity: 0.5, marginTop: '0.25rem' }}>{item.data.gir}/{item.data.total} GIR</div>
                             </div>
                           ))}
                         </div>

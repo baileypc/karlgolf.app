@@ -120,6 +120,10 @@ npm run preview
 
 **Note:** The build process automatically syncs version numbers from `package.json` to all markdown files. You can also run `npm run sync-version` manually to update versions without building.
 
+### Recent updates (no version change)
+- UI and dashboard/track-round changes backed up in repo.
+- PRD added for upcoming features: **Round notes** (per-round notes on finished rounds) and **Exclude from stats** (keep round in history but omit from dashboard stats). See `docs/PRD-ROUND-NOTES-AND-EXCLUDE-STATS.md` when present.
+
 ---
 
 ## 📚 Documentation
