@@ -14,6 +14,7 @@ export interface Hole {
   approachDistance?: number;
   penalty?: 'ob' | 'water' | 'lost' | 'wrong' | 'other' | null;
   proximity?: number;
+  approachLie?: 'fairway' | 'rough' | 'sand' | null;
 }
 
 export interface ApproachCategory {

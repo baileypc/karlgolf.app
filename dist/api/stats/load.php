@@ -63,10 +63,25 @@ for ($i = 0; $i < $totalRounds; $i++) {
 // Calculate cumulative stats (all rounds)
 $cumulativeStats = calculateStatsForRounds($roundsData);
 
+// Build trend data from per-round stats (oldest to newest for chart display)
+$trends = [];
+foreach ($roundsData as $round) {
+    $roundStats = calculateStats($round['holes'] ?? []);
+    if ($roundStats) {
+        $trends[] = [
+            'girPct' => $roundStats['girPct'],
+            'avgPutts' => $roundStats['avgPutts'],
+            'scramblingPct' => $roundStats['scramblingPct'],
+            'fairwayPct' => $roundStats['fairwayPct'],
+        ];
+    }
+}
+
 echo json_encode([
     'success' => true,
     'totalRounds' => $totalRounds,
     'groups' => $groups,
-    'cumulative' => $cumulativeStats
+    'cumulative' => $cumulativeStats,
+    'trends' => $trends
 ]);
 ?>

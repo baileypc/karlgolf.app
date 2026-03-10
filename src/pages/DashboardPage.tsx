@@ -250,96 +250,381 @@ export default function DashboardPage() {
           {hasData && (
             <>
               {/* Primary Stat - Average GIR% */}
-              <div className="card" style={{ marginBottom: '2rem', textAlign: 'center', padding: '2rem' }}>
-                <h2 style={{ fontSize: 'var(--font-lg)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+              <div className="card" style={{ marginBottom: '1rem', textAlign: 'center', padding: '1.25rem 1rem' }}>
+                <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
                   Average GIR %
-                </h2>
-                <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                </div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--text-primary)', lineHeight: 1.1 }}>
                   {statsData.cumulative.girPct.toFixed(1)}%
                 </div>
-                <p style={{ color: 'var(--text-primary)', marginTop: '0.5rem' }}>
-                  Across {statsData.totalRounds} round{statsData.totalRounds !== 1 ? 's' : ''}
+                <p style={{ color: 'var(--text-primary)', marginTop: '0.25rem', fontSize: 'var(--font-xs)', opacity: 0.6 }}>
+                  {statsData.totalRounds} round{statsData.totalRounds !== 1 ? 's' : ''} · {statsData.cumulative.totalHoles} holes
                 </p>
               </div>
 
-              {/* Cumulative Stats Grid */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: '1rem',
-                marginBottom: '2rem'
-              }}>
-                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                    Total Holes
+              {/* Cumulative Stats - Compact */}
+              <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', textAlign: 'center' }}>
+                  <div style={{ padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.totalHoles}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Holes</div>
                   </div>
-                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    {statsData.cumulative.totalHoles}
+                  <div style={{ padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.fairwayPct.toFixed(1)}%</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Fairways</div>
                   </div>
-                </div>
-
-                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                    Total Strokes
+                  <div style={{ padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.avgPutts.toFixed(1)}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Putts/Hole</div>
                   </div>
-                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    {statsData.cumulative.totalScore}
+                  <div style={{ padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.totalScore}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Strokes</div>
                   </div>
-                </div>
-
-                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                    Fairways Hit
+                  <div style={{ padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.scramblingPct.toFixed(1)}%</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Scrambling</div>
                   </div>
-                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    {statsData.cumulative.fairwayPct.toFixed(1)}%
-                  </div>
-                  <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)', marginTop: '0.25rem', opacity: 0.8 }}>
-                    (Par 4/5)
+                  <div style={{ padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.avgProximity > 0 ? `${Math.round(statsData.cumulative.avgProximity)}yd` : 'N/A'}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Avg Approach</div>
                   </div>
                 </div>
-
-                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                    Avg Putts/Hole
-                  </div>
-                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    {statsData.cumulative.avgPutts.toFixed(1)}
-                  </div>
-                </div>
-
-                <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                    Scrambling %
-                  </div>
-                  <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    {statsData.cumulative.scramblingPct.toFixed(1)}%
-                  </div>
-                </div>
-
-                <div className="card" style={{ padding: '1.5rem', gridColumn: '1 / -1' }}>
-                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '1rem', textAlign: 'center', fontWeight: 'bold' }}>
-                    Approach Shot Performance (GIR %)
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem' }}>
-                    {Object.values(statsData.cumulative.approachCategories || {}).map((cat: any) => (
-                      <div key={cat.range} style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }}>
-                        <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{cat.range} yds</div>
-                        <div style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                          {cat.attempts > 0 ? `${cat.girPct}%` : 'N/A'}
-                        </div>
-                        <div style={{ fontSize: 'var(--font-xs)', opacity: 0.7, marginTop: '0.25rem' }}>
-                          {cat.hits}/{cat.attempts} GIR
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: 'var(--font-xs)', opacity: 0.7 }}>
-                    Overall Average Distance: {statsData.cumulative.avgProximity > 0 ? `${Math.round(statsData.cumulative.avgProximity)}yd` : 'N/A'}
-                  </div>
-                </div>
-
               </div>
+
+              {/* Approach Shot Performance - Compact */}
+              <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '2rem' }}>
+                <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.75rem', textAlign: 'center', fontWeight: 'bold' }}>
+                  Approach GIR %
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+                  {Object.values(statsData.cumulative.approachCategories || {}).map((cat: any) => (
+                    <div key={cat.range} style={{ textAlign: 'center', padding: '0.5rem 0.25rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.6, marginBottom: '0.15rem' }}>{cat.range}</div>
+                      <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>
+                        {cat.attempts > 0 ? `${cat.girPct}%` : 'N/A'}
+                      </div>
+                      <div style={{ fontSize: '0.6rem', opacity: 0.5, marginTop: '0.15rem' }}>
+                        {cat.hits}/{cat.attempts}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ==================== NEW FEATURES ==================== */}
+
+              {/* FEATURE 1: Tiger Five Mistake Tracker */}
+              {statsData.cumulative?.tigerFive && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>
+                    Mistake Tracker
+                  </h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {[
+                      { label: 'Double Bogeys', value: statsData.cumulative.tigerFive.doubleBogeys, avg: (statsData.cumulative.tigerFive.doubleBogeys / statsData.totalRounds).toFixed(1), goal: '< 1' },
+                      { label: 'Par 5 Bogeys', value: statsData.cumulative.tigerFive.par5Bogeys, avg: (statsData.cumulative.tigerFive.par5Bogeys / statsData.totalRounds).toFixed(1), goal: '0' },
+                      { label: 'Three Putts', value: statsData.cumulative.tigerFive.threePutts, avg: (statsData.cumulative.tigerFive.threePutts / statsData.totalRounds).toFixed(1), goal: '< 1' },
+                      { label: 'Bogey from <150yd', value: statsData.cumulative.tigerFive.bogeyFromInside150, avg: (statsData.cumulative.tigerFive.bogeyFromInside150 / statsData.totalRounds).toFixed(1), goal: '0' },
+                      { label: 'Blown Saves', value: statsData.cumulative.tigerFive.blownSaves, avg: (statsData.cumulative.tigerFive.blownSaves / statsData.totalRounds).toFixed(1), goal: '< 1' },
+                    ].map((item) => {
+                      const avgNum = parseFloat(item.avg);
+                      const isGood = item.goal === '0' ? avgNum === 0 : avgNum < 1;
+                      return (
+                        <div key={item.label} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '0.75rem 1rem',
+                          backgroundColor: 'rgba(221, 237, 210, 0.08)',
+                          borderRadius: 'var(--radius-md)',
+                          borderLeft: `3px solid ${isGood ? '#6BCB77' : '#FF6B6B'}`,
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 'var(--font-sm)', fontWeight: '500', color: 'var(--text-primary)' }}>{item.label}</div>
+                            <div style={{ fontSize: 'var(--font-xs)', opacity: 0.5 }}>avg {item.avg} / round</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700', color: 'var(--text-primary)' }}>{item.value}</div>
+                            <div style={{ fontSize: '0.65rem', opacity: 0.4 }}>Goal: {item.goal}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* FEATURE 2: Scoring by Par Type */}
+              {statsData.cumulative?.scoringByPar && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>
+                    Scoring by Par Type
+                  </h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                    {[
+                      { label: 'Par 3', data: statsData.cumulative.scoringByPar.par3, par: 3 },
+                      { label: 'Par 4', data: statsData.cumulative.scoringByPar.par4, par: 4 },
+                      { label: 'Par 5', data: statsData.cumulative.scoringByPar.par5, par: 5 },
+                    ].map((item) => {
+                      const diff = item.data.count > 0 ? (item.data.avg - item.par) : 0;
+                      const diffStr = diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1);
+                      return (
+                        <div key={item.label} style={{
+                          textAlign: 'center', padding: '1rem 0.5rem',
+                          backgroundColor: 'rgba(221, 237, 210, 0.08)',
+                          borderRadius: 'var(--radius-md)',
+                        }}>
+                          <div style={{ fontSize: 'var(--font-sm)', fontWeight: '600', opacity: 0.7 }}>{item.label}</div>
+                          <div style={{ fontSize: 'var(--font-2xl)', fontWeight: '700', margin: '0.25rem 0' }}>
+                            {item.data.count > 0 ? item.data.avg.toFixed(1) : 'N/A'}
+                          </div>
+                          {item.data.count > 0 && (
+                            <div style={{ fontSize: 'var(--font-sm)', fontWeight: '600', color: diff > 0 ? '#FF6B6B' : diff < 0 ? '#6BCB77' : 'var(--text-primary)' }}>
+                              {diffStr}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* FEATURE 3: Score Distribution */}
+              {statsData.cumulative?.scoreDistribution && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>
+                    Score Distribution
+                  </h2>
+                  <div className="card" style={{ padding: '1rem' }}>
+                    {(() => {
+                      const dist = statsData.cumulative.scoreDistribution;
+                      const total = statsData.cumulative.totalHoles;
+                      const items = [
+                        { label: 'Eagle+', count: dist.eagles, color: '#4ECDC4' },
+                        { label: 'Birdie', count: dist.birdies, color: '#6BCB77' },
+                        { label: 'Par', count: dist.pars, color: '#DDEDD2' },
+                        { label: 'Bogey', count: dist.bogeys, color: '#FFD93D' },
+                        { label: 'Double', count: dist.doubles, color: '#FF6B6B' },
+                        { label: 'Triple+', count: dist.triplePlus, color: '#E85D75' },
+                      ].filter(i => i.count > 0 || i.label === 'Par' || i.label === 'Bogey');
+                      const maxCount = Math.max(...items.map(i => i.count), 1);
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {items.map((item) => (
+                            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ fontSize: '0.75rem', width: '50px', textAlign: 'right', fontWeight: '500', color: item.color }}>{item.label}</div>
+                              <div style={{ flex: 1, height: '22px', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
+                                <div style={{
+                                  height: '100%', width: `${Math.max((item.count / maxCount) * 100, 2)}%`,
+                                  backgroundColor: item.color, borderRadius: '4px', opacity: 0.8,
+                                  transition: 'width 0.6s ease',
+                                }} />
+                                <span style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.7rem', fontWeight: '600' }}>{item.count}</span>
+                              </div>
+                              <div style={{ fontSize: '0.75rem', width: '36px', fontWeight: '600' }}>{total > 0 ? `${Math.round((item.count / total) * 100)}%` : '0%'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* FEATURE 4: Trends Over Time (Sparklines) */}
+              {statsData.trends && statsData.trends.length >= 2 && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>
+                    Trends Over Time
+                  </h2>
+                  {[
+                    { label: 'GIR %', key: 'girPct', higher: true },
+                    { label: 'Avg Putts / Hole', key: 'avgPutts', higher: false },
+                    { label: 'Scrambling %', key: 'scramblingPct', higher: true },
+                  ].map((trend) => {
+                    const values = statsData.trends.map((t: any) => t[trend.key]);
+                    const current = values[values.length - 1];
+                    const prev = values[values.length - 2];
+                    const diff = current - prev;
+                    const improving = trend.higher ? diff > 0 : diff < 0;
+                    const min = Math.min(...values);
+                    const max = Math.max(...values);
+                    const range = max - min || 1;
+                    const w = 300;
+                    const h = 40;
+                    const pad = 4;
+                    const points = values.map((v: number, i: number) => {
+                      const x = values.length === 1 ? w / 2 : (i / (values.length - 1)) * (w - pad * 2) + pad;
+                      const y = h - pad - ((v - min) / range) * (h - pad * 2);
+                      return `${x},${y}`;
+                    });
+                    const areaPoints = `${pad},${h - pad} ${points.join(' ')} ${w - pad},${h - pad}`;
+                    return (
+                      <div key={trend.key} className="card" style={{ padding: '0.75rem 1rem', marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <div style={{ fontSize: 'var(--font-sm)', fontWeight: '600' }}>{trend.label}</div>
+                          <div>
+                            <span style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>{typeof current === 'number' ? current.toFixed(1) : current}{trend.key !== 'avgPutts' ? '%' : ''}</span>
+                            <span style={{ fontSize: 'var(--font-xs)', marginLeft: '0.4rem', color: improving ? '#6BCB77' : '#FF6B6B' }}>
+                              {diff > 0 ? '+' : ''}{diff.toFixed(1)}
+                            </span>
+                          </div>
+                        </div>
+                        <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: '40px' }}>
+                          <polygon points={areaPoints} fill="rgba(221,237,210,0.1)" />
+                          <polyline points={points.join(' ')} fill="none" stroke="#DDEDD2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <circle cx={points[points.length - 1]?.split(',')[0]} cy={points[points.length - 1]?.split(',')[1]} r="3.5" fill="#DDEDD2" />
+                        </svg>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* FEATURE 5: vs Tour Average Benchmarks */}
+              {statsData.cumulative && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>
+                    vs Tour Average
+                  </h2>
+                  <div className="card" style={{ padding: '0.75rem 1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 0, marginBottom: '0.5rem', paddingRight: '4px' }}>
+                      <div style={{ fontSize: '0.65rem', opacity: 0.4, width: '50px', textAlign: 'center' }}>You</div>
+                      <div style={{ fontSize: '0.65rem', opacity: 0.4, width: '20px', textAlign: 'center' }}>vs</div>
+                      <div style={{ fontSize: '0.65rem', opacity: 0.4, width: '50px', textAlign: 'center' }}>Tour</div>
+                      <div style={{ fontSize: '0.65rem', opacity: 0.4, width: '45px', textAlign: 'right' }}>Gap</div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {[
+                        { label: 'GIR %', yours: statsData.cumulative.girPct, tour: 66.0, suffix: '%', lowerBetter: false },
+                        { label: 'Fairway %', yours: statsData.cumulative.fairwayPct, tour: 62.0, suffix: '%', lowerBetter: false },
+                        { label: 'Putts/Hole', yours: statsData.cumulative.avgPutts, tour: 1.75, suffix: '', lowerBetter: true },
+                        { label: 'Scramble %', yours: statsData.cumulative.scramblingPct, tour: 58.0, suffix: '%', lowerBetter: false },
+                      ].map((item) => {
+                        const gap = item.yours - item.tour;
+                        const isGood = item.lowerBetter ? gap <= 0 : gap >= 0;
+                        const gapStr = (gap > 0 ? '+' : '') + gap.toFixed(1);
+                        return (
+                          <div key={item.label} style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            padding: '0.5rem 0.75rem',
+                            backgroundColor: 'rgba(221, 237, 210, 0.08)',
+                            borderRadius: 'var(--radius-md)',
+                          }}>
+                            <div style={{ flex: 1, fontSize: 'var(--font-sm)', fontWeight: '500' }}>{item.label}</div>
+                            <div style={{ fontSize: 'var(--font-sm)', fontWeight: '700', width: '50px', textAlign: 'center' }}>{item.yours.toFixed(1)}{item.suffix}</div>
+                            <div style={{ fontSize: '0.65rem', opacity: 0.4, width: '20px', textAlign: 'center' }}>vs</div>
+                            <div style={{ fontSize: 'var(--font-sm)', opacity: 0.5, width: '50px', textAlign: 'center' }}>{item.tour}{item.suffix}</div>
+                            <div style={{ fontSize: 'var(--font-sm)', fontWeight: '700', width: '45px', textAlign: 'right', color: isGood ? '#6BCB77' : '#FF6B6B' }}>{gapStr}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* FEATURE 6: First Putt Distance Buckets */}
+              {statsData.cumulative?.puttBuckets && (
+                (() => {
+                  const pb = statsData.cumulative.puttBuckets;
+                  const hasData = pb.under5.total > 0 || pb['5to15'].total > 0 || pb['15to30'].total > 0 || pb.over30.total > 0;
+                  if (!hasData) return null;
+                  return (
+                    <div style={{ marginBottom: '2rem' }}>
+                      <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>
+                        First Putt Distance
+                      </h2>
+                      <div className="card" style={{ padding: '1rem' }}>
+                        <div style={{ fontSize: 'var(--font-xs)', opacity: 0.5, textAlign: 'center', marginBottom: '0.75rem' }}>1-Putt % by First Putt Distance</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+                          {[
+                            { label: '< 5ft', data: pb.under5, color: '#6BCB77' },
+                            { label: '5-15ft', data: pb['5to15'], color: '#FFD93D' },
+                            { label: '15-30ft', data: pb['15to30'], color: '#DDEDD2' },
+                            { label: '30+ft', data: pb.over30, color: '#FF6B6B' },
+                          ].map((b) => (
+                            <div key={b.label} style={{ textAlign: 'center', padding: '0.75rem 0.25rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-md)' }}>
+                              <div style={{ fontSize: '0.7rem', opacity: 0.6, marginBottom: '0.25rem' }}>{b.label}</div>
+                              <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700', color: b.data.total > 0 ? b.color : 'var(--text-primary)' }}>
+                                {b.data.total > 0 ? `${b.data.pct}%` : 'N/A'}
+                              </div>
+                              <div style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '0.25rem' }}>{b.data.onePutts}/{b.data.total}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {(statsData.cumulative.avgFirstPuttDistGir > 0 || statsData.cumulative.avgFirstPuttDistMissed > 0) && (
+                          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(221, 237, 210, 0.1)', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.5, marginBottom: '0.4rem' }}>Avg First Putt Distance</div>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
+                              {statsData.cumulative.avgFirstPuttDistGir > 0 && (
+                                <div>
+                                  <div style={{ fontSize: '0.65rem', opacity: 0.4 }}>On GIR</div>
+                                  <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>{statsData.cumulative.avgFirstPuttDistGir} ft</div>
+                                </div>
+                              )}
+                              {statsData.cumulative.avgFirstPuttDistMissed > 0 && (
+                                <div>
+                                  <div style={{ fontSize: '0.65rem', opacity: 0.4 }}>Missed GIR</div>
+                                  <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>{statsData.cumulative.avgFirstPuttDistMissed} ft</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+
+              {/* FEATURE 7: GIR by Approach Lie */}
+              {statsData.cumulative?.girByLie && (
+                (() => {
+                  const lie = statsData.cumulative.girByLie;
+                  const hasData = lie.fairway.total > 0 || lie.rough.total > 0 || lie.sand.total > 0;
+                  if (!hasData) return null;
+                  const fwPct = lie.fairway.pct;
+                  const roughPct = lie.rough.pct;
+                  const improvement = lie.fairway.total > 0 && lie.rough.total > 0 ? (fwPct - roughPct).toFixed(0) : null;
+                  return (
+                    <div style={{ marginBottom: '2rem' }}>
+                      <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '1rem' }}>
+                        GIR by Lie
+                      </h2>
+                      <div className="card" style={{ padding: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                          {[
+                            { label: 'Fairway', data: lie.fairway, color: '#6BCB77' },
+                            { label: 'Rough', data: lie.rough, color: '#FFD93D' },
+                            { label: 'Sand', data: lie.sand, color: '#FF6B6B' },
+                          ].map((item) => (
+                            <div key={item.label} style={{ textAlign: 'center', padding: '0.75rem 0.25rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-md)' }}>
+                              <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem', color: item.color }}>&#9679;</div>
+                              <div style={{ fontSize: '0.75rem', opacity: 0.6, marginBottom: '0.25rem' }}>{item.label}</div>
+                              <div style={{ fontSize: 'var(--font-2xl)', fontWeight: '700', color: item.data.total > 0 ? item.color : 'var(--text-primary)' }}>
+                                {item.data.total > 0 ? `${item.data.pct}%` : 'N/A'}
+                              </div>
+                              <div style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '0.25rem' }}>{item.data.gir}/{item.data.total} GIR</div>
+                            </div>
+                          ))}
+                        </div>
+                        {improvement && parseInt(improvement) > 0 && (
+                          <div style={{
+                            marginTop: '0.75rem', padding: '0.5rem 0.75rem',
+                            backgroundColor: 'rgba(107,197,248,0.08)', borderRadius: 'var(--radius-md)',
+                            fontSize: 'var(--font-xs)', textAlign: 'center', opacity: 0.8,
+                          }}>
+                            Hitting fairway = <strong style={{ color: '#6BCB77' }}>+{improvement}%</strong> GIR improvement over rough
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+
+              {/* ==================== END NEW FEATURES ==================== */}
 
               {/* Recent Rounds - Grouped by 10 */}
               <div style={{ marginBottom: '2rem' }}>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle, faPencil, faTrash, faDownload } from '@fortawesome/free-solid-svg-icons';
+import { faPencil, faTrash, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { roundsAPI } from '@/lib/api';
 import { exportRoundToCSV } from '@/lib/csv-export';
 import type { Hole as APIHole, CourseMetadata } from '@/types';
@@ -24,6 +24,7 @@ interface LocalHole {
   shotsToGreen?: number;
   penalty?: string;
   proximity?: number;
+  approachLie?: 'fairway' | 'rough' | 'sand' | null;
 }
 
 // Convert local hole format to API format
@@ -53,6 +54,7 @@ const convertToAPIHole = (localHole: LocalHole): APIHole => {
     shotsToGreen: localHole.shotsToGreen,
     penalty: null, // Penalty is stored in score, not sent separately
     proximity: localHole.proximity,
+    approachLie: localHole.approachLie || null,
   };
 };
 
@@ -97,6 +99,7 @@ export default function TrackRoundPage() {
   const [penalty, setPenalty] = useState('');
   const [teePenalty, setTeePenalty] = useState(''); // Tee-shot hazard penalty (Par 4/5 only)
   const [proximity, setProximity] = useState<number | null>(null);
+  const [approachLie, setApproachLie] = useState<'fairway' | 'rough' | 'sand' | null>(null);
 
   const [activeCard, setActiveCard] = useState<number>(1); // 1: Par, 2: Tee, 3: Approach, 4: Result, 5: Green
   const [isStatsExpanded, setIsStatsExpanded] = useState<boolean>(false);
@@ -155,6 +158,7 @@ export default function TrackRoundPage() {
       shotsToGreen: h.shotsToGreen,
       penalty: h.penalty || '',
       proximity: h.proximity || 0,
+      approachLie: h.approachLie || null,
     }));
 
     setHoles(loadedHoles);
@@ -198,6 +202,7 @@ export default function TrackRoundPage() {
           if (f.shotsToGreen !== undefined) setShotsToGreen(f.shotsToGreen);
           if (f.penalty !== undefined) setPenalty(f.penalty);
           if (f.proximity !== undefined) setProximity(f.proximity);
+          if (f.approachLie !== undefined) setApproachLie(f.approachLie);
         }
       }
     } catch (e) {
@@ -304,11 +309,12 @@ export default function TrackRoundPage() {
           shotsToGreen,
           penalty,
           proximity,
+          approachLie,
         },
         lastUpdated: new Date().toISOString(),
       }));
     }
-  }, [holes, courseName, courseMetadata, coursePar, roundStarted, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity]);
+  }, [holes, courseName, courseMetadata, coursePar, roundStarted, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity, approachLie]);
 
   // Helper function to show alert modal
 
@@ -350,6 +356,7 @@ export default function TrackRoundPage() {
     setShotsToGreen(hole.shotsToGreen || null);
     setPenalty(hole.penalty || '');
     setProximity(hole.proximity || null);
+    setApproachLie(hole.approachLie || null);
     // Don't change currentHole - it should stay as the next hole to be entered
 
     // Close modal and scroll to form
@@ -547,6 +554,7 @@ export default function TrackRoundPage() {
           ? String(teePenaltyNum + parseInt(penalty || '0'))
           : undefined,
         proximity: proximity || undefined,
+        approachLie: approachLie || undefined,
       };
 
       // Store whether we're editing before clearing the state
@@ -630,6 +638,7 @@ export default function TrackRoundPage() {
       setPenalty('');
       setTeePenalty('');
       setProximity(null);
+      setApproachLie(null);
       setActiveCard(1);
 
       // If we were editing, also ensure editingHole is cleared (redundant but safe)
@@ -1035,10 +1044,10 @@ export default function TrackRoundPage() {
           {/* CARD 3: Approach Distance (Setup) */}
           {/* Unlocked if Par is set, and (if par 4/5) fairway is resolved (fairway known, and if hazard, penalty known) */}
           {par !== null && (par === 3 || fairway !== null) && (par === 3 || fairway !== 'na' || teePenalty !== '') && (
-            activeCard !== 3 && proximity !== null ? (
+            activeCard !== 3 && (proximity !== null || approachLie !== null) ? (
               <div className="collapsed-summary" onClick={() => setActiveCard(3)}>
-                <span className="collapsed-summary-label">Approach Distance:</span>
-                <span><span className="collapsed-summary-value">{proximity} yds</span><span className="collapsed-summary-edit">Edit</span></span>
+                <span className="collapsed-summary-label">Approach:</span>
+                <span><span className="collapsed-summary-value">{proximity ? `${proximity} yds` : ''}{proximity && approachLie ? ' · ' : ''}{approachLie ? approachLie.charAt(0).toUpperCase() + approachLie.slice(1) : ''}</span><span className="collapsed-summary-edit">Edit</span></span>
               </div>
             ) : activeCard === 3 && (
               <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -1048,7 +1057,7 @@ export default function TrackRoundPage() {
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '0.75rem', fontStyle: 'italic' }}>
                   Distance of the shot intended to hit the green
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
                   <input
                     type="number"
                     inputMode="numeric"
@@ -1059,8 +1068,10 @@ export default function TrackRoundPage() {
                       setProximity(val === '' ? null : parseInt(val));
                     }}
                     style={{
-                      flex: 1,
-                      padding: '0.75rem',
+                      flex: '1 1 0%',
+                      minWidth: 0,
+                      minHeight: 'var(--touch-min)',
+                      padding: 'var(--touch-padding)',
                       backgroundColor: 'var(--bg-secondary)',
                       border: '2px solid var(--border-primary)',
                       borderRadius: 'var(--radius-md)',
@@ -1068,13 +1079,41 @@ export default function TrackRoundPage() {
                       fontSize: 'var(--font-base)',
                     }}
                   />
-                  <button 
-                    className="btn btn-primary"
-                    onClick={() => setActiveCard(4)}
-                  >
-                    Next
-                  </button>
                 </div>
+
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                  Approach Lie <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>(optional)</span>
+                </label>
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+                  {([
+                    { value: 'fairway', label: 'Fairway' },
+                    { value: 'rough', label: 'Rough' },
+                    { value: 'sand', label: 'Sand' },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setApproachLie(approachLie === opt.value ? null : opt.value)}
+                      className="btn btn-secondary"
+                      style={{
+                        flex: 1,
+                        fontSize: '0.85rem',
+                        padding: '0.6rem 0.5rem',
+                        backgroundColor: approachLie === opt.value ? 'var(--color-interactive)' : 'transparent',
+                        color: approachLie === opt.value ? '#000' : 'var(--color-interactive)',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => setActiveCard(4)}
+                  style={{ width: '100%' }}
+                >
+                  Next
+                </button>
               </div>
             )
           )}
@@ -1155,7 +1194,7 @@ export default function TrackRoundPage() {
                       <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
                         Approach Shot(s)
                       </label>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
                         <input
                           type="number"
                           inputMode="numeric"
@@ -1166,8 +1205,10 @@ export default function TrackRoundPage() {
                             setShotsToGreen(val === '' ? null : parseInt(val));
                           }}
                           style={{
-                            flex: 1,
-                            padding: '0.75rem',
+                            flex: '1 1 0%',
+                            minWidth: 0,
+                            minHeight: 'var(--touch-min)',
+                            padding: 'var(--touch-padding)',
                             backgroundColor: 'var(--bg-secondary)',
                             border: '2px solid var(--border-primary)',
                             borderRadius: 'var(--radius-md)',
@@ -1179,7 +1220,7 @@ export default function TrackRoundPage() {
                           className="btn btn-primary"
                           onClick={() => setActiveCard(5)}
                           disabled={!shotsToGreen}
-                          style={{ opacity: shotsToGreen ? 1 : 0.5 }}
+                          style={{ flex: '0 0 30%', opacity: shotsToGreen ? 1 : 0.5 }}
                         >
                           Next
                         </button>
@@ -1277,6 +1318,7 @@ export default function TrackRoundPage() {
                       setPenalty('');
                       setTeePenalty('');
                       setProximity(null);
+                      setApproachLie(null);
                       setActiveCard(1);
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
@@ -1297,13 +1339,14 @@ export default function TrackRoundPage() {
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
                 onClick={() => setIsStatsExpanded(!isStatsExpanded)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginRight: '1rem', minWidth: 0 }}>
                   <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Current Round Stats</h2>
                   <span style={{ 
-                    fontSize: '0.875rem', 
-                    opacity: 0.6, 
+                    fontSize: '1.1rem', 
+                    opacity: 0.85, 
                     transition: 'transform 0.2s', 
-                    display: 'inline-block', 
+                    display: 'inline-block',
+                    flexShrink: 0,
                     transform: isStatsExpanded ? 'rotate(180deg)' : 'rotate(0deg)' 
                   }}>▼</span>
                 </div>
@@ -1315,51 +1358,44 @@ export default function TrackRoundPage() {
                   className="btn btn-secondary"
                   style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
                 >
-                  <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '0.4rem' }} />
-                  View
+                  <FontAwesomeIcon icon={faPencil} style={{ marginRight: '0.4rem', fontSize: '0.7rem' }} />
+                  Holes
                 </button>
               </div>
               
               {isStatsExpanded && (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-                  gap: '1rem',
-                  marginTop: '1.5rem',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '0.5rem',
+                  marginTop: '0.75rem',
                   borderTop: '1px solid var(--border-primary)',
-                  paddingTop: '1.5rem'
+                  paddingTop: '0.75rem',
+                  textAlign: 'center',
                 }}>
-                  <div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.totalHoles}</div>
-                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Holes</div>
+                  <div style={{ padding: '0.4rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{stats.totalHoles}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Holes</div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.totalStrokes}</div>
-                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Strokes</div>
+                  <div style={{ padding: '0.4rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{stats.girPct}%</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>GIR</div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.girPct}%</div>
-                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>GIR</div>
+                  <div style={{ padding: '0.4rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{stats.fairwayDisplay !== 'N/A' ? `${stats.fairwayPct}%` : 'N/A'}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Fairways</div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>
-                      {stats.fairwayDisplay !== 'N/A' ? `${stats.fairwayPct}%` : 'N/A'}
-                    </div>
-                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
-                      Fairway {stats.fairwayDisplay !== 'N/A' && `(${stats.fairwayDisplay})`}
-                    </div>
+                  <div style={{ padding: '0.4rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{stats.totalStrokes}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Strokes</div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.avgPutts}</div>
-                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Avg Putts</div>
+                  <div style={{ padding: '0.4rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{stats.avgPutts}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Putts/Hole</div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.scramblingPct}%</div>
-                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Scrambling</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{stats.avgApproach === 'N/A' ? 'N/A' : `${stats.avgApproach}yd`}</div>
-                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Approach</div>
+                  <div style={{ padding: '0.4rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{stats.scramblingPct}%</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Scrambling</div>
                   </div>
                 </div>
               )}

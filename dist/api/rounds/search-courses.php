@@ -61,40 +61,31 @@ if (!$apiKey) {
 }
 
 // Call Google Places Nearby Search API
-// By using "golf OR country club" as a keyword and NOT restricting by type,
-// we force Google to match the concept rather than relying on its messy 'golf_course' tags.
-// This successfully finds courses like Ledgestone which Google tags as 'lodging'.
+// rankby=distance ensures the course the player is at/near always appears first
 $url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?' . http_build_query([
     'location' => "$latitude,$longitude",
-    'radius' => $radius,
+    'rankby' => 'distance',
     'keyword' => 'golf OR country club',
     'key' => $apiKey,
 ]);
 
 $ch = curl_init();
-$curlOpts = [
+curl_setopt_array($ch, [
     CURLOPT_URL => $url,
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_TIMEOUT => 10,
-    // Disable SSL verification for development on localhost
     CURLOPT_SSL_VERIFYPEER => !isDevelopment(),
     CURLOPT_SSL_VERIFYHOST => !isDevelopment() ? 2 : 0,
-];
-
-curl_setopt_array($ch, $curlOpts);
+]);
 $response = curl_exec($ch);
 $curlError = curl_error($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 if ($response === false) {
     logError('Golf search request failed', ['error' => $curlError]);
-    
-    // Provide a detailed error message if we're on localhost
-    $errorMsg = isDevelopment() 
-        ? "cURL Error: $curlError. To fix SSL issues on Laragon, update your php.ini curl.cainfo" 
+    $errorMsg = isDevelopment()
+        ? "cURL Error: $curlError. To fix SSL issues on Laragon, update your php.ini curl.cainfo"
         : "Failed to search for courses. Please try again.";
-        
     echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }

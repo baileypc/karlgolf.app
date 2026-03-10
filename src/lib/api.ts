@@ -290,6 +290,7 @@ export const roundsAPI = {
     totalRounds: number;
     groups: any[];
     cumulative: any;
+    trends: any[];
   }> {
     return request('stats/load.php');
   },
