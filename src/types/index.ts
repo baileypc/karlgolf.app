@@ -20,7 +20,8 @@ export interface Hole {
   secondShotLie?: 'fairway' | 'rough' | 'sand' | 'hazard' | 'green';
   secondShotPenalty?: number;
   approachMissLocation?: 'short' | 'sand' | 'long' | 'hazard';
-  wedgeShotDistance?: number; // yards (when missed GIR, wedge/approach to green)
+  wedgeShotDistance?: number; // legacy single; prefer wedgeShotDistances
+  wedgeShotDistances?: number[]; // yards per wedge shot (when missed GIR, 1+ shots)
 }
 
 export interface ApproachCategory {

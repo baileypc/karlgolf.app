@@ -1,5 +1,28 @@
 # Version History
 
+## Version 3.6.3 - Wedge Flow & UX (March 2026)
+
+### ✅ Features & Improvements
+
+**Wedge shots:**
+- **Per-shot yardages** – Wedge distance inputs are per shot (Shot 1, Shot 2, Shot 3) when 2–3 shots; single “Yds” when 1 shot. Stored as `wedgeShotDistances` array; backend aggregates for “Avg wedge to green.”
+- **Cap at 3** – Max 3 wedge shot yardage inputs. If user enters more than 3 wedge shots, message **“Call your coach!”** is shown (Par 5 hazard/miss and Par 3/4 approach sections). Stored wedge distances limited to first 3; full shot count still used for score.
+
+**GIR & approach flow:**
+- **GIR label** – Par 3/4 GIR card option label changed from “Hit” to **“On!”** (aligned with Par 5).
+- **Par 4 approach flow** – When GIR = Missed on Par 3/4: Penalties, Where? (Short/Sand/Long/Hazard), then Wedge Shot(s) & distance, same as Par 5.
+
+**Labels & copy:**
+- Par 5 Card 4: **“2nd Shot”** → **“2nd Shot In”** (card title and collapsed summary).
+- Par 5 Card 5: **“Wedge Shot to Green”** → **“3rd Shot (GIR)”**.
+- **“Current Round Stats”** → **“Snapshot”** on track round page.
+
+### 🔧 Technical Changes
+- `wedgeShotDistances: number[]` and legacy `wedgeShotDistance`; API accepts both; stats use array aggregation.
+- `MAX_WEDGE_SHOTS = 3`; `wedgeCount = Math.min(shotsToGreen, 3)` for UI; `wedgeShotDistances.slice(0, 3)` when saving.
+
+---
+
 ## Version 3.6.0 - Par 5 Tracking & Dashboard Stats (March 2026)
 
 ### ✅ Features & Improvements
@@ -198,6 +221,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.6.0 (Production)
+**Current Version:** 3.6.4 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

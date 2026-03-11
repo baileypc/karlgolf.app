@@ -367,11 +367,11 @@ export default function DashboardPage() {
                   </h2>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {[
-                      { label: 'Double Bogeys', value: statsData.cumulative.tigerFive.doubleBogeys, avg: (statsData.cumulative.tigerFive.doubleBogeys / statsData.totalRounds).toFixed(1), goal: '< 1' },
-                      { label: 'Par 5 Bogeys', value: statsData.cumulative.tigerFive.par5Bogeys, avg: (statsData.cumulative.tigerFive.par5Bogeys / statsData.totalRounds).toFixed(1), goal: '0' },
-                      { label: 'Three Putts', value: statsData.cumulative.tigerFive.threePutts, avg: (statsData.cumulative.tigerFive.threePutts / statsData.totalRounds).toFixed(1), goal: '< 1' },
-                      { label: 'Bogey from <150yd', value: statsData.cumulative.tigerFive.bogeyFromInside150, avg: (statsData.cumulative.tigerFive.bogeyFromInside150 / statsData.totalRounds).toFixed(1), goal: '0' },
-                      { label: 'Blown Saves', value: statsData.cumulative.tigerFive.blownSaves, avg: (statsData.cumulative.tigerFive.blownSaves / statsData.totalRounds).toFixed(1), goal: '< 1' },
+                      { label: 'Double Bogeys', value: statsData.cumulative.tigerFive.doubleBogeys, avg: ((statsData.cumulative.tigerFive.doubleBogeys / statsData.cumulative.totalHoles) * 18).toFixed(1), goal: '< 1' },
+                      { label: 'Par 5 Bogeys', value: statsData.cumulative.tigerFive.par5Bogeys, avg: ((statsData.cumulative.tigerFive.par5Bogeys / statsData.cumulative.totalHoles) * 18).toFixed(1), goal: '0' },
+                      { label: 'Three Putts', value: statsData.cumulative.tigerFive.threePutts, avg: ((statsData.cumulative.tigerFive.threePutts / statsData.cumulative.totalHoles) * 18).toFixed(1), goal: '< 1' },
+                      { label: 'Bogey from <150yd', value: statsData.cumulative.tigerFive.bogeyFromInside150, avg: ((statsData.cumulative.tigerFive.bogeyFromInside150 / statsData.cumulative.totalHoles) * 18).toFixed(1), goal: '0' },
+                      { label: 'Blown Saves', value: statsData.cumulative.tigerFive.blownSaves, avg: ((statsData.cumulative.tigerFive.blownSaves / statsData.cumulative.totalHoles) * 18).toFixed(1), goal: '< 1' },
                     ].map((item) => {
                       const avgNum = parseFloat(item.avg);
                       const isGood = item.goal === '0' ? avgNum === 0 : avgNum < 1;
@@ -386,7 +386,7 @@ export default function DashboardPage() {
                         }}>
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontSize: 'var(--font-sm)', fontWeight: '500', color: 'var(--text-primary)' }}>{item.label}</div>
-                            <div style={{ fontSize: 'var(--font-xs)', opacity: 0.5 }}>avg {item.avg} / round</div>
+                            <div style={{ fontSize: 'var(--font-xs)', opacity: 0.5 }}>avg {item.avg} / 18 holes</div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700', color: 'var(--text-primary)' }}>{item.value}</div>

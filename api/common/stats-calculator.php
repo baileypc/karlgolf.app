@@ -167,10 +167,33 @@ function calculateStats($holes) {
                     $par5OnGreenCount++;
                 }
             }
-            // Wedge shot distance (Par 5 missed GIR)
-            if (isset($h['wedgeShotDistance']) && is_numeric($h['wedgeShotDistance']) && (float)$h['wedgeShotDistance'] > 0) {
+            // Wedge shot distance (Par 5 missed GIR) — per-shot or legacy single
+            if (!empty($h['wedgeShotDistances']) && is_array($h['wedgeShotDistances'])) {
+                foreach ($h['wedgeShotDistances'] as $yd) {
+                    if (is_numeric($yd) && (float)$yd > 0) {
+                        $wedgeShotDistSum += (float)$yd;
+                        $wedgeShotDistCount++;
+                    }
+                }
+            } elseif (isset($h['wedgeShotDistance']) && is_numeric($h['wedgeShotDistance']) && (float)$h['wedgeShotDistance'] > 0) {
                 $wedgeShotDistSum += (float)$h['wedgeShotDistance'];
                 $wedgeShotDistCount++;
+            }
+        }
+        // Par 3/4 missed GIR: wedge shot distance (per-shot or legacy single)
+        if ($par == 3 || $par == 4) {
+            if (($h['gir'] ?? '') !== 'y') {
+                if (!empty($h['wedgeShotDistances']) && is_array($h['wedgeShotDistances'])) {
+                    foreach ($h['wedgeShotDistances'] as $yd) {
+                        if (is_numeric($yd) && (float)$yd > 0) {
+                            $wedgeShotDistSum += (float)$yd;
+                            $wedgeShotDistCount++;
+                        }
+                    }
+                } elseif (isset($h['wedgeShotDistance']) && is_numeric($h['wedgeShotDistance']) && (float)$h['wedgeShotDistance'] > 0) {
+                    $wedgeShotDistSum += (float)$h['wedgeShotDistance'];
+                    $wedgeShotDistCount++;
+                }
             }
         }
         

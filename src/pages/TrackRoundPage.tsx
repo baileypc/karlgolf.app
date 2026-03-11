@@ -30,6 +30,7 @@ interface LocalHole {
   secondShotPenalty?: string;
   approachMissLocation?: 'short' | 'sand' | 'long' | 'hazard';
   wedgeShotDistance?: number;
+  wedgeShotDistances?: number[];
 }
 
 // Convert local hole format to API format
@@ -71,9 +72,10 @@ const convertToAPIHole = (localHole: LocalHole): APIHole => {
       apiHole.secondShotLie = localHole.secondShotLie === 'na' ? 'hazard' : localHole.secondShotLie === 'c' ? 'fairway' : localHole.secondShotLie;
     }
     if (localHole.secondShotPenalty != null && localHole.secondShotPenalty !== '') apiHole.secondShotPenalty = parseInt(localHole.secondShotPenalty, 10);
-    if (localHole.approachMissLocation != null) apiHole.approachMissLocation = localHole.approachMissLocation;
-    if (localHole.wedgeShotDistance != null) apiHole.wedgeShotDistance = localHole.wedgeShotDistance;
   }
+  if (localHole.approachMissLocation != null) apiHole.approachMissLocation = localHole.approachMissLocation;
+  if (localHole.wedgeShotDistances != null && localHole.wedgeShotDistances.length > 0) apiHole.wedgeShotDistances = localHole.wedgeShotDistances;
+  else if (localHole.wedgeShotDistance != null) apiHole.wedgeShotDistance = localHole.wedgeShotDistance;
   return apiHole;
 };
 
@@ -123,10 +125,14 @@ export default function TrackRoundPage() {
   const [secondShotLie, setSecondShotLie] = useState<'c' | 'rough' | 'sand' | 'na' | 'green' | null>(null);
   const [secondShotPenalty, setSecondShotPenalty] = useState('');
   const [approachMissLocation, setApproachMissLocation] = useState<'short' | 'sand' | 'long' | 'hazard' | null>(null);
-  const [wedgeShotDistance, setWedgeShotDistance] = useState<number | null>(null);
+  const [wedgeShotDistances, setWedgeShotDistances] = useState<number[]>([]); // one per wedge shot when missed GIR
 
   const [activeCard, setActiveCard] = useState<number>(1); // 1: Par, 2: Tee, 3: Approach/2ndShot, 4: GIR/2ndTrouble, 5: Green/Wedge, 6: Green (Par 5 only)
   const [isStatsExpanded, setIsStatsExpanded] = useState<boolean>(false);
+
+  const MAX_WEDGE_SHOTS = 3; // cap wedge shot inputs (never more than 3); allow typing >3 to show "Call your coach!"
+  const wedgeCount = Math.min(Math.max(0, Number(shotsToGreen) || 0), MAX_WEDGE_SHOTS);
+  const wedgeOverThree = (shotsToGreen ?? 0) > 3;
 
   // Check server for incomplete rounds on mount (only when logged in)
   const { data: incompleteData, refetch: refetchIncomplete } = useQuery({
@@ -188,7 +194,7 @@ export default function TrackRoundPage() {
         secondShotLie: secondShotLieLocal,
         secondShotPenalty: h.secondShotPenalty != null ? String(h.secondShotPenalty) : undefined,
         approachMissLocation: h.approachMissLocation,
-        wedgeShotDistance: h.wedgeShotDistance,
+        wedgeShotDistances: h.wedgeShotDistances ?? (h.wedgeShotDistance != null ? [h.wedgeShotDistance] : undefined),
       };
     });
 
@@ -237,7 +243,7 @@ export default function TrackRoundPage() {
           if (f.secondShotLie !== undefined) setSecondShotLie(f.secondShotLie);
           if (f.secondShotPenalty !== undefined) setSecondShotPenalty(f.secondShotPenalty);
           if (f.approachMissLocation !== undefined) setApproachMissLocation(f.approachMissLocation);
-          if (f.wedgeShotDistance !== undefined) setWedgeShotDistance(f.wedgeShotDistance);
+          if (f.wedgeShotDistances !== undefined) setWedgeShotDistances(Array.isArray(f.wedgeShotDistances) ? f.wedgeShotDistances : []);
         }
       }
     } catch (e) {
@@ -348,12 +354,12 @@ export default function TrackRoundPage() {
           secondShotLie,
           secondShotPenalty,
           approachMissLocation,
-          wedgeShotDistance,
+          wedgeShotDistances,
         },
         lastUpdated: new Date().toISOString(),
       }));
     }
-  }, [holes, courseName, courseMetadata, coursePar, roundStarted, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity, secondShotDistance, secondShotLie, secondShotPenalty, approachMissLocation, wedgeShotDistance]);
+  }, [holes, courseName, courseMetadata, coursePar, roundStarted, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity, secondShotDistance, secondShotLie, secondShotPenalty, approachMissLocation, wedgeShotDistances]);
 
   // Helper function to show alert modal
 
@@ -399,7 +405,7 @@ export default function TrackRoundPage() {
     setSecondShotLie(hole.secondShotLie ?? null);
     setSecondShotPenalty(hole.secondShotPenalty ?? '');
     setApproachMissLocation(hole.approachMissLocation ?? null);
-    setWedgeShotDistance(hole.wedgeShotDistance ?? null);
+    setWedgeShotDistances(hole.wedgeShotDistances ?? (hole.wedgeShotDistance != null ? [hole.wedgeShotDistance] : []));
     // Don't change currentHole - it should stay as the next hole to be entered
 
     // Close modal and scroll to form
@@ -567,9 +573,9 @@ export default function TrackRoundPage() {
         setIsSubmitting(false);
         return;
       }
-      // Par 5 wedge miss in hazard: require penalty
-      if (par === 5 && gir === 'n' && approachMissLocation === 'hazard' && !penalty) {
-        setValidationError('Please select wedge penalty');
+      // Par 4/5 wedge (approach) miss in hazard: require penalty
+      if ((par === 4 || par === 5) && gir === 'n' && approachMissLocation === 'hazard' && !penalty) {
+        setValidationError('Please select penalty');
         validationErrorModal.open();
         setIsSubmitting(false);
         return;
@@ -628,8 +634,8 @@ export default function TrackRoundPage() {
         secondShotDistance: par === 5 ? (secondShotDistance ?? undefined) : undefined,
         secondShotLie: par === 5 ? (secondShotLie ?? undefined) : undefined,
         secondShotPenalty: par === 5 && secondShotPenalty ? secondShotPenalty : undefined,
-        approachMissLocation: par === 5 ? (approachMissLocation ?? undefined) : undefined,
-        wedgeShotDistance: par === 5 ? (wedgeShotDistance ?? undefined) : undefined,
+        approachMissLocation: (par === 5 || (par !== 5 && gir === 'n')) ? (approachMissLocation ?? undefined) : undefined,
+        wedgeShotDistances: (par === 5 || (par !== 5 && gir === 'n')) && wedgeShotDistances.length > 0 ? wedgeShotDistances.slice(0, MAX_WEDGE_SHOTS) : undefined,
       };
 
       // Store whether we're editing before clearing the state
@@ -717,7 +723,7 @@ export default function TrackRoundPage() {
       setSecondShotLie(null);
       setSecondShotPenalty('');
       setApproachMissLocation(null);
-      setWedgeShotDistance(null);
+      setWedgeShotDistances([]);
       setActiveCard(1);
 
       // If we were editing, also ensure editingHole is cleared (redundant but safe)
@@ -747,6 +753,7 @@ export default function TrackRoundPage() {
           '100-150': { range: '100-150', attempts: 0, hits: 0, girPct: '0.0' },
           '150+': { range: '150+', attempts: 0, hits: 0, girPct: '0.0' },
         },
+        needWedgePractice: 0,
       };
     }
 
@@ -762,6 +769,7 @@ export default function TrackRoundPage() {
     const totalStrokes = holes.reduce((sum, h) => sum + h.score, 0);
     const missedGirs = holes.filter(h => h.gir !== 'y');
     const scrambles = missedGirs.filter(h => h.par - (h.shotsToGreen || 0) === 1).length;
+    const needWedgePractice = holes.filter(h => (h.shotsToGreen ?? 0) > 3).length;
 
     // Calculate fairway percentage
     // If no par 4/5 holes yet, show "N/A" or 0.0%
@@ -828,6 +836,7 @@ export default function TrackRoundPage() {
         return `${Math.round(avg)}`;
       })(),
       approachCategories,
+      needWedgePractice,
     };
   };
 
@@ -1153,7 +1162,7 @@ export default function TrackRoundPage() {
           {par === 5 && activeCard >= 4 && secondShotDistance != null && (
             activeCard !== 4 && secondShotLie !== null ? (
               <div className="collapsed-summary" onClick={() => setActiveCard(4)}>
-                <span className="collapsed-summary-label">2nd Shot:</span>
+                <span className="collapsed-summary-label">Approach Shot:</span>
                 <span>
                   <span className="collapsed-summary-value">
                     {secondShotLie === 'green' ? 'On Green!' : secondShotLie === 'c' ? 'Fairway' : secondShotLie === 'rough' ? 'Rough' : secondShotLie === 'sand' ? 'Sand' : `Hazard ${secondShotPenalty ? '(+' + secondShotPenalty + ')' : ''}`}
@@ -1163,7 +1172,7 @@ export default function TrackRoundPage() {
               </div>
             ) : activeCard === 4 && (
               <div className="card" style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>2nd Shot Result</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Approach Shot</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
                   {[
                     { value: 'c' as const, label: 'Fairway' },
@@ -1237,16 +1246,16 @@ export default function TrackRoundPage() {
             )
           )}
 
-          {/* CARD 5 (Par 5): Wedge Shot to Green (skip when 2nd shot was On Green!) */}
+          {/* CARD 5 (Par 5): 3rd Shot (GIR) — skip when 2nd shot was On Green! */}
           {par === 5 && activeCard >= 5 && secondShotLie !== null && secondShotLie !== 'green' && (secondShotLie !== 'na' || secondShotPenalty !== '') && (
             activeCard !== 5 && gir !== null ? (
               <div className="collapsed-summary" onClick={() => setActiveCard(5)}>
-                <span className="collapsed-summary-label">Wedge to Green:</span>
+                <span className="collapsed-summary-label">GIR:</span>
                 <span>
                   <span className="collapsed-summary-value">
-                    {gir === 'y' ? 'On!' : `Missed (${shotsToGreen ?? '?'} shots)`}
-                    {approachMissLocation ? ` — ${approachMissLocation === 'hazard' ? 'Hazard' : approachMissLocation}` : ''}
-                    {wedgeShotDistance != null ? ` · ${wedgeShotDistance} yd` : ''}
+                    {gir === 'y' ? 'On!' : `Miss · ${shotsToGreen ?? '?'} ${(shotsToGreen ?? 0) === 1 ? 'Shot' : 'Shots'}`}
+                    {approachMissLocation ? ` · ${approachMissLocation.charAt(0).toUpperCase() + approachMissLocation.slice(1)}` : ''}
+                    {wedgeShotDistances.filter(Boolean).length > 0 ? ` · ${wedgeShotDistances.filter(Boolean).join('/')}yd` : ''}
                   </span>
                   <span className="collapsed-summary-edit">Edit</span>
                 </span>
@@ -1255,76 +1264,106 @@ export default function TrackRoundPage() {
               <div className="card" style={{ marginBottom: '1.5rem' }}>
                 {(secondShotLie === 'na' && secondShotPenalty !== '') ? (
                   <>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Wedge Shot to Green</label>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Green in Regulation (GIR)</label>
                     <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '0.75rem' }}>2nd shot was in hazard — how many wedge/approach shots to get on?</div>
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                      <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <div style={{ flex: '0 0 60px', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                         <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Shots</span>
                         <input
                           type="number"
                           inputMode="numeric"
-                          min={3}
-                          placeholder="e.g. 3"
-                          value={shotsToGreen ?? ''}
+                          placeholder=""
+                          value={shotsToGreen != null ? String(shotsToGreen) : ''}
                           onChange={(e) => {
                             const val = e.target.value;
-                            setShotsToGreen(val === '' ? null : parseInt(val));
+                            if (val === '') { setShotsToGreen(null); return; }
+                            const digit = val.slice(-1);
+                            const n = parseInt(digit, 10);
+                            if (isNaN(n) || n < 1) { setShotsToGreen(null); return; }
+                            const clamped = Math.min(9, n);
+                            setShotsToGreen(clamped);
+                            if (clamped > 0) {
+                              setWedgeShotDistances(prev => {
+                                const next = prev.slice(0, clamped);
+                                while (next.length < clamped) next.push(0);
+                                return next;
+                              });
+                            }
                           }}
                           style={{
                             width: '100%',
                             minHeight: 'var(--touch-min)',
-                            padding: 'var(--touch-padding)',
+                            padding: '14px 8px',
+                            textAlign: 'center',
                             backgroundColor: 'var(--bg-secondary)',
                             border: '2px solid var(--border-primary)',
                             borderRadius: 'var(--radius-md)',
                             color: 'var(--text-primary)',
+                            WebkitTextFillColor: 'var(--text-primary)',
                             fontSize: 'var(--font-base)',
                           }}
                         />
                       </div>
-                      <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Yds</span>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          placeholder="e.g. 40"
-                          value={wedgeShotDistance ?? ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setWedgeShotDistance(val === '' ? null : parseInt(val));
-                          }}
-                          style={{
-                            width: '100%',
-                            minHeight: 'var(--touch-min)',
-                            padding: 'var(--touch-padding)',
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '2px solid var(--border-primary)',
-                            borderRadius: 'var(--radius-md)',
-                            color: 'var(--text-primary)',
-                            fontSize: 'var(--font-base)',
-                          }}
-                        />
-                      </div>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => setActiveCard(6)}
-                        disabled={!shotsToGreen}
-                        style={{ flex: '0 0 auto', minWidth: 'min-content', opacity: shotsToGreen ? 1 : 0.5, alignSelf: 'flex-end' }}
-                      >
-                        Next
-                      </button>
+                      {wedgeOverThree && (
+                        <div style={{ flex: '1 1 100%', fontSize: '0.95rem', fontWeight: '600', color: 'var(--color-interactive)', marginTop: '0.25rem' }}>
+                          Call your coach!
+                        </div>
+                      )}
+                      {!wedgeOverThree && wedgeCount >= 1 && Array.from({ length: wedgeCount }, (_, i) => i).map((i) => (
+                        <div key={i} style={{ flex: '1 1 60px', minWidth: '60px', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{wedgeCount > 1 ? `Shot ${i + 1} (yd)` : 'Yds'}</span>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            placeholder=""
+                            value={wedgeShotDistances[i] ? String(wedgeShotDistances[i]) : ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const num = val === '' ? 0 : parseInt(val);
+                              setWedgeShotDistances(prev => {
+                                const next = [...prev];
+                                while (next.length <= i) next.push(0);
+                                next[i] = num;
+                                return next;
+                              });
+                            }}
+                            style={{
+                              width: '100%',
+                              minHeight: 'var(--touch-min)',
+                              padding: '14px 8px',
+                              textAlign: 'center',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '2px solid var(--border-primary)',
+                              borderRadius: 'var(--radius-md)',
+                              color: 'var(--text-primary)',
+                              WebkitTextFillColor: 'var(--text-primary)',
+                              fontSize: 'var(--font-base)',
+                            }}
+                          />
+                        </div>
+                      ))}
                     </div>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => setActiveCard(6)}
+                      disabled={!shotsToGreen}
+                      style={{ width: '100%', marginTop: '0.75rem', opacity: shotsToGreen ? 1 : 0.5 }}
+                    >
+                      Next
+                    </button>
                   </>
                 ) : (
                   <>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Wedge Shot to Green</label>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Green in Regulation (GIR)</label>
                     <div style={{ display: 'flex', gap: '0.75rem', marginBottom: gir === 'n' ? '1.5rem' : '0', flexWrap: 'wrap' }}>
                       {[{ value: 'y' as const, label: 'On!' }, { value: 'n' as const, label: 'Missed' }].map((opt) => (
                         <button
                           key={opt.value}
                           onClick={() => {
                             setGir(opt.value);
+                            setShotsToGreen(null);
+                            setWedgeShotDistances([]);
                             if (opt.value === 'y') setActiveCard(6);
                           }}
                           className="btn btn-secondary"
@@ -1399,63 +1438,82 @@ export default function TrackRoundPage() {
                         <div style={{ marginBottom: '1rem' }}>
                           <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Wedge Shot(s) & distance</label>
                           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                            <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <div style={{ flex: '0 0 60px', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                               <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Shots</span>
                               <input
                                 type="number"
                                 inputMode="numeric"
-                                min={3}
-                                placeholder="e.g. 3"
-                                value={shotsToGreen ?? ''}
+                                placeholder=""
+                                value={shotsToGreen != null ? String(shotsToGreen) : ''}
                                 onChange={(e) => {
                                   const val = e.target.value;
-                                  setShotsToGreen(val === '' ? null : parseInt(val));
+                                  if (val === '') { setShotsToGreen(null); return; }
+                                  const digit = val.slice(-1);
+                                  const n = parseInt(digit, 10);
+                                  if (isNaN(n) || n < 1) { setShotsToGreen(null); return; }
+                                  const clamped = Math.min(9, n);
+                                  setShotsToGreen(clamped);
+                                  if (clamped > 0) {
+                                    setWedgeShotDistances(prev => { const next = prev.slice(0, clamped); while (next.length < clamped) next.push(0); return next; });
+                                  }
                                 }}
                                 style={{
                                   width: '100%',
                                   minHeight: 'var(--touch-min)',
-                                  padding: 'var(--touch-padding)',
+                                  padding: '14px 8px',
+                                  textAlign: 'center',
                                   backgroundColor: 'var(--bg-secondary)',
                                   border: '2px solid var(--border-primary)',
                                   borderRadius: 'var(--radius-md)',
                                   color: 'var(--text-primary)',
+                                  WebkitTextFillColor: 'var(--text-primary)',
                                   fontSize: 'var(--font-base)',
                                 }}
                               />
                             </div>
-                            <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Yds</span>
-                              <input
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                placeholder="e.g. 40"
-                                value={wedgeShotDistance ?? ''}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setWedgeShotDistance(val === '' ? null : parseInt(val));
-                                }}
-                                style={{
-                                  width: '100%',
-                                  minHeight: 'var(--touch-min)',
-                                  padding: 'var(--touch-padding)',
-                                  backgroundColor: 'var(--bg-secondary)',
-                                  border: '2px solid var(--border-primary)',
-                                  borderRadius: 'var(--radius-md)',
-                                  color: 'var(--text-primary)',
-                                  fontSize: 'var(--font-base)',
-                                }}
-                              />
-                            </div>
-                            <button
-                              className="btn btn-primary"
-                              onClick={() => setActiveCard(6)}
-                              disabled={!shotsToGreen || (approachMissLocation === 'hazard' && !penalty)}
-                              style={{ flex: '0 0 auto', minWidth: 'min-content', opacity: shotsToGreen && (approachMissLocation !== 'hazard' || penalty) ? 1 : 0.5, alignSelf: 'flex-end' }}
-                            >
-                              Next
-                            </button>
+                            {wedgeOverThree && (
+                              <div style={{ flex: '1 1 100%', fontSize: '0.95rem', fontWeight: '600', color: 'var(--color-interactive)', marginTop: '0.25rem' }}>
+                                Call your coach!
+                              </div>
+                            )}
+                            {!wedgeOverThree && wedgeCount >= 1 && Array.from({ length: wedgeCount }, (_, i) => i).map((i) => (
+                              <div key={i} style={{ flex: '1 1 60px', minWidth: '60px', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{wedgeCount > 1 ? `Shot ${i + 1} (yd)` : 'Yds'}</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={0}
+                                  placeholder=""
+                                  value={wedgeShotDistances[i] ? String(wedgeShotDistances[i]) : ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    const num = val === '' ? 0 : parseInt(val);
+                                    setWedgeShotDistances(prev => { const next = [...prev]; while (next.length <= i) next.push(0); next[i] = num; return next; });
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    minHeight: 'var(--touch-min)',
+                                    padding: '14px 8px',
+                                    textAlign: 'center',
+                                    backgroundColor: 'var(--bg-secondary)',
+                                    border: '2px solid var(--border-primary)',
+                                    borderRadius: 'var(--radius-md)',
+                                    color: 'var(--text-primary)',
+                                    WebkitTextFillColor: 'var(--text-primary)',
+                                    fontSize: 'var(--font-base)',
+                                  }}
+                                />
+                              </div>
+                            ))}
                           </div>
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => setActiveCard(6)}
+                            disabled={!shotsToGreen || (approachMissLocation === 'hazard' && !penalty)}
+                            style={{ width: '100%', marginTop: '0.75rem', opacity: shotsToGreen && (approachMissLocation !== 'hazard' || penalty) ? 1 : 0.5 }}
+                          >
+                            Next
+                          </button>
                         </div>
                       </>
                     )}
@@ -1521,7 +1579,9 @@ export default function TrackRoundPage() {
                 <span className="collapsed-summary-label">GIR:</span>
                 <span>
                   <span className="collapsed-summary-value">
-                    {gir === 'y' ? 'On!' : `Missed (${shotsToGreen || '?'} shots)`}
+                    {gir === 'y' ? 'On!' : `Miss · ${shotsToGreen || '?'} ${(shotsToGreen ?? 0) === 1 ? 'Shot' : 'Shots'}`}
+                    {approachMissLocation ? ` · ${approachMissLocation.charAt(0).toUpperCase() + approachMissLocation.slice(1)}` : ''}
+                    {wedgeShotDistances.filter(Boolean).length > 0 ? ` · ${wedgeShotDistances.filter(Boolean).join('/')}yd` : ''}
                     {penalty ? ` (+${penalty})` : ''}
                   </span>
                   <span className="collapsed-summary-edit">Edit</span>
@@ -1539,6 +1599,8 @@ export default function TrackRoundPage() {
                           key={option.value}
                           onClick={() => {
                             setGir(option.value as 'y' | 'n');
+                            setShotsToGreen(null);
+                            setWedgeShotDistances([]);
                             if (option.value === 'y') {
                                setActiveCard(5); // Auto jump to putting
                             }
@@ -1557,12 +1619,13 @@ export default function TrackRoundPage() {
                   </div>
                 )}
 
-                {/* If GIR is No (either manually chosen or auto-denied) */}
+                {/* If GIR is No: Approach Shot Results (same flow as Par 5 wedge for consistent stats) */}
                 {(gir === 'n' || (fairway === 'na' && teePenalty !== '' && ((par === 4 && parseInt(teePenalty) >= 1) || (par === 5 && parseInt(teePenalty) >= 2)))) && (
                   <>
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Additional Penalties?</label>
-                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Approach Shot</label>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Penalties?</label>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         {['None', '1', '2', '3'].map((opt) => {
                           const strokes = opt === 'None' ? '' : opt;
                           const isSelected = penalty === strokes;
@@ -1572,7 +1635,8 @@ export default function TrackRoundPage() {
                               onClick={() => setPenalty(isSelected ? '' : strokes)}
                               className="btn btn-secondary"
                               style={{
-                                flex: 1,
+                                flex: '1 1 0%',
+                                minWidth: '2.5rem',
                                 fontSize: '0.85rem',
                                 padding: '0.5rem',
                                 backgroundColor: isSelected ? 'var(--color-interactive)' : 'transparent',
@@ -1585,42 +1649,117 @@ export default function TrackRoundPage() {
                         })}
                       </div>
                     </div>
-
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                        Wedge Shot(s)
-                      </label>
-                      <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={par === 3 ? 1 : par === 4 ? 2 : 3}
-                          value={shotsToGreen ?? ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setShotsToGreen(val === '' ? null : parseInt(val));
-                          }}
-                          style={{
-                            flex: '1 1 0%',
-                            minWidth: 0,
-                            minHeight: 'var(--touch-min)',
-                            padding: 'var(--touch-padding)',
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '2px solid var(--border-primary)',
-                            borderRadius: 'var(--radius-md)',
-                            color: 'var(--text-primary)',
-                            fontSize: 'var(--font-base)',
-                          }}
-                        />
-                        <button 
-                          className="btn btn-primary"
-                          onClick={() => setActiveCard(5)}
-                          disabled={!shotsToGreen}
-                          style={{ flex: '0 0 30%', opacity: shotsToGreen ? 1 : 0.5 }}
-                        >
-                          Next
-                        </button>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Where?</label>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {[
+                          { value: 'short' as const, label: 'Short' },
+                          { value: 'sand' as const, label: 'Sand' },
+                          { value: 'long' as const, label: 'Long' },
+                          { value: 'hazard' as const, label: 'Hazard' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setApproachMissLocation(opt.value)}
+                            className="btn btn-secondary"
+                            style={{
+                              flex: 1,
+                              minWidth: 'min-content',
+                              fontSize: '0.85rem',
+                              padding: '0.5rem',
+                              backgroundColor: approachMissLocation === opt.value ? 'var(--color-interactive)' : 'transparent',
+                              color: approachMissLocation === opt.value ? '#000' : 'var(--color-interactive)',
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
                       </div>
+                    </div>
+                    {approachMissLocation === 'hazard' && (
+                      <div style={{ marginBottom: '0.75rem', fontSize: '0.8rem', opacity: 0.8 }}>
+                        Water / duff by green — select penalty above
+                      </div>
+                    )}
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Wedge Shot(s) & distance</label>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                        <div style={{ flex: '0 0 60px', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Shots</span>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            placeholder=""
+                            value={shotsToGreen != null ? String(shotsToGreen) : ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '') { setShotsToGreen(null); return; }
+                              const digit = val.slice(-1);
+                              const n = parseInt(digit, 10);
+                              if (isNaN(n) || n < 1) { setShotsToGreen(null); return; }
+                              const clamped = Math.min(9, n);
+                              setShotsToGreen(clamped);
+                              if (clamped > 0) {
+                                setWedgeShotDistances(prev => { const next = prev.slice(0, clamped); while (next.length < clamped) next.push(0); return next; });
+                              }
+                            }}
+                            style={{
+                              width: '100%',
+                              minHeight: 'var(--touch-min)',
+                              padding: '14px 8px',
+                              textAlign: 'center',
+                              backgroundColor: 'var(--bg-secondary)',
+                              border: '2px solid var(--border-primary)',
+                              borderRadius: 'var(--radius-md)',
+                              color: 'var(--text-primary)',
+                              WebkitTextFillColor: 'var(--text-primary)',
+                              fontSize: 'var(--font-base)',
+                            }}
+                          />
+                        </div>
+                        {wedgeOverThree && (
+                          <div style={{ flex: '1 1 100%', fontSize: '0.95rem', fontWeight: '600', color: 'var(--color-interactive)', marginTop: '0.25rem' }}>
+                            Call your coach!
+                          </div>
+                        )}
+                        {!wedgeOverThree && wedgeCount >= 1 && Array.from({ length: wedgeCount }, (_, i) => i).map((i) => (
+                          <div key={i} style={{ flex: '1 1 60px', minWidth: '60px', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{wedgeCount > 1 ? `Shot ${i + 1} (yd)` : 'Yds'}</span>
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              placeholder=""
+                              value={wedgeShotDistances[i] ? String(wedgeShotDistances[i]) : ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const num = val === '' ? 0 : parseInt(val);
+                                setWedgeShotDistances(prev => { const next = [...prev]; while (next.length <= i) next.push(0); next[i] = num; return next; });
+                              }}
+                              style={{
+                                width: '100%',
+                                minHeight: 'var(--touch-min)',
+                                padding: '14px 8px',
+                                textAlign: 'center',
+                                backgroundColor: 'var(--bg-secondary)',
+                                border: '2px solid var(--border-primary)',
+                                borderRadius: 'var(--radius-md)',
+                                color: 'var(--text-primary)',
+                                WebkitTextFillColor: 'var(--text-primary)',
+                                fontSize: 'var(--font-base)',
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => setActiveCard(5)}
+                        disabled={!shotsToGreen || (approachMissLocation === 'hazard' && !penalty)}
+                        style={{ width: '100%', marginTop: '0.75rem', opacity: shotsToGreen && (approachMissLocation !== 'hazard' || penalty) ? 1 : 0.5 }}
+                      >
+                        Next
+                      </button>
                     </div>
                   </>
                 )}
@@ -1735,7 +1874,7 @@ export default function TrackRoundPage() {
                 onClick={() => setIsStatsExpanded(!isStatsExpanded)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginRight: '1rem', minWidth: 0 }}>
-                  <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Current Round Stats</h2>
+                  <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Snapshot</h2>
                   <span style={{ 
                     fontSize: '1.1rem', 
                     opacity: 0.85, 
@@ -1792,6 +1931,12 @@ export default function TrackRoundPage() {
                     <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{stats.scramblingPct}%</div>
                     <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Scrambling</div>
                   </div>
+                  {stats.needWedgePractice > 0 && (
+                    <div style={{ padding: '0.4rem 0', gridColumn: '1 / -1' }}>
+                      <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700', color: 'var(--color-interactive)' }}>⚠️ {stats.needWedgePractice}</div>
+                      <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Need Wedge Practice</div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
