@@ -1,5 +1,29 @@
 # Version History
 
+## Version 3.6.0 - Par 5 Tracking & Dashboard Stats (March 2026)
+
+### ✅ Features & Improvements
+
+**Par 5 flow & data:**
+- **2nd Shot Result** – Added **On Green!** option; choosing it skips to putting (GIR in 2). All other results go to Wedge Shot to Green.
+- **Wedge Shot to Green** – **Where?** now includes **Hazard** (water/duff by green) with +1/+2/+3 penalty.
+- **Wedge Shot(s) + Yds** – When entering wedge shots to green, players can record **distance (yards)**; stored and included in stats.
+
+**Dashboard stats (Par 5 · 2nd Shot & Wedge):**
+- **Avg 2nd shot dist** – Average layup distance (yd) and hole count.
+- **On green in 2** – % and count of Par 5s where 2nd shot was On Green!
+- **2nd shot in trouble %** – % of Par 5s where 2nd shot was in hazard.
+- **Avg wedge to green** – Average wedge-shot distance (yd) when GIR was missed, with hole count. Placeholder when no data yet.
+
+All new Par 5 fields are persisted, sent to the API, and reflected in cumulative dashboard stats. Safe fallbacks (—) when values are zero or missing.
+
+### 🔧 Technical Changes
+- Types: `secondShotLie` includes `'green'`, `approachMissLocation` includes `'hazard'`, added `wedgeShotDistance`.
+- Backend: `par5OnGreenCount`, `par5OnGreenPct`, `avgWedgeShotDistance`, `wedgeShotDistanceCount` in stats calculator.
+- Dashboard: Par 5 card shows 2×2 grid with all four metrics; wedge row conditional on data.
+
+---
+
 ## Version 3.3.1 - Bug Fixes (January 2026)
 
 ### 🐛 Bug Fixes
@@ -174,6 +198,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.5.0 (Production)
+**Current Version:** 3.6.0 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

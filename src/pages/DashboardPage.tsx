@@ -293,7 +293,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Approach Shot Performance - Compact */}
-              <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '2rem' }}>
+              <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '1rem' }}>
                 <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.75rem', textAlign: 'center', fontWeight: 'bold' }}>
                   Approach GIR %
                 </div>
@@ -311,6 +311,51 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Par 5 · All new tracking (when we have data) */}
+              {statsData.cumulative?.par5SecondShotCount > 0 && (
+                <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.75rem', textAlign: 'center', fontWeight: 'bold' }}>
+                    Par 5 · 2nd Shot & Wedge
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', textAlign: 'center' }}>
+                    <div style={{ padding: '0.5rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Avg 2nd shot dist</div>
+                      <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>
+                        {statsData.cumulative.par5SecondShotAvg > 0 ? `${statsData.cumulative.par5SecondShotAvg} yd` : '—'}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.5 }}>{statsData.cumulative.par5SecondShotCount} holes</div>
+                    </div>
+                    <div style={{ padding: '0.5rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>On green in 2</div>
+                      <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>
+                        {typeof statsData.cumulative.par5OnGreenPct === 'number' ? `${statsData.cumulative.par5OnGreenPct}%` : '—'}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.5 }}>{statsData.cumulative.par5OnGreenCount ?? 0} holes</div>
+                    </div>
+                    <div style={{ padding: '0.5rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>2nd shot in trouble %</div>
+                      <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>
+                        {typeof statsData.cumulative.par5SecondShotTroublePct === 'number' ? `${statsData.cumulative.par5SecondShotTroublePct}%` : '—'}
+                      </div>
+                    </div>
+                    {statsData.cumulative?.wedgeShotDistanceCount > 0 ? (
+                      <div style={{ padding: '0.5rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                        <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Avg wedge to green</div>
+                        <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>
+                          {statsData.cumulative.avgWedgeShotDistance > 0 ? `${statsData.cumulative.avgWedgeShotDistance} yd` : '—'}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', opacity: 0.5 }}>{statsData.cumulative.wedgeShotDistanceCount} holes (missed GIR)</div>
+                      </div>
+                    ) : (
+                      <div style={{ padding: '0.5rem', backgroundColor: 'rgba(221, 237, 210, 0.04)', borderRadius: 'var(--radius-sm)' }}>
+                        <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>Wedge to green</div>
+                        <div style={{ fontSize: 'var(--font-sm)', opacity: 0.6 }}>Track distance when you miss GIR</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* ==================== NEW FEATURES ==================== */}
 

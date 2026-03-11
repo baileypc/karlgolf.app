@@ -15,6 +15,12 @@ export interface Hole {
   penalty?: 'ob' | 'water' | 'lost' | 'wrong' | 'other' | null;
   proximity?: number;
   approachLie?: 'fairway' | 'rough' | 'sand' | null;
+  // Par 5: second shot (layup) and wedge-to-green result
+  secondShotDistance?: number;
+  secondShotLie?: 'fairway' | 'rough' | 'sand' | 'hazard' | 'green';
+  secondShotPenalty?: number;
+  approachMissLocation?: 'short' | 'sand' | 'long' | 'hazard';
+  wedgeShotDistance?: number; // yards (when missed GIR, wedge/approach to green)
 }
 
 export interface ApproachCategory {

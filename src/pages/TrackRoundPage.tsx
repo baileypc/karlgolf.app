@@ -24,6 +24,12 @@ interface LocalHole {
   shotsToGreen?: number;
   penalty?: string;
   proximity?: number;
+  // Par 5 only: second shot and wedge result
+  secondShotDistance?: number;
+  secondShotLie?: 'c' | 'rough' | 'sand' | 'na' | 'green';
+  secondShotPenalty?: string;
+  approachMissLocation?: 'short' | 'sand' | 'long' | 'hazard';
+  wedgeShotDistance?: number;
 }
 
 // Convert local hole format to API format
@@ -42,16 +48,16 @@ const convertToAPIHole = (localHole: LocalHole): APIHole => {
     apiFairway = 'n'; // Unknown/missing = missed fairway
   }
 
-  return {
+  const apiHole: APIHole = {
     holeNumber: localHole.holeNumber,
     par: localHole.par,
     score: localHole.score,
-    gir: localHole.gir, // Keep as 'y'/'n' string
+    gir: localHole.gir,
     putts: localHole.putts,
     puttDistances: localHole.puttDistances,
-    fairway: apiFairway, // Keep as 'y'/'n'/null string
+    fairway: apiFairway,
     shotsToGreen: localHole.shotsToGreen,
-    penalty: null, // Penalty is stored in score, not sent separately
+    penalty: null,
     proximity: localHole.proximity,
     approachLie: localHole.par === 3 ? null
       : localHole.fairway === 'c' || localHole.fairway === 'l' || localHole.fairway === 'r' ? 'fairway'
@@ -59,6 +65,16 @@ const convertToAPIHole = (localHole: LocalHole): APIHole => {
       : localHole.fairway === 'sand' ? 'sand'
       : null,
   };
+  if (localHole.par === 5) {
+    if (localHole.secondShotDistance != null) apiHole.secondShotDistance = localHole.secondShotDistance;
+    if (localHole.secondShotLie != null) {
+      apiHole.secondShotLie = localHole.secondShotLie === 'na' ? 'hazard' : localHole.secondShotLie === 'c' ? 'fairway' : localHole.secondShotLie;
+    }
+    if (localHole.secondShotPenalty != null && localHole.secondShotPenalty !== '') apiHole.secondShotPenalty = parseInt(localHole.secondShotPenalty, 10);
+    if (localHole.approachMissLocation != null) apiHole.approachMissLocation = localHole.approachMissLocation;
+    if (localHole.wedgeShotDistance != null) apiHole.wedgeShotDistance = localHole.wedgeShotDistance;
+  }
+  return apiHole;
 };
 
 export default function TrackRoundPage() {
@@ -102,8 +118,14 @@ export default function TrackRoundPage() {
   const [penalty, setPenalty] = useState('');
   const [teePenalty, setTeePenalty] = useState(''); // Tee-shot hazard penalty (Par 4/5 only)
   const [proximity, setProximity] = useState<number | null>(null);
+  // Par 5 only: second shot and wedge result
+  const [secondShotDistance, setSecondShotDistance] = useState<number | null>(null);
+  const [secondShotLie, setSecondShotLie] = useState<'c' | 'rough' | 'sand' | 'na' | 'green' | null>(null);
+  const [secondShotPenalty, setSecondShotPenalty] = useState('');
+  const [approachMissLocation, setApproachMissLocation] = useState<'short' | 'sand' | 'long' | 'hazard' | null>(null);
+  const [wedgeShotDistance, setWedgeShotDistance] = useState<number | null>(null);
 
-  const [activeCard, setActiveCard] = useState<number>(1); // 1: Par, 2: Tee, 3: Approach, 4: Result, 5: Green
+  const [activeCard, setActiveCard] = useState<number>(1); // 1: Par, 2: Tee, 3: Approach/2ndShot, 4: GIR/2ndTrouble, 5: Green/Wedge, 6: Green (Par 5 only)
   const [isStatsExpanded, setIsStatsExpanded] = useState<boolean>(false);
 
   // Check server for incomplete rounds on mount (only when logged in)
@@ -149,18 +171,26 @@ export default function TrackRoundPage() {
     if (rd.coursePar) setCoursePar(rd.coursePar);
 
     // Convert API holes back to LocalHole format
-    const loadedHoles: LocalHole[] = (rd.holes || []).map((h: any) => ({
-      holeNumber: h.holeNumber,
-      par: h.par,
-      score: h.score,
-      gir: h.gir || 'n',
-      putts: h.putts || 0,
-      puttDistances: h.puttDistances || [],
-      fairway: h.fairway === 'y' ? 'c' : h.fairway === 'n' ? 'rough' : h.fairway || undefined,
-      shotsToGreen: h.shotsToGreen,
-      penalty: h.penalty || '',
-      proximity: h.proximity || 0,
-    }));
+    const loadedHoles: LocalHole[] = (rd.holes || []).map((h: any) => {
+      const secondShotLieLocal = h.secondShotLie === 'fairway' ? 'c' : h.secondShotLie === 'hazard' ? 'na' : h.secondShotLie || undefined;
+      return {
+        holeNumber: h.holeNumber,
+        par: h.par,
+        score: h.score,
+        gir: h.gir || 'n',
+        putts: h.putts || 0,
+        puttDistances: h.puttDistances || [],
+        fairway: h.fairway === 'y' ? 'c' : h.fairway === 'n' ? 'rough' : h.fairway || undefined,
+        shotsToGreen: h.shotsToGreen,
+        penalty: h.penalty || '',
+        proximity: h.proximity || 0,
+        secondShotDistance: h.secondShotDistance,
+        secondShotLie: secondShotLieLocal,
+        secondShotPenalty: h.secondShotPenalty != null ? String(h.secondShotPenalty) : undefined,
+        approachMissLocation: h.approachMissLocation,
+        wedgeShotDistance: h.wedgeShotDistance,
+      };
+    });
 
     setHoles(loadedHoles);
     setCurrentHole(loadedHoles.length + 1);
@@ -203,7 +233,11 @@ export default function TrackRoundPage() {
           if (f.shotsToGreen !== undefined) setShotsToGreen(f.shotsToGreen);
           if (f.penalty !== undefined) setPenalty(f.penalty);
           if (f.proximity !== undefined) setProximity(f.proximity);
-          // approachLie is now derived from fairway, no need to restore
+          if (f.secondShotDistance !== undefined) setSecondShotDistance(f.secondShotDistance);
+          if (f.secondShotLie !== undefined) setSecondShotLie(f.secondShotLie);
+          if (f.secondShotPenalty !== undefined) setSecondShotPenalty(f.secondShotPenalty);
+          if (f.approachMissLocation !== undefined) setApproachMissLocation(f.approachMissLocation);
+          if (f.wedgeShotDistance !== undefined) setWedgeShotDistance(f.wedgeShotDistance);
         }
       }
     } catch (e) {
@@ -310,11 +344,16 @@ export default function TrackRoundPage() {
           shotsToGreen,
           penalty,
           proximity,
+          secondShotDistance,
+          secondShotLie,
+          secondShotPenalty,
+          approachMissLocation,
+          wedgeShotDistance,
         },
         lastUpdated: new Date().toISOString(),
       }));
     }
-  }, [holes, courseName, courseMetadata, coursePar, roundStarted, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity]);
+  }, [holes, courseName, courseMetadata, coursePar, roundStarted, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity, secondShotDistance, secondShotLie, secondShotPenalty, approachMissLocation, wedgeShotDistance]);
 
   // Helper function to show alert modal
 
@@ -356,6 +395,11 @@ export default function TrackRoundPage() {
     setShotsToGreen(hole.shotsToGreen || null);
     setPenalty(hole.penalty || '');
     setProximity(hole.proximity || null);
+    setSecondShotDistance(hole.secondShotDistance ?? null);
+    setSecondShotLie(hole.secondShotLie ?? null);
+    setSecondShotPenalty(hole.secondShotPenalty ?? '');
+    setApproachMissLocation(hole.approachMissLocation ?? null);
+    setWedgeShotDistance(hole.wedgeShotDistance ?? null);
     // Don't change currentHole - it should stay as the next hole to be entered
 
     // Close modal and scroll to form
@@ -481,12 +525,32 @@ export default function TrackRoundPage() {
           setIsSubmitting(false);
           return;
         }
-        // For par 4/5, penalty is optional (can have fairway without penalty)
-        // No validation needed here - penalty is separate from fairway
       }
 
-      // Determine if GIR should be 'n' (either explicitly set or auto-set for penalty +2/+3)
-      const isGirNo = gir === 'n' || (penalty === '2' || penalty === '3');
+      // Par 5: require 2nd shot distance and result
+      if (par === 5) {
+        if (secondShotDistance == null) {
+          setValidationError('Please enter 2nd shot distance');
+          validationErrorModal.open();
+          setIsSubmitting(false);
+          return;
+        }
+        if (secondShotLie == null) {
+          setValidationError('Please select 2nd shot result');
+          validationErrorModal.open();
+          setIsSubmitting(false);
+          return;
+        }
+        if (secondShotLie === 'na' && secondShotPenalty === '') {
+          setValidationError('Please select 2nd shot penalty');
+          validationErrorModal.open();
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Determine if GIR should be 'n' (explicit, or tee/approach penalty, or Par 5 2nd shot hazard)
+      const isGirNo = gir === 'n' || (penalty === '2' || penalty === '3') || (par === 5 && secondShotLie === 'na');
 
       // GIR validation - only required if not auto-set by penalty +2/+3
       if (gir === null && !(penalty === '2' || penalty === '3')) {
@@ -499,6 +563,13 @@ export default function TrackRoundPage() {
       // Shots to Green validation (required if GIR is 'n' - either explicitly or auto-set)
       if (isGirNo && shotsToGreen === null) {
         setValidationError('Please enter shots to green');
+        validationErrorModal.open();
+        setIsSubmitting(false);
+        return;
+      }
+      // Par 5 wedge miss in hazard: require penalty
+      if (par === 5 && gir === 'n' && approachMissLocation === 'hazard' && !penalty) {
+        setValidationError('Please select wedge penalty');
         validationErrorModal.open();
         setIsSubmitting(false);
         return;
@@ -525,14 +596,15 @@ export default function TrackRoundPage() {
       // - GIR = No: Tee shot (1) + additional shots to green + putts + penalties
       //   Example Par 3: 1 (tee) + 1 (second shot) + 2 putts = 4
       const teePenaltyNum = parseInt(teePenalty || '0');
+      const secondShotPenaltyNum = par === 5 ? parseInt(secondShotPenalty || '0') : 0;
       let score: number;
       if (gir === 'y') {
-        // GIR: Tee shot reached green (par - 2 shots) + putts + any tee penalty
-        score = (par - 2) + putts + teePenaltyNum + parseInt(penalty || '0');
+        // GIR: shots to green (par-2 for par3, 2 for par4, 3 for par5) + putts + penalties
+        score = (par - 2) + putts + teePenaltyNum + secondShotPenaltyNum + parseInt(penalty || '0');
       } else {
-        // No GIR: Tee shot (1) + additional shots to green + putts + tee penalty + approach penalty
+        // No GIR: shots to green + putts + tee penalty + second shot penalty (Par 5) + approach penalty
         const additionalShots = shotsToGreen || 0;
-        score = 1 + additionalShots + putts + teePenaltyNum + parseInt(penalty || '0');
+        score = 1 + additionalShots + putts + teePenaltyNum + secondShotPenaltyNum + parseInt(penalty || '0');
       }
 
       // Use editingHole if editing, otherwise use currentHole for new holes
@@ -542,17 +614,22 @@ export default function TrackRoundPage() {
 
       const hole: LocalHole = {
         holeNumber: holeNumber,
-        par: par as 3 | 4 | 5, // Assert par is one of the valid values
+        par: par as 3 | 4 | 5,
         score,
-        gir: gir || 'n', // Default to 'n' if null (e.g., hazard +2/+3)
+        gir: gir || 'n',
         putts,
         puttDistances,
         fairway: par === 3 ? 'na' : fairway!,
         shotsToGreen: shotsToGreen || undefined,
-        penalty: teePenaltyNum > 0 || parseInt(penalty || '0') > 0
-          ? String(teePenaltyNum + parseInt(penalty || '0'))
+        penalty: teePenaltyNum > 0 || secondShotPenaltyNum > 0 || parseInt(penalty || '0') > 0
+          ? String(teePenaltyNum + secondShotPenaltyNum + parseInt(penalty || '0'))
           : undefined,
         proximity: proximity || undefined,
+        secondShotDistance: par === 5 ? (secondShotDistance ?? undefined) : undefined,
+        secondShotLie: par === 5 ? (secondShotLie ?? undefined) : undefined,
+        secondShotPenalty: par === 5 && secondShotPenalty ? secondShotPenalty : undefined,
+        approachMissLocation: par === 5 ? (approachMissLocation ?? undefined) : undefined,
+        wedgeShotDistance: par === 5 ? (wedgeShotDistance ?? undefined) : undefined,
       };
 
       // Store whether we're editing before clearing the state
@@ -636,6 +713,11 @@ export default function TrackRoundPage() {
       setPenalty('');
       setTeePenalty('');
       setProximity(null);
+      setSecondShotDistance(null);
+      setSecondShotLie(null);
+      setSecondShotPenalty('');
+      setApproachMissLocation(null);
+      setWedgeShotDistance(null);
       setActiveCard(1);
 
       // If we were editing, also ensure editingHole is cleared (redundant but safe)
@@ -1017,9 +1099,374 @@ export default function TrackRoundPage() {
             )
           )}
 
-          {/* CARD 3: Approach Distance (Setup) */}
-          {/* Unlocked if Par is set, and (if par 4/5) fairway is resolved (fairway known, and if hazard, penalty known) */}
-          {par !== null && (par === 3 || fairway !== null) && (par === 3 || fairway !== 'na' || teePenalty !== '') && (
+          {/* CARD 3 (Par 5): 2nd Shot Distance */}
+          {par === 5 && fairway !== null && (fairway !== 'na' || teePenalty !== '') && (
+            activeCard !== 3 && secondShotDistance != null ? (
+              <div className="collapsed-summary" onClick={() => setActiveCard(3)}>
+                <span className="collapsed-summary-label">2nd Shot Distance:</span>
+                <span><span className="collapsed-summary-value">{secondShotDistance} yds</span><span className="collapsed-summary-edit">Edit</span></span>
+              </div>
+            ) : activeCard === 3 && par === 5 && (
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+                  2nd Shot Distance <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>(yards)</span>
+                </label>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '0.75rem', fontStyle: 'italic' }}>
+                  How far was your second shot (layup)?
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="e.g. 180"
+                    value={secondShotDistance ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSecondShotDistance(val === '' ? null : parseInt(val));
+                    }}
+                    style={{
+                      flex: '1 1 0%',
+                      minWidth: 0,
+                      minHeight: 'var(--touch-min)',
+                      padding: 'var(--touch-padding)',
+                      backgroundColor: 'var(--bg-secondary)',
+                      border: '2px solid var(--border-primary)',
+                      borderRadius: 'var(--radius-md)',
+                      color: 'var(--text-primary)',
+                      fontSize: 'var(--font-base)',
+                    }}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setActiveCard(4)}
+                    disabled={secondShotDistance == null}
+                    style={{ flex: '0 0 30%', minWidth: 'min-content', opacity: secondShotDistance != null ? 1 : 0.5 }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )
+          )}
+
+          {/* CARD 4 (Par 5): 2nd Shot — Into trouble? */}
+          {par === 5 && activeCard >= 4 && secondShotDistance != null && (
+            activeCard !== 4 && secondShotLie !== null ? (
+              <div className="collapsed-summary" onClick={() => setActiveCard(4)}>
+                <span className="collapsed-summary-label">2nd Shot:</span>
+                <span>
+                  <span className="collapsed-summary-value">
+                    {secondShotLie === 'green' ? 'On Green!' : secondShotLie === 'c' ? 'Fairway' : secondShotLie === 'rough' ? 'Rough' : secondShotLie === 'sand' ? 'Sand' : `Hazard ${secondShotPenalty ? '(+' + secondShotPenalty + ')' : ''}`}
+                  </span>
+                  <span className="collapsed-summary-edit">Edit</span>
+                </span>
+              </div>
+            ) : activeCard === 4 && (
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>2nd Shot Result</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+                  {[
+                    { value: 'c' as const, label: 'Fairway' },
+                    { value: 'rough' as const, label: 'Rough' },
+                    { value: 'sand' as const, label: 'Sand' },
+                    { value: 'na' as const, label: 'Hazard' },
+                    { value: 'green' as const, label: 'On Green!' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setSecondShotLie(option.value);
+                        setSecondShotPenalty('');
+                        if (option.value === 'na') setGir('n');
+                        if (option.value === 'green') {
+                          setGir('y');
+                          setActiveCard(6);
+                        } else if (option.value !== 'na') {
+                          setActiveCard(5);
+                        }
+                      }}
+                      className="btn btn-secondary"
+                      style={{
+                        gridColumn: option.value === 'green' ? '1 / -1' : undefined,
+                        backgroundColor: (option.value === 'c' ? secondShotLie === 'c' : secondShotLie === option.value) ? 'var(--color-interactive)' : 'transparent',
+                        color: (option.value === 'c' ? secondShotLie === 'c' : secondShotLie === option.value) ? '#000' : 'var(--color-interactive)',
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                {secondShotLie === 'na' && (
+                  <div style={{ marginTop: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>2nd Shot Penalty</label>
+                    <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem', opacity: 0.8 }}>
+                      OB (+1), Water (+1), Unplayable (+2), or Lost Ball (+1)
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                      {[1, 2, 3].map((strokes) => {
+                        const isSelected = secondShotPenalty === strokes.toString();
+                        return (
+                          <button
+                            key={strokes}
+                            onClick={() => setSecondShotPenalty(isSelected ? '' : strokes.toString())}
+                            className="btn btn-secondary"
+                            style={{
+                              flex: '1 1 0%',
+                              minWidth: '3rem',
+                              backgroundColor: isSelected ? 'var(--color-interactive)' : 'transparent',
+                              color: isSelected ? '#000' : 'var(--color-interactive)',
+                            }}
+                          >
+                            +{strokes}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {secondShotPenalty !== '' && (
+                      <button
+                        className="btn btn-primary"
+                        style={{ width: '100%' }}
+                        onClick={() => setActiveCard(5)}
+                      >
+                        Next
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          )}
+
+          {/* CARD 5 (Par 5): Wedge Shot to Green (skip when 2nd shot was On Green!) */}
+          {par === 5 && activeCard >= 5 && secondShotLie !== null && secondShotLie !== 'green' && (secondShotLie !== 'na' || secondShotPenalty !== '') && (
+            activeCard !== 5 && gir !== null ? (
+              <div className="collapsed-summary" onClick={() => setActiveCard(5)}>
+                <span className="collapsed-summary-label">Wedge to Green:</span>
+                <span>
+                  <span className="collapsed-summary-value">
+                    {gir === 'y' ? 'On!' : `Missed (${shotsToGreen ?? '?'} shots)`}
+                    {approachMissLocation ? ` — ${approachMissLocation === 'hazard' ? 'Hazard' : approachMissLocation}` : ''}
+                    {wedgeShotDistance != null ? ` · ${wedgeShotDistance} yd` : ''}
+                  </span>
+                  <span className="collapsed-summary-edit">Edit</span>
+                </span>
+              </div>
+            ) : activeCard === 5 && (
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                {(secondShotLie === 'na' && secondShotPenalty !== '') ? (
+                  <>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Wedge Shot to Green</label>
+                    <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '0.75rem' }}>2nd shot was in hazard — how many wedge/approach shots to get on?</div>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                      <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Shots</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={3}
+                          placeholder="e.g. 3"
+                          value={shotsToGreen ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setShotsToGreen(val === '' ? null : parseInt(val));
+                          }}
+                          style={{
+                            width: '100%',
+                            minHeight: 'var(--touch-min)',
+                            padding: 'var(--touch-padding)',
+                            backgroundColor: 'var(--bg-secondary)',
+                            border: '2px solid var(--border-primary)',
+                            borderRadius: 'var(--radius-md)',
+                            color: 'var(--text-primary)',
+                            fontSize: 'var(--font-base)',
+                          }}
+                        />
+                      </div>
+                      <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Yds</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          placeholder="e.g. 40"
+                          value={wedgeShotDistance ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setWedgeShotDistance(val === '' ? null : parseInt(val));
+                          }}
+                          style={{
+                            width: '100%',
+                            minHeight: 'var(--touch-min)',
+                            padding: 'var(--touch-padding)',
+                            backgroundColor: 'var(--bg-secondary)',
+                            border: '2px solid var(--border-primary)',
+                            borderRadius: 'var(--radius-md)',
+                            color: 'var(--text-primary)',
+                            fontSize: 'var(--font-base)',
+                          }}
+                        />
+                      </div>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => setActiveCard(6)}
+                        disabled={!shotsToGreen}
+                        style={{ flex: '0 0 auto', minWidth: 'min-content', opacity: shotsToGreen ? 1 : 0.5, alignSelf: 'flex-end' }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Wedge Shot to Green</label>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: gir === 'n' ? '1.5rem' : '0', flexWrap: 'wrap' }}>
+                      {[{ value: 'y' as const, label: 'On!' }, { value: 'n' as const, label: 'Missed' }].map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => {
+                            setGir(opt.value);
+                            if (opt.value === 'y') setActiveCard(6);
+                          }}
+                          className="btn btn-secondary"
+                          style={{
+                            flex: 1,
+                            minWidth: 'min-content',
+                            backgroundColor: gir === opt.value ? 'var(--color-interactive)' : 'transparent',
+                            color: gir === opt.value ? '#000' : 'var(--color-interactive)',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                    {gir === 'n' && (
+                      <>
+                        <div style={{ marginBottom: '0.5rem' }}>
+                          <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Where?</label>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {[
+                              { value: 'short' as const, label: 'Short' },
+                              { value: 'sand' as const, label: 'Sand' },
+                              { value: 'long' as const, label: 'Long' },
+                              { value: 'hazard' as const, label: 'Hazard' },
+                            ].map((opt) => (
+                              <button
+                                key={opt.value}
+                                onClick={() => setApproachMissLocation(opt.value)}
+                                className="btn btn-secondary"
+                                style={{
+                                  flex: 1,
+                                  minWidth: 'min-content',
+                                  fontSize: '0.85rem',
+                                  padding: '0.5rem',
+                                  backgroundColor: approachMissLocation === opt.value ? 'var(--color-interactive)' : 'transparent',
+                                  color: approachMissLocation === opt.value ? '#000' : 'var(--color-interactive)',
+                                }}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {approachMissLocation === 'hazard' && (
+                          <div style={{ marginBottom: '0.75rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Penalty</label>
+                            <div style={{ fontSize: '0.8rem', opacity: 0.8, marginBottom: '0.35rem' }}>Water / duff by green — +1, +2, or +3</div>
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              {[1, 2, 3].map((n) => {
+                                const isSelected = penalty === n.toString();
+                                return (
+                                  <button
+                                    key={n}
+                                    onClick={() => setPenalty(isSelected ? '' : n.toString())}
+                                    className="btn btn-secondary"
+                                    style={{
+                                      flex: '1 1 0%',
+                                      minWidth: '2.5rem',
+                                      fontSize: '0.85rem',
+                                      padding: '0.4rem',
+                                      backgroundColor: isSelected ? 'var(--color-interactive)' : 'transparent',
+                                      color: isSelected ? '#000' : 'var(--color-interactive)',
+                                    }}
+                                  >
+                                    +{n}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        <div style={{ marginBottom: '1rem' }}>
+                          <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Wedge Shot(s) & distance</label>
+                          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                            <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Shots</span>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={3}
+                                placeholder="e.g. 3"
+                                value={shotsToGreen ?? ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setShotsToGreen(val === '' ? null : parseInt(val));
+                                }}
+                                style={{
+                                  width: '100%',
+                                  minHeight: 'var(--touch-min)',
+                                  padding: 'var(--touch-padding)',
+                                  backgroundColor: 'var(--bg-secondary)',
+                                  border: '2px solid var(--border-primary)',
+                                  borderRadius: 'var(--radius-md)',
+                                  color: 'var(--text-primary)',
+                                  fontSize: 'var(--font-base)',
+                                }}
+                              />
+                            </div>
+                            <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Yds</span>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                placeholder="e.g. 40"
+                                value={wedgeShotDistance ?? ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setWedgeShotDistance(val === '' ? null : parseInt(val));
+                                }}
+                                style={{
+                                  width: '100%',
+                                  minHeight: 'var(--touch-min)',
+                                  padding: 'var(--touch-padding)',
+                                  backgroundColor: 'var(--bg-secondary)',
+                                  border: '2px solid var(--border-primary)',
+                                  borderRadius: 'var(--radius-md)',
+                                  color: 'var(--text-primary)',
+                                  fontSize: 'var(--font-base)',
+                                }}
+                              />
+                            </div>
+                            <button
+                              className="btn btn-primary"
+                              onClick={() => setActiveCard(6)}
+                              disabled={!shotsToGreen || (approachMissLocation === 'hazard' && !penalty)}
+                              style={{ flex: '0 0 auto', minWidth: 'min-content', opacity: shotsToGreen && (approachMissLocation !== 'hazard' || penalty) ? 1 : 0.5, alignSelf: 'flex-end' }}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            )
+          )}
+
+          {/* CARD 3 (Par 3/4): Approach Distance (Setup) */}
+          {par !== null && par !== 5 && (par === 3 || fairway !== null) && (par === 3 || fairway !== 'na' || teePenalty !== '') && (
             activeCard !== 3 && proximity !== null ? (
               <div className="collapsed-summary" onClick={() => setActiveCard(3)}>
                 <span className="collapsed-summary-label">Approach Distance:</span>
@@ -1033,7 +1480,7 @@ export default function TrackRoundPage() {
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '0.75rem', fontStyle: 'italic' }}>
                   Distance of the shot intended to hit the green
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                   <input
                     type="number"
                     inputMode="numeric"
@@ -1055,10 +1502,10 @@ export default function TrackRoundPage() {
                       fontSize: 'var(--font-base)',
                     }}
                   />
-                  <button 
+                  <button
                     className="btn btn-primary"
                     onClick={() => setActiveCard(4)}
-                    style={{ flex: '0 0 30%' }}
+                    style={{ flex: '0 0 30%', minWidth: 'min-content' }}
                   >
                     Next
                   </button>
@@ -1067,14 +1514,14 @@ export default function TrackRoundPage() {
             )
           )}
 
-          {/* CARD 4: Result (GIR, Approach Penalty, Shots to Green) */}
-          {par !== null && (par === 3 || fairway !== null) && activeCard >= 4 && (
+          {/* CARD 4 (Par 3/4): Result (GIR, Approach Penalty, Shots to Green) */}
+          {par !== null && par !== 5 && (par === 3 || fairway !== null) && activeCard >= 4 && (
             activeCard !== 4 && gir !== null ? (
               <div className="collapsed-summary" onClick={() => setActiveCard(4)}>
                 <span className="collapsed-summary-label">GIR:</span>
                 <span>
                   <span className="collapsed-summary-value">
-                    {gir === 'y' ? 'Hit' : `Missed (${shotsToGreen || '?'} shots)`}
+                    {gir === 'y' ? 'On!' : `Missed (${shotsToGreen || '?'} shots)`}
                     {penalty ? ` (+${penalty})` : ''}
                   </span>
                   <span className="collapsed-summary-edit">Edit</span>
@@ -1087,13 +1534,13 @@ export default function TrackRoundPage() {
                   <div style={{ marginBottom: gir === 'n' ? '1.5rem' : '0' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Green in Regulation (GIR)</label>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
-                      {[ { value: 'y', label: 'Hit' }, { value: 'n', label: 'Missed' } ].map((option) => (
+                      {[ { value: 'y', label: 'On!' }, { value: 'n', label: 'Missed' } ].map((option) => (
                         <button
                           key={option.value}
                           onClick={() => {
                             setGir(option.value as 'y' | 'n');
                             if (option.value === 'y') {
-                               setActiveCard(5); // Auto jump to putts
+                               setActiveCard(5); // Auto jump to putting
                             }
                           }}
                           className="btn btn-secondary"
@@ -1141,7 +1588,7 @@ export default function TrackRoundPage() {
 
                     <div>
                       <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                        Approach Shot(s)
+                        Wedge Shot(s)
                       </label>
                       <div style={{ display: 'flex', gap: '0.75rem' }}>
                         <input
@@ -1181,8 +1628,8 @@ export default function TrackRoundPage() {
             )
           )}
 
-          {/* CARD 5: The Green (Putting & Finish) */}
-          {par !== null && activeCard === 5 && (
+          {/* CARD 5 (Par 3/4) or 6 (Par 5): The Green (Putting & Finish) */}
+          {par !== null && ((par !== 5 && activeCard === 5) || (par === 5 && activeCard === 6)) && (
             <div className="card" style={{ marginBottom: '1.5rem' }}>
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Number of Putts</label>

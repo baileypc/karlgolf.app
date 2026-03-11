@@ -66,6 +66,16 @@ function calculateStats($holes) {
     $girFromFairway = 0; $approachFromFairway = 0;
     $girFromRough = 0; $approachFromRough = 0;
     $girFromSand = 0; $approachFromSand = 0;
+
+    // Par 5 second shot (layup) stats
+    $par5SecondShotSum = 0;
+    $par5SecondShotCount = 0;
+    $par5SecondShotTroubleCount = 0;
+    $par5OnGreenCount = 0;
+
+    // Wedge shot distance (when missed GIR, Par 5 wedge to green)
+    $wedgeShotDistSum = 0;
+    $wedgeShotDistCount = 0;
     
     // Putt distance buckets (1-putt % by first putt distance)
     $puttBuckets = [
@@ -143,7 +153,26 @@ function calculateStats($holes) {
         // Scoring by par type
         if ($par == 3) { $par3Score += $score; $par3Count++; }
         elseif ($par == 4) { $par4Score += $score; $par4Count++; }
-        elseif ($par == 5) { $par5Score += $score; $par5Count++; }
+        elseif ($par == 5) {
+            $par5Score += $score;
+            $par5Count++;
+            // Par 5 second shot (layup) distance and trouble
+            if (isset($h['secondShotDistance']) && is_numeric($h['secondShotDistance'])) {
+                $par5SecondShotSum += (float)$h['secondShotDistance'];
+                $par5SecondShotCount++;
+                $secondShotLie = $h['secondShotLie'] ?? null;
+                if ($secondShotLie === 'hazard' || $secondShotLie === 'na') {
+                    $par5SecondShotTroubleCount++;
+                } elseif ($secondShotLie === 'green') {
+                    $par5OnGreenCount++;
+                }
+            }
+            // Wedge shot distance (Par 5 missed GIR)
+            if (isset($h['wedgeShotDistance']) && is_numeric($h['wedgeShotDistance']) && (float)$h['wedgeShotDistance'] > 0) {
+                $wedgeShotDistSum += (float)$h['wedgeShotDistance'];
+                $wedgeShotDistCount++;
+            }
+        }
         
         // Score distribution
         if ($diff <= -2) $eagles++;
@@ -315,6 +344,15 @@ function calculateStats($holes) {
             'rough' => ['gir' => $girFromRough, 'total' => $approachFromRough, 'pct' => $approachFromRough > 0 ? round(($girFromRough / $approachFromRough) * 100, 1) : 0],
             'sand' => ['gir' => $girFromSand, 'total' => $approachFromSand, 'pct' => $approachFromSand > 0 ? round(($girFromSand / $approachFromSand) * 100, 1) : 0],
         ],
+        // Par 5 second shot (layup) stats
+        'par5SecondShotAvg' => $par5SecondShotCount > 0 ? round($par5SecondShotSum / $par5SecondShotCount, 0) : 0,
+        'par5SecondShotCount' => $par5SecondShotCount,
+        'par5SecondShotTroublePct' => $par5SecondShotCount > 0 ? round(($par5SecondShotTroubleCount / $par5SecondShotCount) * 100, 1) : 0,
+        'par5OnGreenCount' => $par5OnGreenCount,
+        'par5OnGreenPct' => $par5SecondShotCount > 0 ? round(($par5OnGreenCount / $par5SecondShotCount) * 100, 1) : 0,
+        // Wedge shot distance (Par 5 missed GIR)
+        'avgWedgeShotDistance' => $wedgeShotDistCount > 0 ? round($wedgeShotDistSum / $wedgeShotDistCount, 0) : 0,
+        'wedgeShotDistanceCount' => $wedgeShotDistCount,
     ];
 }
 
