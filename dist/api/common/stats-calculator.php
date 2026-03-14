@@ -59,6 +59,7 @@ function calculateStats($holes) {
     $par5Score = 0; $par5Count = 0;
     
     // Score distribution
+    $albatrosses = 0; $aces = 0;
     $eagles = 0; $birdies = 0; $pars = 0;
     $bogeys = 0; $doubleBogeysDist = 0; $triplePlus = 0;
     
@@ -197,13 +198,24 @@ function calculateStats($holes) {
             }
         }
         
-        // Score distribution
-        if ($diff <= -2) $eagles++;
-        elseif ($diff == -1) $birdies++;
-        elseif ($diff == 0) $pars++;
-        elseif ($diff == 1) $bogeys++;
-        elseif ($diff == 2) $doubleBogeysDist++;
-        else $triplePlus++;
+        // Score distribution (Exclusive categories for the distribution chart)
+        if ($score == 1) {
+            $aces++;
+        } elseif ($diff <= -3 && $score > 1) {
+            $albatrosses++;
+        } elseif ($diff == -2) {
+            $eagles++;
+        } elseif ($diff == -1) {
+            $birdies++;
+        } elseif ($diff == 0) {
+            $pars++;
+        } elseif ($diff == 1) {
+            $bogeys++;
+        } elseif ($diff == 2) {
+            $doubleBogeysDist++;
+        } else {
+            $triplePlus++;
+        }
         
         // GIR by approach lie
         $approachLie = $h['approachLie'] ?? null;
@@ -344,6 +356,8 @@ function calculateStats($holes) {
         ],
         // Score distribution
         'scoreDistribution' => [
+            'albatrosses' => $albatrosses,
+            'aces' => $aces,
             'eagles' => $eagles,
             'birdies' => $birdies,
             'pars' => $pars,

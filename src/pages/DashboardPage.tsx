@@ -446,7 +446,9 @@ export default function DashboardPage() {
                       const dist = statsData.cumulative.scoreDistribution;
                       const total = statsData.cumulative.totalHoles;
                       const items = [
-                        { label: 'Eagle+', count: dist.eagles, color: '#4ECDC4' },
+                        { label: 'Ace', count: dist.aces, color: '#FFD700' },
+                        { label: 'Albatross', count: dist.albatrosses, color: '#A855F7' },
+                        { label: 'Eagle', count: dist.eagles, color: '#4ECDC4' },
                         { label: 'Birdie', count: dist.birdies, color: '#6BCB77' },
                         { label: 'Par', count: dist.pars, color: '#DDEDD2' },
                         { label: 'Bogey', count: dist.bogeys, color: '#FFD93D' },

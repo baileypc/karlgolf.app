@@ -22,6 +22,7 @@ export interface Hole {
   approachMissLocation?: 'short' | 'sand' | 'long' | 'hazard';
   wedgeShotDistance?: number; // legacy single; prefer wedgeShotDistances
   wedgeShotDistances?: number[]; // yards per wedge shot (when missed GIR, 1+ shots)
+  holeDistance?: number; // total hole distance from tee to pin (yards)
 }
 
 export interface ApproachCategory {
