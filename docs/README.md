@@ -1,7 +1,7 @@
 # Karl's GIR - Documentation Index
 
-**Version:** 3.6.5  
-**Last Updated:** December 2025
+**Version:** 3.6.6  
+**Last Updated:** March 2026
 
 This directory contains all documentation for the Karl's GIR Golf Tracker application.
 
@@ -27,12 +27,11 @@ This directory contains all documentation for the Karl's GIR Golf Tracker applic
 ### **Specialized Guides**
 
 10. **[ADMIN-ANALYTICS.md](ADMIN-ANALYTICS.md)** - Admin dashboard and analytics documentation
-11. **[EMAIL-FEATURE.md](EMAIL-FEATURE.md)** - Email functionality documentation
-12. **[LARAGON-SETUP.md](LARAGON-SETUP.md)** - Laragon local development setup
-13. **[MODAL-COMPONENT-GUIDE.md](MODAL-COMPONENT-GUIDE.md)** - Modal component usage guide
-14. **[PAGE-LAYOUT-STANDARD.md](PAGE-LAYOUT-STANDARD.md)** - UI/UX layout standards
-15. **[BUTTON-STANDARDS.md](BUTTON-STANDARDS.md)** - Button styling and icon usage standards
-16. **[PWA-INSTALL-GUIDE.md](PWA-INSTALL-GUIDE.md)** - PWA installation guide
+11. **[LARAGON-SETUP.md](LARAGON-SETUP.md)** - Laragon local development setup
+12. **[MODAL-COMPONENT-GUIDE.md](MODAL-COMPONENT-GUIDE.md)** - Modal component usage guide
+13. **[PAGE-LAYOUT-STANDARD.md](PAGE-LAYOUT-STANDARD.md)** - UI/UX layout standards
+14. **[BUTTON-STANDARDS.md](BUTTON-STANDARDS.md)** - Button styling and icon usage standards
+15. **[PWA-INSTALL-GUIDE.md](PWA-INSTALL-GUIDE.md)** - PWA installation guide
 
 ---
 
@@ -81,7 +80,6 @@ Read in this order:
 
 ### **Features**
 - [ADMIN-ANALYTICS.md](ADMIN-ANALYTICS.md) - Admin dashboard
-- [EMAIL-FEATURE.md](EMAIL-FEATURE.md) - Email functionality
 - [PWA-INSTALL-GUIDE.md](PWA-INSTALL-GUIDE.md) - PWA features
 
 ### **Security & Best Practices**
@@ -220,6 +218,6 @@ When adding or updating documentation:
 
 ---
 
-**Current Version:** 3.6.5  
+**Current Version:** 3.6.6  
 **Documentation Last Updated:** December 2025
 

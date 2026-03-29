@@ -1,6 +1,6 @@
 # Karl Golf GIR - Pricing & Payment System Plan
 
-**Version:** 3.6.5  
+**Version:** 3.6.6  
 **Status:** 📋 Planning Phase  
 **Last Updated:** November 2025
 
@@ -130,7 +130,7 @@ This document outlines the implementation plan for adding a subscription-based p
     ├── password.txt              (existing)
     ├── email.txt                 (existing)
     ├── rounds.json               (existing - updated)
-    ├── current_round.json        (existing)
+    ├── current_round.json (optional sync state)        (existing)
     ├── reset_token.json          (existing)
     ├── subscription.json         (NEW)
     └── payment_history.json      (NEW)
@@ -518,19 +518,19 @@ STRIPE_ANNUAL_PRICE_ID=price_xxxxx
 
 ## 🚀 Deployment Strategy
 
-### Phase 1: Development (v3.6.5-dev)
+### Phase 1: Development (v3.6.6-dev)
 - Build all features in test mode
 - Use Stripe test keys
 - Test with fake credit cards
 - Internal testing only
 
-### Phase 2: Beta (v3.6.5-beta)
+### Phase 2: Beta (v3.6.6-beta)
 - Deploy to staging environment
 - Invite beta testers
 - Collect feedback
 - Fix bugs
 
-### Phase 3: Production (v3.6.5)
+### Phase 3: Production (v3.6.6)
 - Switch to Stripe live keys
 - Deploy to production
 - Monitor for issues

@@ -1,64 +1,78 @@
-# TODO List - v3.6.5 → v3.6.5
+# TODO List - v3.6.6 -> v3.6.6
 
-## ✅ Version 3.0.0 - Completed Features
+## Version 3.0.0 - Completed Features
 
-### 1. ✅ Export All Data as JSON
-**Status:** ✅ **COMPLETED**  
+### 1. Export All Data as JSON
+**Status:** **COMPLETED**  
 **Description:** Export all rounds and stats as JSON file - fully implemented in DashboardPage.tsx  
-**Completed:** v3.6.5
+**Completed:** v3.6.6
 
 ---
 
-### 2. ✅ Reset Password Page
-**Status:** ✅ **COMPLETED**  
+### 2. Reset Password Page
+**Status:** **COMPLETED**  
 **Description:** Full reset password functionality with email verification - fully implemented  
-**Completed:** v3.6.5
+**Completed:** v3.6.6
 
 ---
 
-### 3. ✅ Track Live Round Page
-**Status:** ✅ **COMPLETED**  
+### 3. Track Live Round Page
+**Status:** **COMPLETED**  
 **Description:** Marketing-friendly entry point for guest users - fully implemented  
-**Completed:** v3.6.5
+**Completed:** v3.6.6
 
 ---
 
-### 4. ✅ Delete Round Functionality
-**Status:** ✅ **COMPLETED**  
+### 4. Delete Round Functionality
+**Status:** **COMPLETED**  
 **Description:** Delete individual rounds or all rounds - fully implemented  
-**Completed:** v3.6.5
+**Completed:** v3.6.6
 
 ---
 
-### 5. ✅ Clean URLs (Root Deployment)
-**Status:** ✅ **COMPLETED**  
+### 5. Clean URLs (Root Deployment)
+**Status:** **COMPLETED**  
 **Description:** App now served from root directory (no `/dist/` in URL)  
-**Completed:** v3.6.5
+**Completed:** v3.6.6
 
 ---
 
-### 6. ✅ Dashboard Improvements
-**Status:** ✅ **COMPLETED**  
+### 6. Dashboard Improvements
+**Status:** **COMPLETED**  
 **Description:** Combined "Continue Round" and "No Rounds Yet" cards, delete icons, export functionality  
-**Completed:** v3.6.5
+**Completed:** v3.6.6
 
 ---
 
-### 7. ✅ Fairway Stats Fix
-**Status:** ✅ **COMPLETED**  
+### 7. Fairway Stats Fix
+**Status:** **COMPLETED**  
 **Description:** Fixed fairway percentage calculation (left/center/right all count as hits)  
-**Completed:** v3.6.5
+**Completed:** v3.6.6
 
 ---
 
-### 8. ✅ Service Worker Fix
-**Status:** ✅ **COMPLETED**  
+### 8. Service Worker Fix
+**Status:** **COMPLETED**  
 **Description:** Fixed service worker caching issues  
-**Completed:** v3.6.5
+**Completed:** v3.6.6
 
 ---
 
-## 🔮 Version 4.0.0 - Future Features
+### 9. Basic Trends on Dashboard
+**Status:** **COMPLETED**  
+**Description:** Basic trend charts on dashboard (GIR%, putts, scrambling)  
+**Completed:** v3.6.6
+
+---
+
+### 10. Save Partial Nines to API
+**Status:** **COMPLETED**  
+**Description:** End-round flow saves complete 9-hole sets when a round is incomplete  
+**Completed:** v3.6.6
+
+---
+
+## Version 4.0.0 - Future Features
 
 ### 1. Course Selection (US Only)
 **Status:** Future Feature  
@@ -78,16 +92,7 @@
 
 ---
 
-### 3. Statistics Trends/Graphs
-**Status:** Future Feature  
-**Priority:** Medium  
-**Estimated Time:** 4-6 hours  
-**Description:** Visual charts showing improvement over time (GIR%, Fairway%, Putts, etc.)  
-**Benefits:** Visual progress tracking, identify trends
-
----
-
-### 4. Round Comparison
+### 3. Round Comparison
 **Status:** Future Feature  
 **Priority:** Low  
 **Estimated Time:** 2-3 hours  
@@ -96,26 +101,7 @@
 
 ---
 
-### 5. Handicap Calculation
-**Status:** Future Feature  
-**Priority:** Medium  
-**Estimated Time:** 4-6 hours  
-**Description:** Calculate and display USGA handicap based on rounds  
-**Benefits:** Official handicap tracking
-
----
-
-### 6. Save Partial Nines to API
-**Status:** Future Feature  
-**Priority:** Low  
-**Estimated Time:** 1-2 hours  
-**Description:** When user clicks "Save 9 & Finish" with incomplete nines, save only complete 9-hole sets to the API.  
-**Location:** `src/pages/TrackRoundPage.tsx`  
-**Note:** Current behavior (saving to localStorage only) is acceptable
-
----
-
-### 7. Advanced Statistics Dashboard
+### 4. Advanced Statistics Dashboard
 **Status:** Future Feature  
 **Priority:** Low  
 **Estimated Time:** 6-8 hours  
@@ -124,7 +110,7 @@
 
 ---
 
-### 8. Season Management
+### 5. Season Management
 **Status:** Future Feature  
 **Priority:** Low  
 **Estimated Time:** 3-4 hours  
@@ -133,7 +119,7 @@
 
 ---
 
-### 9. Tee Selection
+### 6. Tee Selection
 **Status:** Future Feature  
 **Priority:** Low  
 **Estimated Time:** 2-3 hours  
@@ -142,7 +128,7 @@
 
 ---
 
-### 10. Date Selector for Backdating
+### 7. Date Selector for Backdating
 **Status:** Future Feature  
 **Priority:** Low  
 **Estimated Time:** 1-2 hours  
@@ -151,16 +137,19 @@
 
 ---
 
-## 📝 Notes
+## Out of Scope
+- Handicap calculation is intentionally excluded to keep the app simple and improvement-focused.
 
-- ✅ All console.log debug statements have been removed
-- ✅ console.error() kept for critical error logging
-- ✅ Build is working successfully
-- ✅ Core functionality is complete
-- ✅ All critical features implemented
-- ✅ Production deployment successful
-- ✅ Clean URLs implemented (root deployment)
+## Notes
 
-**Current Status:** 🚀 **v3.6.5 IN PRODUCTION**
+- All console.log debug statements have been removed
+- console.error() kept for critical error logging
+- Build is working successfully
+- Core functionality is complete
+- All critical features implemented
+- Production deployment successful
+- Clean URLs implemented (root deployment)
 
-**Next Major Release:** v3.6.5 (Future enhancements)
+**Current Status:** **v3.6.6 IN PRODUCTION**
+
+**Next Major Release:** v3.6.6 (Future enhancements)

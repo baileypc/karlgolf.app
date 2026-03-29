@@ -691,8 +691,8 @@ export default function DashboardPage() {
                         onClick={() => toggleRoundExpanded(group.roundNumber)}
                         style={{ 
                           display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center', 
+                          flexDirection: 'column',
+                          gap: '0.75rem',
                           marginBottom: isExpanded ? '1rem' : '0',
                           cursor: 'pointer' 
                         }}
@@ -710,14 +710,32 @@ export default function DashboardPage() {
                             )}
                           </p>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                            {group.stats.girPct.toFixed(1)}%
+                        {!isIncomplete && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                              <span style={{ fontSize: 'var(--font-2xl)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                                {group.stats.girPct.toFixed(1)}%
+                              </span>
+                              <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', opacity: 0.7 }}>
+                                GIR
+                              </span>
+                            </div>
+                            {group.stats.toPar != null && (
+                              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                                <span style={{
+                                  fontSize: 'var(--font-2xl)',
+                                  fontWeight: 'bold',
+                                  color: group.stats.toPar > 0 ? '#FF6B6B' : group.stats.toPar < 0 ? '#6BCB77' : 'var(--text-primary)',
+                                }}>
+                                  {group.stats.toPar > 0 ? `+${group.stats.toPar}` : group.stats.toPar === 0 ? 'E' : group.stats.toPar}
+                                </span>
+                                <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', opacity: 0.7 }}>
+                                  Par
+                                </span>
+                              </div>
+                            )}
                           </div>
-                          <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)' }}>
-                            GIR
-                          </div>
-                        </div>
+                        )}
                       </div>
                       
                       {/* Expanded Content */}

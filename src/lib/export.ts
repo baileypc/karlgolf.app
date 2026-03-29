@@ -24,7 +24,7 @@ export function exportToCSV(holes: Hole[], roundName = 'Round'): void {
     ].join(',');
   }).join('\n');
 
-  const header = 'Hole,Par,Score,To Par,GIR,Putts,Fairway,Approach Dist (ft),Penalty,Scrambled\n';
+  const header = 'Hole,Par,Score,To Par,GIR,Putts,Fairway,Approach Dist (yds),Penalty,Scrambled\n';
 
   // Calculate stats
   const stats = calculateRoundStats(holes);

@@ -36,7 +36,7 @@ export const exportRoundToCSV = (roundData: RoundData): void => {
     'Fairway',
     'Penalty',
     'Shots to Green',
-    'Proximity (ft)'
+    'Proximity (yds)'
   ];
   
   // Convert holes to CSV rows

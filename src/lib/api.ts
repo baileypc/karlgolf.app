@@ -320,19 +320,4 @@ export const roundsAPI = {
   },
 };
 
-// Email API
-export const emailAPI = {
-  async sendRoundSummary(data: {
-    email: string;
-    roundType: string;
-    holes: any[];
-    stats: any;
-  }): Promise<AuthResponse> {
-    return request('email/send.php', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-};
-
 export { APIError };

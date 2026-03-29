@@ -90,7 +90,7 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 
 ---
 
-### 3.3 Round Entry Page - Registered Users (`track-round.html`)
+### 3.3 Round Entry Page - Registered Users (`/track-round`)
 
 #### 3.3.1 Current Implementation ✅
 - Dynamic hole-by-hole entry form
@@ -109,7 +109,6 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 - Tee shot result tracking
 - Approach distance tracking
 - Round saving (9 or 18 holes)
-- Email round summary option
 
 #### 3.3.2 Data Fields Collected Per Hole
 1. **Hole Number** (auto-incremented)
@@ -119,20 +118,19 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 5. **Tee Shot Result** (if fairway missed: OB, Lost, Water, Left, Right, Other)
 6. **Green in Regulation** (Yes/No) - Required
 7. **Shots to Green** (if GIR missed) - Required
-8. **Approach Distance** (feet from hole) - Optional
+8. **Approach Distance** (yards to green) - Optional
 9. **Number of Putts** - Required
 10. **Putt Distances** (array of distances for each putt) - Required
-11. **Penalty** (OB, Water, Lost Ball, Wrong Ball, Other) - Optional
+11. **Penalty** (penalty strokes: +1/+2/+3) - Optional
 
 #### 3.3.3 Requirements
 - **FR-3.1:** Dynamic form flow based on par and GIR status
 - **FR-3.2:** Course name entry/selection after first hole
 - **FR-3.3:** Incomplete round detection and continuation
 - **FR-3.4:** Real-time statistics calculation and display
-- **FR-3.5:** Hole editing capability (no delete, safer data management)
+- **FR-3.5:** Hole editing capability (edit + delete)
 - **FR-3.6:** Auto-save to server and localStorage
 - **FR-3.7:** Round saving after 9 or 18 holes
-- **FR-3.8:** Email round summary option
 - **FR-3.9:** Progress indicator (current hole number)
 - **FR-3.10:** Back button to edit previous hole
 - **FR-3.11:** Validation to prevent incomplete data submission
@@ -140,20 +138,20 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 #### 3.3.4 Missing Features (Not Currently Implemented)
 - **FR-3.12:** Tee selection (forward/middle/back) - **NOT IMPLEMENTED**
 - **FR-3.13:** Date selector for round - **PARTIALLY IMPLEMENTED** (auto-set to today)
-- **FR-3.14:** Distance to hole entry - **NOT IMPLEMENTED** (only approach distance exists)
 - **FR-3.15:** Chip/approach location tracking (Front/Center/Back/Left/Right/Fringe/Bunker) - **NOT IMPLEMENTED**
 - **FR-3.16:** Sand save tracking - **NOT IMPLEMENTED** (penalty tracking exists but not specific sand save stat)
 
 ---
 
-### 3.4 Live Round Tracking - Non-Registered Users (`track-live.html`)
+### 3.4 Live Round Tracking - Non-Registered Users (Guest Mode)
 
 #### 3.4.1 Current Implementation ✅
 - Same hole entry form as registered users
+- Guest mode uses `/track-round` (TrackLivePage redirects)
 - LocalStorage-only persistence (no server sync)
 - Round name entry
 - CSV export functionality
-- No dashboard or statistics
+- No dashboard (only in-round snapshot stats)
 - No round saving to account
 
 #### 3.4.2 Requirements
@@ -165,7 +163,7 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 
 ---
 
-### 3.5 Dashboard (`dashboard.html`)
+### 3.5 Dashboard (`/dashboard`)
 
 #### 3.5.1 Current Implementation ✅
 - Current round display (in-progress rounds)
@@ -178,7 +176,7 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
   - Putts per GIR
   - Scrambling Percentage
   - Penalties
-  - Approach Proximity (overall, on GIR, missed GIR)
+  - Approach Distance (yards; overall, on GIR, missed GIR)
 - Round grouping (individual rounds, not 10-round groups)
 - CSV export for cumulative stats
 - CSV export per round group
@@ -196,8 +194,8 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 - **FR-5.7:** Recent rounds list (last 5-10) - **PARTIALLY IMPLEMENTED** (all rounds shown, not limited)
 - **FR-5.8:** Best round / Worst round display - **NOT IMPLEMENTED**
 - **FR-5.9:** Quick action button to start new round - **NOT IMPLEMENTED** (link exists but not prominent)
-- **FR-5.10:** Navigation menu - **NOT IMPLEMENTED** (only logout and rounds link)
-- **FR-5.11:** Visual charts/graphs for trend analysis - **NOT IMPLEMENTED**
+- **FR-5.10:** Navigation menu - **IMPLEMENTED** (IconNav for core routes)
+- **FR-5.11:** Visual charts/graphs for trend analysis - **PARTIALLY IMPLEMENTED** (basic trends on dashboard)
 
 ---
 
@@ -235,8 +233,8 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 - **FR-6.7:** Short game statistics section:
   - Up-and-down percentage (scrambling exists but not labeled as "up-and-down")
   - Scrambling percentage
-  - Average chip proximity (proximity exists but not specifically "chip")
-- **FR-6.8:** Visual charts/graphs for trend analysis - **NOT IMPLEMENTED**
+  - Average approach distance (yards) (from proximity field)
+- **FR-6.8:** Visual charts/graphs for trend analysis - **PARTIALLY IMPLEMENTED** (basic trends on dashboard)
 
 ---
 
@@ -245,7 +243,7 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 #### 3.7.1 Current Implementation ⚠️
 - Round history is displayed on dashboard as collapsible cards
 - No dedicated round history page
-- No delete functionality
+- Delete functionality exists (single round and all rounds)
 - Export functionality exists
 
 #### 3.7.2 Requirements
@@ -279,7 +277,7 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
   - Target GIR percentage
   - Progress tracking toward goals
 - **FR-8.4:** App preferences:
-  - Measurement units (yards/meters) - **NOT IMPLEMENTED** (currently feet only)
+  - Measurement units (yards/meters) - **NOT IMPLEMENTED** (currently yards only)
   - Default tee selection - **NOT IMPLEMENTED**
 - **FR-8.5:** Data management:
   - Export all data
@@ -288,16 +286,14 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 
 ---
 
-### 3.9 Email Functionality
+### 3.9 Email Functionality (Password Reset Only)
 
 #### 3.9.1 Current Implementation ✅
-- Round summary email after saving round
 - Password reset email
 - Professional HTML email templates
 - Secure token system for password reset
 
 #### 3.9.2 Requirements
-- **FR-9.1:** Send round summary email after round completion
 - **FR-9.2:** Send password reset email with secure token
 - **FR-9.3:** Professional email templates matching app design
 - **FR-9.4:** Email validation and error handling
@@ -383,7 +379,7 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 
 ### 5.2 Data Storage
 - **User Data:** `/data/{userHash}/rounds.json`
-- **Current Round:** `/data/{userHash}/current_round.json`
+- **Current Round Sync (optional):** `/data/{userHash}/current_round.json`
 - **Passwords:** `/data/{userHash}/password.txt` (hashed)
 - **File Structure:** One directory per user (hashed email)
 
@@ -395,7 +391,6 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 - `api/rounds/incomplete.php` - Get incomplete rounds
 - `api/rounds/courses.php` - Get course names
 - `api/stats/load.php` - Load statistics
-- `api/email/send.php` - Send emails
 
 ### 5.4 Design System
 - **Color Palette:**
@@ -419,10 +414,10 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 4. **Putts per GIR:** `totalPuttsOnGIR / girHolesCount`
 5. **Scrambling Percentage:** `(scrambles / missedGirs) × 100`
 6. **Average Putts per Round:** `totalPutts / totalHoles`
-7. **Approach Proximity:**
-   - Overall: `sum(approachDistances) / count(approaches)`
-   - On GIR: `sum(girApproachDistances) / count(girApproaches)`
-   - Missed GIR: `sum(missedGirApproachDistances) / count(missedGirApproaches)`
+7. **Approach Distance (yards):**
+   - Overall: `sum(approachDistancesYds) / count(approaches)`
+   - On GIR: `sum(girApproachDistancesYds) / count(girApproaches)`
+   - Missed GIR: `sum(missedGirApproachDistancesYds) / count(missedGirApproaches)`
 8. **Penalties:** Count and total penalty strokes
 9. **To Par:** `totalScore - totalPar`
 
@@ -470,7 +465,6 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 1. User completes 9 or 18 holes
 2. Clicks "Save Round"
 3. Round saved to account
-4. Option to email round summary
 5. Redirected to dashboard
 6. Round appears in dashboard statistics
 
@@ -514,7 +508,6 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 - User retention rate
 
 ### 9.2 Feature Usage
-- Percentage of users using email feature
 - Percentage of users exporting data
 - Average holes tracked per round
 - Incomplete round completion rate
@@ -533,8 +526,8 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 - **GIR:** Green in Regulation - reaching the green in the expected number of strokes (Par 3: 1 shot, Par 4: 2 shots, Par 5: 3 shots)
 - **Scrambling:** Making par or better after missing GIR
 - **Up-and-Down:** Same as scrambling (making par after missing GIR)
-- **Proximity:** Distance from hole when putting
-- **Approach Distance:** Distance from hole on approach shot (when putting)
+- **Proximity (Approach Distance):** Distance of the approach/next shot to the green (yards)
+- **Putt Distances:** Distance of each putt (feet)
 
 ### 10.2 Data Model
 ```json
@@ -548,13 +541,13 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
       "holeNumber": 1,
       "par": 3,
       "score": 2,
-      "gir": true,
+      "gir": "y",
       "putts": 1,
       "puttDistances": [23],
       "fairway": null,
       "teeShotResult": null,
-      "approachDistance": 23,
-      "penalty": "",
+      "proximity": 150,
+      "penalty": "1",
       "shotsToGreen": null
     }
   ],
@@ -585,24 +578,24 @@ Karl's GIR is a mobile-first web application designed to help golfers track deta
 ### 10.3 File Structure
 ```
 karlgolf.app/
-├── index.html (Landing page)
-├── login.html (Login/Registration)
-├── reset-password.html (Password reset)
-├── track-round.html (Registered user round tracking)
-├── track-live.html (Non-registered user round tracking)
-├── dashboard.html (Statistics dashboard)
-├── api/
-│   ├── auth/ (Authentication endpoints)
-│   ├── rounds/ (Round management endpoints)
-│   ├── stats/ (Statistics endpoints)
-│   └── email/ (Email endpoints)
-├── assets/
-│   ├── css/ (Stylesheets)
-│   ├── js/ (JavaScript modules)
-│   └── images/ (Images and icons)
-├── data/ (User data storage)
-└── docs/ (Documentation)
+- index.html (React app entry)
+- /#/ (Home)
+- /#/login (Login/Registration)
+- /#/track-round (Round tracking for registered + guest)
+- /#/dashboard (Statistics dashboard, registered)
+- api/
+  - auth/ (Authentication endpoints)
+  - rounds/ (Round management endpoints)
+  - stats/ (Statistics endpoints)
+- assets/
+  - css/ (Stylesheets)
+  - js/ (JavaScript modules)
+  - images/ (Images and icons)
+- data/ (User data storage)
+- docs/ (Documentation)
 ```
+
+
 
 ---
 

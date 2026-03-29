@@ -1,6 +1,6 @@
 # 🚀 Karl's GIR - Production Deployment Guide
 
-**Version:** 3.6.5
+**Version:** 3.6.6
 **Last Updated:** December 2025
 
 This guide covers deploying Karl's GIR to SiteGround production hosting.
@@ -51,7 +51,7 @@ Your SiteGround directory structure:
         ├── password.txt
         ├── email.txt
         ├── rounds.json
-        ├── current_round.json
+        ├── current_round.json (optional sync state)
         └── reset_token.json
 ```
 

@@ -1,6 +1,6 @@
 # Karl's GIR - System Diagrams
 
-**Version:** 3.6.5  
+**Version:** 3.6.6  
 **Last Updated:** December 2025
 
 This document contains visual diagrams of the Karl's GIR system architecture using Mermaid.
@@ -95,7 +95,7 @@ sequenceDiagram
     participant C as Score Calculator
     participant API as Rounds API
     participant F as File System
-    
+
     U->>T: Enter hole data (par, GIR, putts, etc.)
     T->>C: calculateScore(holeData)
     C->>C: Apply golf scoring rules
@@ -104,18 +104,17 @@ sequenceDiagram
     U->>T: Click "Save Hole"
     T->>API: POST /api/rounds/save.php
     API->>API: Check session auth
-    API->>F: Load current_round.json
-    API->>F: Append hole data
-    
-    alt Round Complete (9 or 18 holes)
-        API->>F: Move to rounds.json
-        API->>F: Delete current_round.json
-    else Round Incomplete
-        API->>F: Update current_round.json
+    API->>F: Load rounds.json
+    API->>API: Auto-merge into incomplete round (same course) or append new
+
+    alt User ends round (completed=true)
+        API->>F: Write rounds.json (completed round)
+    else Round incomplete
+        API->>F: Write rounds.json (incomplete round)
     end
-    
+
     API->>T: Return success
-    T->>U: Show success message
+    T->>U: Update UI
 ```
 
 ---
@@ -160,8 +159,8 @@ graph TB
     subgraph "Per User Directory"
         B --> E[password.txt - bcrypt hash]
         B --> F[email.txt - user email]
-        B --> G[rounds.json - completed rounds]
-        B --> H[current_round.json - incomplete round]
+        B --> G[rounds.json - all rounds (complete + incomplete)]
+        B --> H[current_round.json - optional sync state (legacy/unused by main UI)]
         B --> I[reset_token.json - password reset]
         B --> J[.lock - file lock]
     end
@@ -170,7 +169,8 @@ graph TB
         G --> K["[{
             courseName: string,
             date: timestamp,
-            holes: Hole[]
+            holes: Hole[],
+            completed: boolean
         }]"]
     end
     
@@ -179,9 +179,10 @@ graph TB
             holeNumber: 1-18,
             par: 3|4|5,
             score: number,
-            gir: boolean,
+            gir: 'y'|'n',
             putts: number,
-            fairway: l|c|r|null,
+            puttDistances: number[],
+            fairway: 'y'|'n'|null,
             shotsToGreen: number,
             penalty: string|null
         }"]
@@ -316,12 +317,12 @@ flowchart TD
     G --> I[Save Hole]
     H --> I
     
-    I --> J{Hole Count}
-    J -->|9 or 18| K[Complete Round]
-    J -->|Other| L[Incomplete Round]
+    I --> J{User Ends Round?}
+    J -->|Yes| K[Mark completed=true]
+    J -->|No| L[Leave completed=false]
     
-    K --> M[Move to rounds.json]
-    L --> N[Save to current_round.json]
+    K --> M[Write rounds.json]
+    L --> M
 ```
 
 ---

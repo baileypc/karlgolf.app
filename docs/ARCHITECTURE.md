@@ -1,6 +1,6 @@
 # Karl's GIR - System Architecture
 
-**Version:** 3.6.5  
+**Version:** 3.6.6  
 **Last Updated:** December 2025
 
 This document provides a comprehensive overview of the Karl's GIR system architecture for developers who need to understand, maintain, or rebuild the application.
@@ -137,8 +137,8 @@ karlgolf.app/
 │   └── {user_hash}/             # Per-user directories
 │       ├── password.txt         # Hashed password
 │       ├── email.txt            # User email
-│       ├── rounds.json          # Completed rounds
-│       ├── current_round.json   # Incomplete round
+│       ├── rounds.json          # All rounds (complete + incomplete)
+│       ├── current_round.json   # Optional sync state (legacy/unused by main UI)
 │       └── reset_token.json     # Password reset token
 │
 ├── docs/                        # Documentation
@@ -244,13 +244,13 @@ api/rounds/save.php
     ↓
 Validates session
     ↓
-Loads existing rounds.json or current_round.json
+Loads existing rounds.json
     ↓
-Merges/appends hole data
+Auto-merges into matching incomplete round (same course) or appends new round
     ↓
-Writes to current_round.json (if incomplete)
+Writes back to rounds.json (incomplete rounds remain in rounds.json)
     ↓
-OR moves to rounds.json (if 9 or 18 holes)
+If user ends round, sets completed=true (so it will not appear as resumable)
     ↓
 Returns success → Frontend updates UI
 ```

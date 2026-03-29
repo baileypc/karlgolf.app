@@ -567,7 +567,7 @@ export default function TrackRoundPage() {
       }
 
       // Determine if GIR should be 'n' (auto-denied by penalties)
-      // Par 3/4: Any penalty denies GIR. Par 5: Penalty of +2 or more denies GIR.
+      // Par 3/4: Any penalty denies GIR. Par 5: Any tee penalty or 2nd shot in hazard denies GIR.
       const teePenaltyNum = parseInt(teePenalty || '0');
       const secondShotPenaltyNum = par === 5 ? parseInt(secondShotPenalty || '0') : 0;
       const approachPenaltyNum = parseInt(penalty || '0');
@@ -575,7 +575,7 @@ export default function TrackRoundPage() {
 
       const isGirAutoDenied = (par === 3 && totalPenaltiesBeforeGreen > 0) ||
                                (par === 4 && totalPenaltiesBeforeGreen > 0) ||
-                               (par === 5 && totalPenaltiesBeforeGreen >= 2) ||
+                               (par === 5 && teePenaltyNum >= 1) ||
                                (par === 5 && secondShotLie === 'na');
 
       const isGirNo = gir === 'n' || isGirAutoDenied;
@@ -625,7 +625,7 @@ export default function TrackRoundPage() {
       //   When tee penalty auto-denies GIR, base = 1 (just tee shot)
       //   Otherwise base = par-2 (tee + approach that missed)
       let score: number;
-      const girDeniedByTeePenalty = (par === 4 && teePenaltyNum >= 1) || (par === 5 && teePenaltyNum >= 2);
+      const girDeniedByTeePenalty = (par === 4 && teePenaltyNum >= 1) || (par === 5 && teePenaltyNum >= 1);
       const girDeniedBySecondShotPenalty = par === 5 && secondShotLie === 'na';
       if (gir === 'y') {
         // GIR: shots to green (use explicit shotsToGreen if set for Under-Regulation, otherwise default par-2)
@@ -634,11 +634,12 @@ export default function TrackRoundPage() {
       } else {
         // No GIR: base shots (actual swings before recovery) + recovery + putts + penalties
         // Par 4 tee penalty: only tee shot before recovery → base = 1
-        // Par 5 tee penalty or 2nd shot hazard: tee + 2nd shot before recovery → base = 2
-        //   (no separate GIR approach — shotsToGreen covers all shots from hazard to green)
+        // Par 5 tee penalty: only tee shot before recovery → base = 1
+        // Par 5 2nd shot hazard: tee + 2nd shot before recovery → base = 2
         // Normal (including sand/rough): all shots to regulation approach → base = par - 2
         const baseShotsBeforeRecovery = (par === 4 && girDeniedByTeePenalty) ? 1
-          : (par === 5 && (girDeniedByTeePenalty || girDeniedBySecondShotPenalty)) ? 2
+          : (par === 5 && girDeniedByTeePenalty) ? 1
+          : (par === 5 && girDeniedBySecondShotPenalty) ? 2
           : (par - 2);
         const additionalShots = shotsToGreen || 0;
         score = baseShotsBeforeRecovery + additionalShots + putts + totalPenaltiesBeforeGreen;
@@ -1004,13 +1005,14 @@ export default function TrackRoundPage() {
                   }
 
                   // When GIR is determined, use precise counting
-                  const girDeniedByTeePenalty = (par === 4 && teePen >= 1) || (par === 5 && teePen >= 2);
+                  const girDeniedByTeePenalty = (par === 4 && teePen >= 1) || (par === 5 && teePen >= 1);
                   const girDeniedBySecondShotPenalty = par === 5 && secondShotLie === 'na';
                   if (gir === 'y') {
                     runningScore = shotsToGreen !== null ? shotsToGreen : (par - 2);
                   } else if (gir === 'n') {
                     const baseShotsBeforeRecovery = (par === 4 && girDeniedByTeePenalty) ? 1
-                      : (par === 5 && (girDeniedByTeePenalty || girDeniedBySecondShotPenalty)) ? 2
+                      : (par === 5 && girDeniedByTeePenalty) ? 1
+                      : (par === 5 && girDeniedBySecondShotPenalty) ? 2
                       : (par - 2);
                     runningScore = baseShotsBeforeRecovery + (shotsToGreen || 0);
                   }
@@ -1060,7 +1062,7 @@ export default function TrackRoundPage() {
               {par !== null && (
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
-                    Hole Distance <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>(yards, optional)</span>
+                    Hole Distance <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>(yards)</span>
                   </label>
                   <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <input
@@ -1103,7 +1105,7 @@ export default function TrackRoundPage() {
             </div>
           )}
 
-          {/* CARD 2: Tee Shot (Fairway / Hazard) */}
+          {/* CARD 2: Tee Shot (Fairway / Penalty) */}
           {/* Only relevant for Par 4/5. Par 3 skips to Card 3. */}
           {par !== null && par !== 3 && (
             activeCard !== 2 && (fairway !== null || teePenalty !== '') ? (
@@ -1114,7 +1116,7 @@ export default function TrackRoundPage() {
                     {fairway === 'c' || fairway === 'l' || fairway === 'r' ? 'Fairway' : 
                      fairway === 'rough' ? 'Rough/Trees' :
                      fairway === 'sand' ? 'Sand' :
-                     fairway === 'na' ? `Hazard ${teePenalty ? '(+'+teePenalty+')' : ''}` : ''}
+                     fairway === 'na' ? `Penalty ${teePenalty ? '(+'+teePenalty+')' : ''}` : ''}
                   </span>
                   <span className="collapsed-summary-edit">Edit</span>
                 </span>
@@ -1186,7 +1188,7 @@ export default function TrackRoundPage() {
                   <div style={{ display: 'flex', gap: '0.75rem' }}>
                     {[
                       { value: 'sand', label: 'Sand' },
-                      { value: 'na', label: 'Hazard' },
+                      { value: 'na', label: 'Penalty' },
                     ].map((option) => (
                       <button
                         key={option.value}
@@ -1236,7 +1238,7 @@ export default function TrackRoundPage() {
                       OB (+1), Water (+1), Unplayable (+2), or Lost Ball (+1)
                     </div>
                     <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
-                      {[1, 2, 3].map((strokes) => {
+                      {[1, 2].map((strokes) => {
                         const isSelected = teePenalty === strokes.toString();
                         return (
                           <button
@@ -1244,7 +1246,7 @@ export default function TrackRoundPage() {
                             onClick={() => {
                               const newTeePenalty = isSelected ? '' : strokes.toString();
                               setTeePenalty(newTeePenalty);
-                              const girDenied = (par === 4 && strokes >= 1) || (par === 5 && strokes >= 2);
+                              const girDenied = (par === 4 && strokes >= 1) || (par === 5 && strokes >= 1);
                               if (newTeePenalty && girDenied) {
                                 setGir('n');
                               } else {
@@ -1340,7 +1342,7 @@ export default function TrackRoundPage() {
                 <span className="collapsed-summary-label">Shot Result:</span>
                 <span>
                   <span className="collapsed-summary-value">
-                    {secondShotLie === 'green' ? 'On Green!' : secondShotLie === 'c' ? 'Fairway' : secondShotLie === 'rough' ? 'Rough' : secondShotLie === 'sand' ? 'Sand' : `Hazard ${secondShotPenalty ? '(+' + secondShotPenalty + ')' : ''}`}
+                    {secondShotLie === 'green' ? 'On Green!' : secondShotLie === 'c' ? 'Fairway' : secondShotLie === 'rough' ? 'Rough' : secondShotLie === 'sand' ? 'Sand' : `Penalty ${secondShotPenalty ? '(+' + secondShotPenalty + ')' : ''}`}
                   </span>
                   <span className="collapsed-summary-edit">Edit</span>
                 </span>
@@ -1353,7 +1355,7 @@ export default function TrackRoundPage() {
                     { value: 'c' as const, label: 'Fairway' },
                     { value: 'rough' as const, label: 'Rough' },
                     { value: 'sand' as const, label: 'Sand' },
-                    { value: 'na' as const, label: 'Hazard' },
+                    { value: 'na' as const, label: 'Penalty' },
                   ].map((option) => (
                     <button
                       key={option.value}
@@ -1385,7 +1387,7 @@ export default function TrackRoundPage() {
                   </button>
                   <button
                     onClick={() => {
-                      setSecondShotLie('green'); setSecondShotPenalty(''); setGir('y'); setShotsToGreen(2); setActiveCard(6);
+                      setSecondShotLie('green'); setSecondShotPenalty(''); setGir('y'); setPutts(null); setPuttDistances([]); setShotsToGreen(2); setActiveCard(6);
                     }}
                     className="btn btn-secondary"
                     style={{ flex: 1, fontSize: '0.75rem', padding: '0.4rem', borderColor: 'var(--color-interactive)', color: 'var(--color-interactive)' }}
@@ -1400,7 +1402,7 @@ export default function TrackRoundPage() {
                       OB (+1), Water (+1), Unplayable (+2), or Lost Ball (+1)
                     </div>
                     <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                      {[1, 2, 3].map((strokes) => {
+                      {[1, 2].map((strokes) => {
                         const isSelected = secondShotPenalty === strokes.toString();
                         return (
                           <button
@@ -1593,7 +1595,7 @@ export default function TrackRoundPage() {
                                { value: 'short' as const, label: 'Short' },
                                { value: 'sand' as const, label: 'Sand' },
                                { value: 'long' as const, label: 'Long' },
-                               { value: 'hazard' as const, label: 'Hazard' },
+                               { value: 'hazard' as const, label: 'Penalty' },
                              ].map((opt) => (
                                <button
                                  key={opt.value}
@@ -1619,9 +1621,9 @@ export default function TrackRoundPage() {
                         {approachMissLocation === 'hazard' && (
                           <div style={{ marginBottom: '0.75rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Penalty</label>
-                            <div style={{ fontSize: '0.8rem', opacity: 0.8, marginBottom: '0.35rem' }}>Water / duff by green — +1, +2, or +3</div>
+                            <div style={{ fontSize: '0.8rem', opacity: 0.8, marginBottom: '0.35rem' }}>Water / duff by green — +1 or +2</div>
                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                              {[1, 2, 3].map((n) => {
+                              {[1, 2].map((n) => {
                                 const isSelected = penalty === n.toString();
                                 return (
                                   <button
@@ -1754,7 +1756,7 @@ export default function TrackRoundPage() {
                 {par !== 3 && (
                   <>
                     <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
-                      Next Shot Distance <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>(yards, optional)</span>
+                      Next Shot Distance <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>(yards)</span>
                     </label>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '0.75rem', fontStyle: 'italic' }}>
                       How far was your next shot?
@@ -1803,7 +1805,7 @@ export default function TrackRoundPage() {
                           { value: 'short' as const, label: 'Short' },
                           { value: 'sand' as const, label: 'Sand' },
                           { value: 'long' as const, label: 'Long' },
-                          { value: 'hazard' as const, label: 'Hazard' },
+                          { value: 'hazard' as const, label: 'Penalty' },
                         ].map((opt) => (
                           <button
                             key={opt.value}
@@ -1830,7 +1832,7 @@ export default function TrackRoundPage() {
                       <div style={{ marginBottom: '0.75rem' }}>
                         <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Penalty strokes</label>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          {['1', '2', '3'].map((opt) => {
+                          {['1', '2'].map((opt) => {
                             const isSelected = penalty === opt;
                             return (
                               <button
@@ -2048,7 +2050,7 @@ export default function TrackRoundPage() {
                           { value: 'short' as const, label: 'Short' },
                           { value: 'sand' as const, label: 'Sand' },
                           { value: 'long' as const, label: 'Long' },
-                          { value: 'hazard' as const, label: 'Hazard' },
+                          { value: 'hazard' as const, label: 'Penalty' },
                         ].map((opt) => (
                           <button
                             key={opt.value}
@@ -2075,7 +2077,7 @@ export default function TrackRoundPage() {
                       <div style={{ marginBottom: '0.75rem' }}>
                         <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Penalty strokes</label>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          {['1', '2', '3'].map((opt) => {
+                          {['1', '2'].map((opt) => {
                             const isSelected = penalty === opt;
                             return (
                               <button
@@ -2188,10 +2190,11 @@ export default function TrackRoundPage() {
           {par !== null && ((par !== 5 && activeCard === 5) || (par === 5 && activeCard === 6)) && (() => {
             // Compute score for celebration logic
             const totalPenaltiesForScore = (parseInt(teePenalty) || 0) + (parseInt(secondShotPenalty) || 0) + (parseInt(penalty) || 0);
-            const girDeniedByTeePenalty = (par === 4 && (parseInt(teePenalty) || 0) >= 1) || (par === 5 && (parseInt(teePenalty) || 0) >= 2);
+            const girDeniedByTeePenalty = (par === 4 && (parseInt(teePenalty) || 0) >= 1) || (par === 5 && (parseInt(teePenalty) || 0) >= 1);
             const girDeniedBySecondShotPenalty = par === 5 && secondShotLie === 'na';
             const baseShotsBeforeRecovery = (par === 4 && girDeniedByTeePenalty) ? 1
-              : (par === 5 && (girDeniedByTeePenalty || girDeniedBySecondShotPenalty)) ? 2
+              : (par === 5 && girDeniedByTeePenalty) ? 1
+              : (par === 5 && girDeniedBySecondShotPenalty) ? 2
               : (par! - 2);
             const currentScore = putts !== null
               ? (gir === 'y'
@@ -2772,7 +2775,7 @@ export default function TrackRoundPage() {
                             )}
                             {hole.fairway === 'rough' && 'Fairway: Rough/Trees'}
                             {hole.fairway === 'sand' && 'Fairway: Sand'}
-                            {hole.penalty && ` • Hazard +${hole.penalty}`}
+                            {hole.penalty && ` • Penalty +${hole.penalty}`}
                           </span>
                         )}
                         {hole.shotsToGreen && ` • Shots to Green: ${hole.shotsToGreen}`}
