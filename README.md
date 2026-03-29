@@ -1,6 +1,6 @@
 # Karl Golf GIR - Golf Tracking PWA
 
-**Version:** 3.6.6 (Production)
+**Version:** 3.6.7 (Production)
 **Status:** ✅ **LIVE IN PRODUCTION**
 **Domain:** [https://karlgolf.app](https://karlgolf.app)
 
@@ -8,12 +8,12 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 
 ---
 
-## 🎉 Version 3.6.6 - Current Release
+## 🎉 Version 3.6.7 - Current Release
 
 **Deployed:** March 2026
 **Status:** ✅ Fully operational in production
 
-### What's New in v3.6.6
+### What's New in v3.6.7
 - ✅ **Hazard Tee-Shot Penalty Flow** - Par 4/5: selecting Hazard in Fairway now immediately shows a Tee Shot Penalty picker (+1/+2/+3)
 - ✅ **GIR Auto-Deny Logic** - Par 4 + any tee penalty, Par 5 + ≥+2 penalty automatically denies GIR per strict PGA definition
 - 🐛 **Stroke Counter Fix** - Live stroke counter now reflects tee penalties immediately
@@ -21,7 +21,7 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 - 🎨 **Par Label** - Renamed "Over/Under" label to "Par" in Current Round Stats card
 - 🧹 **Redundant E Removed** - Removed duplicate Even indicator next to Course Par buttons
 
-### Previous Release (v3.6.6)
+### Previous Release (v3.6.7)
 - 🐛 **Completed Flag Fix** - Fixed rounds not being marked as complete due to validation stripping the `completed` field
 - 🐛 **Dashboard Stats Display** - Fixed Dashboard not displaying stats (API response parsing issue)
 - 🔧 **TypeScript Types** - Updated `loadStats()` return type to match actual API response
@@ -255,4 +255,4 @@ See **[TODOs](docs/TODOS.md)** for complete list of future features.
 **Website:** [cloudvirtue.com](https://cloudvirtue.com)
 **Repository:** Private
 **License:** Proprietary
-**Version:** 3.6.6 (Production)
+**Version:** 3.6.7 (Production)

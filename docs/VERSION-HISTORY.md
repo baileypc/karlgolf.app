@@ -176,7 +176,7 @@ All new Par 5 fields are persisted, sent to the API, and reflected in cumulative
 - PWA functionality
 - Guest mode (localStorage)
 
-### Known Issues (Historical; resolved in v3.6.6+)
+### Known Issues (Historical; resolved in v3.6.7+)
 - Fairway stats calculation issues
 - Service worker caching problems
 - Delete hole persistence issues
@@ -221,6 +221,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.6.6 (Production)
+**Current Version:** 3.6.7 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 
