@@ -1,5 +1,30 @@
 # Version History
 
+## Version 3.7.0 - Tee Penalty Scoring & UI Flow Fixes (April 2026)
+
+### ✅ Features & Improvements
+
+**Tee penalty UI flow — all pars:**
+- **Par 3 Card 2** now matches Par 4/5 exactly: Penalty button highlights on the same card and reveals the `+1 Confirm Penalty & Continue` button inline, consistent with the Par 4/5 experience.
+- Removed redundant "Tee Shot Penalty" label and description text from the penalty sub-section; only the `+1` button is shown when Penalty is selected.
+- Par 3 penalty flow: Card 2 (Penalty) → Card 4 (Re-tee result: On!/Missed) → Card 3 if missed (recovery) → Card 5 (Putts).
+
+**Toast notifications:**
+- Repositioned all toast notices to **center-screen** to prevent them from overlapping the header navigation.
+
+### 🔧 Bug Fixes
+
+**Par 3 tee penalty scoring (critical):**
+- **Re-tee on green (`gir='y'`):** Running counter now correctly shows **(3 Strokes)** — base 2 (OB + penalty) + re-tee-on-green counted via `shotsToGreen=1`. Previously showed 1 stroke.
+- **Re-tee missed (`gir='n'`):** Score now correctly uses base 3 (OB + penalty + missed re-tee) + recovery + putts. Previously used base 2, under-counting by 1 stroke.
+- `shotsToGreen=1` auto-set on "On!" for all pars with tee penalty (was Par 3 only), covering Par 4 tee penalty edge case.
+- Save formula gated: `gir='y'` path now skipped when `isGirAutoDenied` (tee penalty present), ensuring the no-GIR base formula is always used for penalised holes.
+
+**Round editing:**
+- `replaceRoundNumber` no longer stripped by `validation.php` — prevents duplicate round cards when editing an existing round.
+
+---
+
 ## Version 3.6.3 - Wedge Flow & UX (March 2026)
 
 ### ✅ Features & Improvements
@@ -176,7 +201,7 @@ All new Par 5 fields are persisted, sent to the API, and reflected in cumulative
 - PWA functionality
 - Guest mode (localStorage)
 
-### Known Issues (Historical; resolved in v3.6.7+)
+### Known Issues (Historical; resolved in v3.7.0+)
 - Fairway stats calculation issues
 - Service worker caching problems
 - Delete hole persistence issues
@@ -221,6 +246,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.6.7 (Production)
+**Current Version:** 3.7.0 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

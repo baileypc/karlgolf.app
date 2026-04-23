@@ -134,6 +134,9 @@ function validateRoundData($roundData) {
     if (isset($roundData['courseMetadata'])) {
         $sanitized['courseMetadata'] = $roundData['courseMetadata'];
     }
+    if (isset($roundData['replaceRoundNumber'])) {
+        $sanitized['replaceRoundNumber'] = (int)$roundData['replaceRoundNumber'];
+    }
 
     return [
         'valid' => empty($errors),

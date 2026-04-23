@@ -38,6 +38,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <App />
         <Toaster
           position="top-center"
+          containerStyle={{
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 9999,
+          }}
           toastOptions={{
             duration: 3000,
             style: {
