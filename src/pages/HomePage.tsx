@@ -108,7 +108,7 @@ export default function HomePage() {
           Version {version}
         </p>
         <p className="text-sm" style={{ fontSize: '0.75rem', opacity: 0.6 }}>
-          © 2025 Karl Golf GIR. All rights reserved.
+          © {new Date().getFullYear()} Karl Golf GIR. All rights reserved.
         </p>
         <p style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
           <a href="./privacy.html" style={{ color: 'var(--text-secondary)', textDecoration: 'underline', opacity: 0.8 }}>
