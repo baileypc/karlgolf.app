@@ -71,8 +71,8 @@ export function calculateRoundStats(holes: Hole[]): RoundStats {
     }
 
     // Approach proximity
-    if (hole.approachDistance && hole.approachDistance > 0) {
-      allApproachesSum += hole.approachDistance;
+    if (hole.proximity && hole.proximity > 0) {
+      allApproachesSum += hole.proximity;
       allApproachesCount++;
     }
   }

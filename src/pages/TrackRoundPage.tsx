@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPencil, faTrash, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { roundsAPI } from '@/lib/api';
-import { exportRoundToCSV } from '@/lib/csv-export';
+import { exportRoundToCSV } from '@/lib/export';
 import type { Hole as APIHole, CourseMetadata } from '@/types';
 import IconNav from '../components/IconNav';
 import Modal, { useModal } from '../components/Modal';
@@ -28,7 +28,7 @@ interface LocalHole {
   secondShotDistance?: number;
   secondShotLie?: 'c' | 'rough' | 'sand' | 'na' | 'green';
   secondShotPenalty?: string;
-  approachMissLocation?: 'short' | 'sand' | 'long' | 'hazard';
+  approachMissLocation?: 'short' | 'sand' | 'long' | 'hazard' | 'left' | 'right' | 'fringe' | 'fringe-left' | 'fringe-right' | 'fringe-long' | 'fringe-short';
   wedgeShotDistance?: number;
   wedgeShotDistances?: number[];
   holeDistance?: number;
@@ -67,12 +67,24 @@ const convertToAPIHole = (localHole: LocalHole): APIHole => {
       ? (localHole.shotsToGreen || 0) + totalPenalties - (localHole.par === 5 ? parseInt(localHole.secondShotPenalty || '0', 10) : 0)
       : localHole.shotsToGreen,
     penalty: localHole.penalty ? 'other' : null, // Set a placeholder for penalties to trigger server awareness
+    penaltyStrokes: totalPenalties > 0 ? totalPenalties : undefined,
     proximity: localHole.proximity,
     approachLie: localHole.par === 3 ? null
+      : localHole.par === 5
+          // Par 5: approach is the 3rd shot, played from wherever the 2nd shot landed
+          ? (localHole.secondShotLie === 'c' ? 'fairway'
+            : localHole.secondShotLie === 'rough' ? 'rough'
+            : localHole.secondShotLie === 'sand' ? 'sand'
+            : null)
       : localHole.fairway === 'c' || localHole.fairway === 'l' || localHole.fairway === 'r' ? 'fairway'
       : localHole.fairway === 'rough' ? 'rough'
       : localHole.fairway === 'sand' ? 'sand'
-      : null,
+      : (localHole.fairway === 'na' && localHole.secondShotLie)
+          ? (localHole.secondShotLie === 'c' ? 'fairway'
+            : localHole.secondShotLie === 'rough' ? 'rough'
+            : localHole.secondShotLie === 'sand' ? 'sand'
+            : null)
+          : null,
   };
   if (localHole.par === 5) {
     if (localHole.secondShotDistance != null) apiHole.secondShotDistance = localHole.secondShotDistance;
@@ -86,6 +98,14 @@ const convertToAPIHole = (localHole: LocalHole): APIHole => {
   else if (localHole.wedgeShotDistance != null) apiHole.wedgeShotDistance = localHole.wedgeShotDistance;
   if (localHole.holeDistance != null) apiHole.holeDistance = localHole.holeDistance;
   return apiHole;
+};
+
+const formatMissLocation = (loc: string): string => {
+  if (loc.startsWith('fringe-')) {
+    const sub = loc.replace('fringe-', '');
+    return `Fringe · ${sub.charAt(0).toUpperCase() + sub.slice(1)}`;
+  }
+  return loc.charAt(0).toUpperCase() + loc.slice(1);
 };
 
 export default function TrackRoundPage() {
@@ -133,12 +153,14 @@ export default function TrackRoundPage() {
   const [secondShotDistance, setSecondShotDistance] = useState<number | null>(null);
   const [secondShotLie, setSecondShotLie] = useState<'c' | 'rough' | 'sand' | 'na' | 'green' | null>(null);
   const [secondShotPenalty, setSecondShotPenalty] = useState('');
-  const [approachMissLocation, setApproachMissLocation] = useState<'short' | 'sand' | 'long' | 'hazard' | null>(null);
+  const [approachMissLocation, setApproachMissLocation] = useState<'short' | 'sand' | 'long' | 'hazard' | 'left' | 'right' | 'fringe' | 'fringe-left' | 'fringe-right' | 'fringe-long' | 'fringe-short' | null>(null);
   const [wedgeShotDistances, setWedgeShotDistances] = useState<number[]>([]); // one per wedge shot when missed GIR
   const [holeDistance, setHoleDistance] = useState<number | null>(null); // total hole distance tee to pin
 
   const [activeCard, setActiveCard] = useState<number>(1); // 1: Par, 2: Tee, 3: Approach/2ndShot, 4: GIR/2ndTrouble, 5: Green/Wedge, 6: Green (Par 5 only)
   const [isStatsExpanded, setIsStatsExpanded] = useState<boolean>(false);
+  const [isEditingCourseName, setIsEditingCourseName] = useState(false);
+  const [editCourseNameValue, setEditCourseNameValue] = useState('');
 
   const MAX_WEDGE_SHOTS = 3; // cap wedge shot inputs (never more than 3); allow typing >3 to show "Call your coach!"
   const wedgeCount = Math.min(Math.max(0, Number(shotsToGreen) || 0), MAX_WEDGE_SHOTS);
@@ -219,6 +241,10 @@ export default function TrackRoundPage() {
   // Auto-recover round from localStorage on page refresh / accidental swipe
   // This ensures in-progress rounds survive a page reload
   useEffect(() => {
+    // Skip if this is a fresh editRound navigation — editRound useEffect handles it
+    const navState = location.state as any;
+    if (navState?.editRound) return;
+
     // Don't override if round is already loaded
     if (holes.length > 0 || roundStarted) return;
 
@@ -236,6 +262,10 @@ export default function TrackRoundPage() {
         setCourseName(localData.courseName || '');
         setCourseMetadata(localData.courseMetadata || null);
         if (localData.coursePar) setCoursePar(localData.coursePar);
+        // Restore editingRoundNumber so edit sessions survive a page refresh
+        if (localData.editingRoundNumber != null) {
+          setEditingRoundNumber(localData.editingRoundNumber);
+        }
         setRoundStarted(true);
 
         // Restore in-progress form state (half-entered hole)
@@ -249,6 +279,8 @@ export default function TrackRoundPage() {
           if (f.shotsToGreen !== undefined) setShotsToGreen(f.shotsToGreen);
           if (f.penalty !== undefined) setPenalty(f.penalty);
           if (f.proximity !== undefined) setProximity(f.proximity);
+          if (f.teePenalty !== undefined) setTeePenalty(f.teePenalty);
+          if (f.holeDistance !== undefined) setHoleDistance(f.holeDistance);
           if (f.secondShotDistance !== undefined) setSecondShotDistance(f.secondShotDistance);
           if (f.secondShotLie !== undefined) setSecondShotLie(f.secondShotLie);
           if (f.secondShotPenalty !== undefined) setSecondShotPenalty(f.secondShotPenalty);
@@ -351,6 +383,7 @@ export default function TrackRoundPage() {
         courseMetadata,
         coursePar,
         roundStarted,
+        editingRoundNumber, // Persist so edit sessions survive page refresh
         formState: {
           par,
           gir,
@@ -360,6 +393,8 @@ export default function TrackRoundPage() {
           shotsToGreen,
           penalty,
           proximity,
+          teePenalty,
+          holeDistance,
           secondShotDistance,
           secondShotLie,
           secondShotPenalty,
@@ -369,7 +404,7 @@ export default function TrackRoundPage() {
         lastUpdated: new Date().toISOString(),
       }));
     }
-  }, [holes, courseName, courseMetadata, coursePar, roundStarted, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity, secondShotDistance, secondShotLie, secondShotPenalty, approachMissLocation, wedgeShotDistances]);
+  }, [holes, courseName, courseMetadata, coursePar, roundStarted, editingRoundNumber, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity, teePenalty, holeDistance, secondShotDistance, secondShotLie, secondShotPenalty, approachMissLocation, wedgeShotDistances]);
 
   // Helper function to show alert modal
 
@@ -655,11 +690,16 @@ export default function TrackRoundPage() {
           : (par === 5 && girDeniedBySecondShotPenalty) ? 2
           : (par - 2);
         const additionalShots = shotsToGreen || 0;
+        // For Par 4/5 tee penalty + GIR='n': the GIR card asks about the approach from the re-tee
+        // landing position. GIR='y' path already accounts for the approach via shotsToGreen=1.
+        // GIR='n' path only captures recovery shots in shotsToGreen, so +1 is needed for the missed approach.
+        // Par 3 is excluded: the re-tee itself is the approach (base=3 already includes the miss).
+        const extraMissedApproach = girDeniedByTeePenalty && par !== 3 && gir === 'n' ? 1 : 0;
         // Only add non-tee penalties when there was a tee penalty (tee already counted in base=2).
         const penaltiesToAdd = girDeniedByTeePenalty
           ? (secondShotPenaltyNum + approachPenaltyNum)
           : totalPenaltiesBeforeGreen;
-        score = baseShotsBeforeRecovery + additionalShots + putts + penaltiesToAdd;
+        score = baseShotsBeforeRecovery + additionalShots + extraMissedApproach + putts + penaltiesToAdd;
       }
 
       // Use editingHole if editing, otherwise use currentHole for new holes
@@ -681,7 +721,7 @@ export default function TrackRoundPage() {
           : undefined,
         proximity: proximity || undefined,
         secondShotDistance: par === 5 ? (secondShotDistance ?? undefined) : undefined,
-        secondShotLie: par === 5 ? (secondShotLie ?? undefined) : undefined,
+        secondShotLie: (par === 5 || (par === 4 && teePenaltyNum >= 1)) ? (secondShotLie ?? undefined) : undefined,
         secondShotPenalty: par === 5 && secondShotPenalty ? secondShotPenalty : undefined,
         approachMissLocation: (par === 5 || (par !== 5 && gir === 'n')) ? (approachMissLocation ?? undefined) : undefined,
         wedgeShotDistances: (par === 5 || (par !== 5 && gir === 'n')) && wedgeShotDistances.length > 0 ? wedgeShotDistances.slice(0, MAX_WEDGE_SHOTS) : undefined,
@@ -956,9 +996,74 @@ export default function TrackRoundPage() {
           {/* Header */}
           <div style={{ marginBottom: '1.5rem' }}>
             <h1 style={{ marginBottom: '0.5rem' }}>Track Round</h1>
-            <p style={{ opacity: 0.8 }}>
-              {courseName}{editingHole !== null ? ' - Editing' : ''}
-            </p>
+            {isEditingCourseName ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  value={editCourseNameValue}
+                  onChange={(e) => setEditCourseNameValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const trimmed = editCourseNameValue.trim();
+                      if (trimmed) setCourseName(trimmed);
+                      setIsEditingCourseName(false);
+                    } else if (e.key === 'Escape') {
+                      setIsEditingCourseName(false);
+                    }
+                  }}
+                  style={{
+                    flex: '1 1 180px',
+                    padding: '0.4rem 0.6rem',
+                    fontSize: 'var(--font-base)',
+                    backgroundColor: 'rgba(221, 237, 210, 0.08)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                  }}
+                  placeholder="Course name"
+                  autoFocus
+                />
+                <button
+                  onClick={() => {
+                    const trimmed = editCourseNameValue.trim();
+                    if (trimmed) setCourseName(trimmed);
+                    setIsEditingCourseName(false);
+                  }}
+                  className="btn btn-primary"
+                  style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem' }}
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setIsEditingCourseName(false)}
+                  className="btn btn-secondary"
+                  style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <p style={{ opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span>{courseName}{editingHole !== null ? ' - Editing' : ''}</span>
+                <button
+                  onClick={() => { setEditCourseNameValue(courseName); setIsEditingCourseName(true); }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--color-interactive)',
+                    cursor: 'pointer',
+                    padding: '0.15rem 0.3rem',
+                    fontSize: '0.75rem',
+                    opacity: 0.7,
+                    lineHeight: 1,
+                  }}
+                  aria-label="Edit course name"
+                >
+                  <FontAwesomeIcon icon={faPencil} />
+                </button>
+              </p>
+            )}
           </div>
 
           {/* Course Par Selector */}
@@ -1040,7 +1145,11 @@ export default function TrackRoundPage() {
                       ? (par === 3 ? (gir === 'y' ? 2 : 3) : 3)
                       : (par === 5 && girDeniedBySecondShotPenalty) ? 2
                       : (par - 2);
-                    runningScore = baseShotsBeforeRecovery + (shotsToGreen || 0);
+                    // For Par 4/5 tee penalty + GIR='n': add 1 for the missed approach shot.
+                    // Guard on shotsToGreen !== null: penalty confirm resets shotsToGreen to null so
+                    // the +1 only shows once the player has actually entered recovery shots on the GIR card.
+                    const extraMissedApproach = girDeniedByTeePenalty && par !== 3 && gir === 'n' && shotsToGreen !== null ? 1 : 0;
+                    runningScore = baseShotsBeforeRecovery + (shotsToGreen || 0) + extraMissedApproach;
                   }
 
                   if (putts) runningScore += putts;
@@ -1157,7 +1266,7 @@ export default function TrackRoundPage() {
                           setGir('y');
                           setTeePenalty(''); setFairway(null); setPutts(null); setPuttDistances([]);
                           setShotsToGreen(null); setWedgeShotDistances([]);
-                          setApproachMissLocation(null); setProximity(null);
+                          setApproachMissLocation(null); setProximity(holeDistance ?? null);
                           setActiveCard(5); // On green → putting
                         }}
                         className="btn btn-secondary"
@@ -1558,7 +1667,7 @@ export default function TrackRoundPage() {
                 <span>
                   <span className="collapsed-summary-value">
                     {gir === 'y' ? 'On!' : `Miss · ${shotsToGreen ?? '?'} ${(shotsToGreen ?? 0) === 1 ? 'Shot' : 'Shots'}`}
-                    {approachMissLocation ? ` · ${approachMissLocation.charAt(0).toUpperCase() + approachMissLocation.slice(1)}` : ''}
+                    {approachMissLocation ? ` · ${formatMissLocation(approachMissLocation)}` : ''}
                     {wedgeShotDistances.filter(Boolean).length > 0 ? ` · ${wedgeShotDistances.filter(Boolean).join('/')}yd` : ''}
                   </span>
                   <span className="collapsed-summary-edit">Edit</span>
@@ -1676,7 +1785,9 @@ export default function TrackRoundPage() {
                             <button
                               onClick={() => {
                                 setGir(opt.value);
-                                setShotsToGreen(null);
+                                // Par 5 tee penalty + On!: shotsToGreen=1 counts the approach shot that reached the green.
+                                // Normal Par 5 On!: shotsToGreen=null defers to par-2 default in the save formula.
+                                setShotsToGreen(opt.value === 'y' && (parseInt(teePenalty) || 0) >= 1 ? 1 : null);
                                 setWedgeShotDistances([]);
                                 if (opt.value === 'y') setActiveCard(6);
                               }}
@@ -1698,12 +1809,12 @@ export default function TrackRoundPage() {
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => {
-                            setGir('y'); setPutts(0); setShotsToGreen(2); setPuttDistances([]); setActiveCard(6);
+                            setGir('y'); setPutts(0); setShotsToGreen(null); setPuttDistances([]); setActiveCard(6);
                           }}
                           className="btn btn-secondary"
-                          style={{ flex: 1, fontSize: '0.75rem', padding: '0.4rem', borderColor: '#FFD700', color: '#FFD700' }}
+                          style={{ flex: 1, fontSize: '0.75rem', padding: '0.4rem', borderColor: 'var(--color-interactive)', color: 'var(--color-interactive)' }}
                         >
-                          <img src="./images/albetross_icon.png" alt="Albatross" style={{ width: '1.4em', height: '1.4em', verticalAlign: 'middle', marginRight: '0.3rem', borderRadius: '3px' }} />Albatross!
+                          <img src="./images/eagle_icon.png" alt="Eagle" style={{ width: '1.4em', height: '1.4em', verticalAlign: 'middle', marginRight: '0.3rem', borderRadius: '3px' }} />Eagle!
                         </button>
                       </div>
                     </div>
@@ -1716,12 +1827,19 @@ export default function TrackRoundPage() {
                                { value: 'short' as const, label: 'Short' },
                                { value: 'sand' as const, label: 'Sand' },
                                { value: 'long' as const, label: 'Long' },
+                               { value: 'left' as const, label: 'Left' },
+                               { value: 'right' as const, label: 'Right' },
+                               { value: 'fringe' as const, label: 'Fringe' },
                                { value: 'hazard' as const, label: 'Penalty' },
                              ].map((opt) => (
                                <button
                                  key={opt.value}
                                  onClick={() => {
-                                   setApproachMissLocation(opt.value);
+                                   if (opt.value === 'fringe') {
+                                     if (!approachMissLocation?.startsWith('fringe')) setApproachMissLocation('fringe');
+                                   } else {
+                                     setApproachMissLocation(opt.value);
+                                   }
                                    if (opt.value !== 'hazard') setPenalty('');
                                  }}
                                  className="btn btn-secondary"
@@ -1730,14 +1848,41 @@ export default function TrackRoundPage() {
                                    minWidth: 'min-content',
                                    fontSize: '0.85rem',
                                    padding: '0.5rem',
-                                   backgroundColor: approachMissLocation === opt.value ? 'var(--color-interactive)' : 'transparent',
-                                   color: approachMissLocation === opt.value ? '#000' : 'var(--color-interactive)',
+                                   backgroundColor: (opt.value === 'fringe' ? approachMissLocation?.startsWith('fringe') : approachMissLocation === opt.value) ? 'var(--color-interactive)' : 'transparent',
+                                   color: (opt.value === 'fringe' ? approachMissLocation?.startsWith('fringe') : approachMissLocation === opt.value) ? '#000' : 'var(--color-interactive)',
                                  }}
                                >
                                  {opt.label}
                                </button>
                              ))}
                           </div>
+                          {approachMissLocation?.startsWith('fringe') && (
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
+                              <span style={{ fontSize: '0.75rem', opacity: 0.7, alignSelf: 'center', paddingRight: '0.25rem' }}>Fringe:</span>
+                              {[
+                                 { value: 'fringe-left' as const, label: 'Left' },
+                                 { value: 'fringe-right' as const, label: 'Right' },
+                                 { value: 'fringe-long' as const, label: 'Long' },
+                                 { value: 'fringe-short' as const, label: 'Short' },
+                               ].map((sub) => (
+                                 <button
+                                   key={sub.value}
+                                   onClick={() => setApproachMissLocation(sub.value)}
+                                   className="btn btn-secondary"
+                                   style={{
+                                     flex: 1,
+                                     minWidth: 'min-content',
+                                     fontSize: '0.85rem',
+                                     padding: '0.5rem',
+                                     backgroundColor: approachMissLocation === sub.value ? 'var(--color-interactive)' : 'transparent',
+                                     color: approachMissLocation === sub.value ? '#000' : 'var(--color-interactive)',
+                                   }}
+                                 >
+                                   {sub.label}
+                                 </button>
+                               ))}
+                            </div>
+                          )}
                         </div>
                         {approachMissLocation === 'hazard' && (
                           <div style={{ marginBottom: '0.75rem' }}>
@@ -1867,7 +2012,7 @@ export default function TrackRoundPage() {
                 <span>
                   <span className="collapsed-summary-value">
                     {par === 3 ? (
-                      <>{approachMissLocation ? approachMissLocation.charAt(0).toUpperCase() + approachMissLocation.slice(1) : ''}{penalty ? ` (+${penalty})` : ''}{shotsToGreen ? ` · ${shotsToGreen} ${shotsToGreen === 1 ? 'Shot' : 'Shots'}` : ''}</>
+                      <>{approachMissLocation ? formatMissLocation(approachMissLocation) : ''}{penalty ? ` (+${penalty})` : ''}{shotsToGreen ? ` · ${shotsToGreen} ${shotsToGreen === 1 ? 'Shot' : 'Shots'}` : ''}</>
                     ) : (parseInt(teePenalty) || 0) >= 1 ? (
                       <>{proximity ? `${proximity} yds` : ''}{secondShotLie ? ` · ${secondShotLie === 'c' ? 'Fairway' : secondShotLie === 'rough' ? 'Rough' : secondShotLie === 'sand' ? 'Sand' : 'Penalty'}` : ''}</>
                     ) : (
@@ -1970,12 +2115,19 @@ export default function TrackRoundPage() {
                           { value: 'short' as const, label: 'Short' },
                           { value: 'sand' as const, label: 'Sand' },
                           { value: 'long' as const, label: 'Long' },
+                          { value: 'left' as const, label: 'Left' },
+                          { value: 'right' as const, label: 'Right' },
+                          { value: 'fringe' as const, label: 'Fringe' },
                           { value: 'hazard' as const, label: 'Penalty' },
                         ].map((opt) => (
                           <button
                             key={opt.value}
                             onClick={() => {
-                              setApproachMissLocation(opt.value);
+                              if (opt.value === 'fringe') {
+                                if (!approachMissLocation?.startsWith('fringe')) setApproachMissLocation('fringe');
+                              } else {
+                                setApproachMissLocation(opt.value);
+                              }
                               if (opt.value !== 'hazard') setPenalty('');
                             }}
                             className="btn btn-secondary"
@@ -1984,14 +2136,41 @@ export default function TrackRoundPage() {
                               minWidth: 'min-content',
                               fontSize: '0.85rem',
                               padding: '0.5rem',
-                              backgroundColor: approachMissLocation === opt.value ? 'var(--color-interactive)' : 'transparent',
-                              color: approachMissLocation === opt.value ? '#000' : 'var(--color-interactive)',
+                              backgroundColor: (opt.value === 'fringe' ? approachMissLocation?.startsWith('fringe') : approachMissLocation === opt.value) ? 'var(--color-interactive)' : 'transparent',
+                              color: (opt.value === 'fringe' ? approachMissLocation?.startsWith('fringe') : approachMissLocation === opt.value) ? '#000' : 'var(--color-interactive)',
                             }}
                           >
                             {opt.label}
                           </button>
                         ))}
                       </div>
+                      {approachMissLocation?.startsWith('fringe') && (
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
+                          <span style={{ fontSize: '0.75rem', opacity: 0.7, alignSelf: 'center', paddingRight: '0.25rem' }}>Fringe:</span>
+                          {[
+                            { value: 'fringe-left' as const, label: 'Left' },
+                            { value: 'fringe-right' as const, label: 'Right' },
+                            { value: 'fringe-long' as const, label: 'Long' },
+                            { value: 'fringe-short' as const, label: 'Short' },
+                          ].map((sub) => (
+                            <button
+                              key={sub.value}
+                              onClick={() => setApproachMissLocation(sub.value)}
+                              className="btn btn-secondary"
+                              style={{
+                                flex: 1,
+                                minWidth: 'min-content',
+                                fontSize: '0.85rem',
+                                padding: '0.5rem',
+                                backgroundColor: approachMissLocation === sub.value ? 'var(--color-interactive)' : 'transparent',
+                                color: approachMissLocation === sub.value ? '#000' : 'var(--color-interactive)',
+                              }}
+                            >
+                              {sub.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     {approachMissLocation === 'hazard' && (
                       <div style={{ marginBottom: '0.75rem' }}>
@@ -2109,7 +2288,7 @@ export default function TrackRoundPage() {
                 <span>
                   <span className="collapsed-summary-value">
                     {gir === 'y' ? 'On!' : `Miss · ${shotsToGreen || '?'} ${(shotsToGreen ?? 0) === 1 ? 'Shot' : 'Shots'}`}
-                    {approachMissLocation ? ` · ${approachMissLocation.charAt(0).toUpperCase() + approachMissLocation.slice(1)}` : ''}
+                    {approachMissLocation ? ` · ${formatMissLocation(approachMissLocation)}` : ''}
                     {wedgeShotDistances.filter(Boolean).length > 0 ? ` · ${wedgeShotDistances.filter(Boolean).join('/')}yd` : ''}
                     {penalty ? ` (+${penalty})` : ''}
                   </span>
@@ -2208,7 +2387,7 @@ export default function TrackRoundPage() {
                     {/* Hero Pills for Par 4/5 — hide when Missed is selected */}
                     {(par === 4 || par === 5) && gir !== 'n' && (
                       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                        {par === 4 && (
+                        {par === 4 && (parseInt(teePenalty) || 0) === 0 && (
                           <button
                             onClick={() => {
                               setGir('y'); setPutts(0); setShotsToGreen(2); setPuttDistances([]); setActiveCard(5);
@@ -2238,12 +2417,19 @@ export default function TrackRoundPage() {
                           { value: 'short' as const, label: 'Short' },
                           { value: 'sand' as const, label: 'Sand' },
                           { value: 'long' as const, label: 'Long' },
+                          { value: 'left' as const, label: 'Left' },
+                          { value: 'right' as const, label: 'Right' },
+                          { value: 'fringe' as const, label: 'Fringe' },
                           { value: 'hazard' as const, label: 'Penalty' },
                         ].map((opt) => (
                           <button
                             key={opt.value}
                             onClick={() => {
-                              setApproachMissLocation(opt.value);
+                              if (opt.value === 'fringe') {
+                                if (!approachMissLocation?.startsWith('fringe')) setApproachMissLocation('fringe');
+                              } else {
+                                setApproachMissLocation(opt.value);
+                              }
                               if (opt.value !== 'hazard') setPenalty('');
                             }}
                             className="btn btn-secondary"
@@ -2252,14 +2438,41 @@ export default function TrackRoundPage() {
                               minWidth: 'min-content',
                               fontSize: '0.85rem',
                               padding: '0.5rem',
-                              backgroundColor: approachMissLocation === opt.value ? 'var(--color-interactive)' : 'transparent',
-                              color: approachMissLocation === opt.value ? '#000' : 'var(--color-interactive)',
+                              backgroundColor: (opt.value === 'fringe' ? approachMissLocation?.startsWith('fringe') : approachMissLocation === opt.value) ? 'var(--color-interactive)' : 'transparent',
+                              color: (opt.value === 'fringe' ? approachMissLocation?.startsWith('fringe') : approachMissLocation === opt.value) ? '#000' : 'var(--color-interactive)',
                             }}
                           >
                             {opt.label}
                           </button>
                         ))}
                       </div>
+                      {approachMissLocation?.startsWith('fringe') && (
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
+                          <span style={{ fontSize: '0.75rem', opacity: 0.7, alignSelf: 'center', paddingRight: '0.25rem' }}>Fringe:</span>
+                          {[
+                            { value: 'fringe-left' as const, label: 'Left' },
+                            { value: 'fringe-right' as const, label: 'Right' },
+                            { value: 'fringe-long' as const, label: 'Long' },
+                            { value: 'fringe-short' as const, label: 'Short' },
+                          ].map((sub) => (
+                            <button
+                              key={sub.value}
+                              onClick={() => setApproachMissLocation(sub.value)}
+                              className="btn btn-secondary"
+                              style={{
+                                flex: 1,
+                                minWidth: 'min-content',
+                                fontSize: '0.85rem',
+                                padding: '0.5rem',
+                                backgroundColor: approachMissLocation === sub.value ? 'var(--color-interactive)' : 'transparent',
+                                color: approachMissLocation === sub.value ? '#000' : 'var(--color-interactive)',
+                              }}
+                            >
+                              {sub.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     {approachMissLocation === 'hazard' && (
                       <div style={{ marginBottom: '0.75rem' }}>
@@ -2378,22 +2591,32 @@ export default function TrackRoundPage() {
 
           {/* CARD 5 (Par 3/4) or 6 (Par 5): The Green (Putting & Finish) */}
           {par !== null && ((par !== 5 && activeCard === 5) || (par === 5 && activeCard === 6)) && (() => {
-            // Compute score for celebration logic
-            const totalPenaltiesForScore = (parseInt(teePenalty) || 0) + (parseInt(secondShotPenalty) || 0) + (parseInt(penalty) || 0);
-            const girDeniedByTeePenalty = (parseInt(teePenalty) || 0) >= 1; // any par with tee penalty
+            // Compute score for submit-button label — must mirror the save formula exactly.
+            const teePenNum = parseInt(teePenalty) || 0;
+            const secondPenNum = par === 5 ? (parseInt(secondShotPenalty) || 0) : 0;
+            const approachPenNum = parseInt(penalty) || 0;
+            const totalPenaltiesForScore = teePenNum + secondPenNum + approachPenNum;
+            const girDeniedByTeePenalty = teePenNum >= 1;
             const girDeniedBySecondShotPenalty = par === 5 && secondShotLie === 'na';
-            // Par 3 base=2 (OB + re-tee IS the approach). Par 4/5 base=3 (OB + re-tee + approach-that-missed).
-            const baseShotsBeforeRecovery = girDeniedByTeePenalty ? (par === 3 ? 2 : 3)
+            const isGirAutoDeniedLocal = (par === 3 && totalPenaltiesForScore > 0) ||
+                                         (par === 4 && totalPenaltiesForScore > 0) ||
+                                         (par === 5 && teePenNum >= 1) ||
+                                         (par === 5 && secondShotLie === 'na');
+            // Match save formula base exactly (Par 3 tee penalty is gir-dependent).
+            const baseShotsBeforeRecovery = girDeniedByTeePenalty
+              ? (par === 3 ? (gir === 'y' ? 2 : 3) : 3)
               : (par === 5 && girDeniedBySecondShotPenalty) ? 2
               : (par! - 2);
-            // Tee penalty is embedded in baseShotsBeforeRecovery; exclude it from added penalties.
+            // Tee penalty is embedded in base; only add non-tee penalties.
             const penaltiesToAdd = girDeniedByTeePenalty
-              ? ((parseInt(secondShotPenalty) || 0) + (parseInt(penalty) || 0))
+              ? (secondPenNum + approachPenNum)
               : totalPenaltiesForScore;
+            // Par 4/5 tee penalty + GIR='n': add 1 for the missed approach shot.
+            const extraMissedApproach = girDeniedByTeePenalty && par !== 3 && gir === 'n' ? 1 : 0;
             const currentScore = putts !== null
-              ? (gir === 'y'
+              ? (gir === 'y' && !isGirAutoDeniedLocal
                 ? (shotsToGreen || (par! - 2)) + putts + totalPenaltiesForScore
-                : baseShotsBeforeRecovery + (shotsToGreen || 0) + putts + penaltiesToAdd)
+                : baseShotsBeforeRecovery + (shotsToGreen || 0) + extraMissedApproach + putts + penaltiesToAdd)
               : null;
             const isHoleOut = putts === 0 && puttDistances.length === 0;
             const isAce = isHoleOut && gir === 'y' && shotsToGreen === 1 && currentScore === 1;
@@ -2402,6 +2625,36 @@ export default function TrackRoundPage() {
 
             return (
             <div className="card" style={{ marginBottom: '1.5rem' }}>
+              {gir === 'y' && !isAce && !isHoleOut && (par === 3 || (par === 4 && proximity == null) || par === 5) && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                    Approach distance{' '}
+                    <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem' }}>(yds · optional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    placeholder={holeDistance ? String(holeDistance) : 'e.g. 150'}
+                    value={proximity ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setProximity(val === '' ? null : parseInt(val));
+                    }}
+                    style={{
+                      width: '100%',
+                      minHeight: 'var(--touch-min)',
+                      padding: '14px 8px',
+                      textAlign: 'center',
+                      backgroundColor: 'var(--bg-secondary)',
+                      border: '2px solid var(--border-primary)',
+                      borderRadius: 'var(--radius-md)',
+                      color: 'var(--text-primary)',
+                      WebkitTextFillColor: 'var(--text-primary)',
+                      fontSize: 'var(--font-base)',
+                    }}
+                  />
+                </div>
+              )}
               {isAce ? (
                 <div style={{ textAlign: 'center', padding: '1rem 0', animation: 'fadeIn 0.5s ease-out' }}>
                   <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>

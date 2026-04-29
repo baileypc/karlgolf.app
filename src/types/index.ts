@@ -13,13 +13,14 @@ export interface Hole {
   shotsToGreen?: number;
   approachDistance?: number;
   penalty?: 'ob' | 'water' | 'lost' | 'wrong' | 'other' | null;
+  penaltyStrokes?: number; // total numeric strokes for accurate stats (overrides legacy penalty-type counting)
   proximity?: number;
   approachLie?: 'fairway' | 'rough' | 'sand' | null;
   // Par 5: second shot (layup) and wedge-to-green result
   secondShotDistance?: number;
   secondShotLie?: 'fairway' | 'rough' | 'sand' | 'hazard' | 'green';
   secondShotPenalty?: number;
-  approachMissLocation?: 'short' | 'sand' | 'long' | 'hazard';
+  approachMissLocation?: 'short' | 'sand' | 'long' | 'hazard' | 'left' | 'right' | 'fringe' | 'fringe-left' | 'fringe-right' | 'fringe-long' | 'fringe-short';
   wedgeShotDistance?: number; // legacy single; prefer wedgeShotDistances
   wedgeShotDistances?: number[]; // yards per wedge shot (when missed GIR, 1+ shots)
   holeDistance?: number; // total hole distance from tee to pin (yards)

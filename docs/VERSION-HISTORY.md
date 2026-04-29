@@ -1,5 +1,41 @@
 # Version History
 
+## Version 3.8.0 - Stats Accuracy Audit & Data Pipeline Fixes (April 2026)
+
+### 🔧 Bug Fixes
+
+**Native app auth (critical):**
+- `checkLogin()` on Capacitor native builds now sends the stored `Authorization: Bearer` token — previously the token was never attached, so every native app launch appeared logged out.
+- `register()` now stores the returned auth token on native, preventing an immediate post-registration logout.
+
+**Field name drift:**
+- `stats.ts` and `export.ts` were reading `approachDistance` (a field that was never written) instead of the correct `proximity` field — approach proximity was silently `undefined` everywhere. Fixed to `proximity`.
+- CSV export headers corrected from "ft" to "yds" to match actual stored units.
+
+**Form state persistence:**
+- `teePenalty` and `holeDistance` were not included in the `formState` localStorage write, so they were lost on page refresh mid-hole.
+
+**CSV export duplication:**
+- `csv-export.ts` and `export.ts` had diverged with incompatible interfaces. Consolidated into `export.ts`; dead `csv-export.ts` import removed from `TrackRoundPage`.
+
+### 📊 Stats Accuracy Audit — All Par Types
+
+**Par 3:**
+- Penalty stroke count was always 1 regardless of `+1` or `+2` selected — introduced `penaltyStrokes` numeric field so PHP counts penalties correctly.
+- Tee shots that hit the green ("On!") had no proximity distance recorded. Added optional approach distance input in Card 5 pre-filled from hole distance.
+
+**Par 4:**
+- Re-tee lie (`secondShotLie`) was captured in the UI after OB/penalty but never saved to the hole object, so `approachLie` was always `null` for penalised Par 4 holes. Now saved and used to derive `approachLie`.
+- Eagle! button was shown even when a tee penalty was active (where eagle is impossible). Hidden when `teePenalty >= 1`.
+- "Drove Green!" shortcut skipped the approach distance card, leaving `proximity` unrecorded. Added optional proximity input in the putts card for this path.
+
+**Par 5:**
+- `approachLie` was incorrectly sourced from the **tee shot lie** (`fairway`) instead of the **2nd shot lie** (`secondShotLie`). The approach to the green is played from wherever the 2nd shot landed — this corrupted GIR-by-lie stats for every Par 5 hole.
+- No proximity was ever recorded for Par 5 holes reaching GIR, excluding them from `avgProximity`, `approachCategories`, and Tiger Five `bogeyFromInside150`. Added optional proximity input in Card 6.
+- Card 5 "Albatross!" button was mislabelled and set `shotsToGreen=2` producing a score of 2 — but by Card 5 the player has already played 2 shots, so holing out is an **Eagle** (score 3). Corrected to Eagle with `shotsToGreen=null`.
+
+---
+
 ## Version 3.7.0 - Tee Penalty Scoring & UI Flow Fixes (April 2026)
 
 ### ✅ Features & Improvements
@@ -201,7 +237,7 @@ All new Par 5 fields are persisted, sent to the API, and reflected in cumulative
 - PWA functionality
 - Guest mode (localStorage)
 
-### Known Issues (Historical; resolved in v3.7.0+)
+### Known Issues (Historical; resolved in v3.8.0+)
 - Fairway stats calculation issues
 - Service worker caching problems
 - Delete hole persistence issues
@@ -246,6 +282,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.7.0 (Production)
+**Current Version:** 3.8.0 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

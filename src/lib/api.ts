@@ -170,11 +170,14 @@ export const authAPI = {
     const endpoint = 'auth/login.php?action=check';
 
     if (Capacitor.isNativePlatform()) {
-      // Use native HTTP for app
+      // Use native HTTP for app, including the stored bearer token
       try {
+        const token = getStoredToken();
+        const headers: Record<string, string> = { 'Cache-Control': 'no-cache' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
         const response = await CapacitorHttp.get({
           url: `${PROD_API_URL}/${endpoint}`,
-          headers: { 'Cache-Control': 'no-cache' },
+          headers,
         });
         return {
           success: true,
@@ -211,10 +214,17 @@ export const authAPI = {
   },
 
   async register(email: string, password: string): Promise<AuthResponse> {
-    return request('auth/login.php?action=register', {
+    const response = await request<AuthResponse & { token?: string }>('auth/login.php?action=register', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+
+    // Store token for native app
+    if (response.token) {
+      storeToken(response.token);
+    }
+
+    return response;
   },
 
   async logout(): Promise<AuthResponse> {

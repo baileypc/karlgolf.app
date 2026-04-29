@@ -136,7 +136,11 @@ function calculateStats($holes) {
         // Penalties
         if (isset($h['penalty']) && !empty($h['penalty'])) {
             $penalties++;
-            $totalPenaltyStrokes += ($h['penalty'] === 'wrong') ? 2 : 1;
+            if (isset($h['penaltyStrokes']) && is_numeric($h['penaltyStrokes']) && (int)$h['penaltyStrokes'] > 0) {
+                $totalPenaltyStrokes += (int)$h['penaltyStrokes'];
+            } else {
+                $totalPenaltyStrokes += ($h['penalty'] === 'wrong') ? 2 : 1;
+            }
         }
         
         // Tiger Five calculations

@@ -20,7 +20,12 @@ export default function DashboardPage() {
   const deleteAccountModal = useModal();
   const endRoundModal = useModal();
   const errorModal = useModal();
+  const editCourseModal = useModal();
   const [errorMessage, setErrorMessage] = useState('');
+  const [editCourseValue, setEditCourseValue] = useState('');
+  const [editCourseTarget, setEditCourseTarget] = useState<
+    { type: 'incomplete' } | { type: 'complete'; roundNumber: number; roundData: any } | null
+  >(null);
   const [roundToDelete, setRoundToDelete] = useState<{ roundNumber: number; courseName: string; isIncompleteCard?: boolean } | null>(null);
   
   // Track which recent rounds are expanded (by roundNumber)
@@ -203,9 +208,31 @@ export default function DashboardPage() {
               <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
                 Continue Your Round
               </h2>
-              <p style={{ color: 'var(--text-primary)', marginBottom: '1.5rem', opacity: 0.9 }}>
-                {incompleteRound.courseName} • {incompleteRound.holes} hole{incompleteRound.holes !== 1 ? 's' : ''} recorded
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                <p style={{ color: 'var(--text-primary)', opacity: 0.9, margin: 0 }}>
+                  {incompleteRound.courseName} • {incompleteRound.holes} hole{incompleteRound.holes !== 1 ? 's' : ''} recorded
+                </p>
+                <button
+                  onClick={() => {
+                    setEditCourseValue(incompleteRound.courseName);
+                    setEditCourseTarget({ type: 'incomplete' });
+                    editCourseModal.open();
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--color-interactive)',
+                    cursor: 'pointer',
+                    padding: '0.2rem 0.4rem',
+                    fontSize: '0.8rem',
+                    opacity: 0.7,
+                    flexShrink: 0,
+                  }}
+                  aria-label="Edit course name"
+                >
+                  <FontAwesomeIcon icon={faPencil} />
+                </button>
+              </div>
               <button
                 onClick={() => navigate('/track-round', { state: { continueRound: true } })}
                 className="btn btn-primary"
@@ -821,6 +848,25 @@ export default function DashboardPage() {
                         </button>
                         <button
                           onClick={() => {
+                            setEditCourseValue(group.courseName);
+                            setEditCourseTarget({ type: 'complete', roundNumber: group.roundNumber, roundData: group.rounds[0] });
+                            editCourseModal.open();
+                          }}
+                          className="btn btn-secondary"
+                          style={{
+                            width: '100%',
+                            fontSize: '0.875rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faPencil} />
+                          Edit Course
+                        </button>
+                        <button
+                          onClick={() => {
                             setRoundToDelete({ roundNumber: group.roundNumber, courseName: group.courseName });
                             deleteSingleRoundModal.open();
                           }}
@@ -1271,6 +1317,97 @@ export default function DashboardPage() {
           showCancel={false}
         />
       )}
+
+      {/* Edit Course Name Modal */}
+      <Modal
+        isOpen={editCourseModal.isOpen}
+        onClose={editCourseModal.close}
+        onConfirm={async () => {
+          const trimmed = editCourseValue.trim();
+          if (!trimmed) return;
+
+          if (editCourseTarget?.type === 'incomplete') {
+            // Update localStorage
+            const saved = localStorage.getItem('karlsGIR_currentRound');
+            if (saved) {
+              try {
+                const data = JSON.parse(saved);
+                data.courseName = trimmed;
+                localStorage.setItem('karlsGIR_currentRound', JSON.stringify(data));
+              } catch {}
+            }
+            // Update UI immediately
+            setIncompleteRound(prev => prev ? { ...prev, courseName: trimmed } : null);
+            // Sync to server if logged in
+            if (isLoggedIn) {
+              try {
+                const localRaw = localStorage.getItem('karlsGIR_currentRound');
+                const localData = localRaw ? JSON.parse(localRaw) : {};
+                await roundsAPI.syncCurrentRound({
+                  courseName: trimmed,
+                  courseMetadata: localData.courseMetadata || null,
+                  holes: localData.holes || [],
+                });
+                queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+              } catch {}
+            }
+          } else if (editCourseTarget?.type === 'complete') {
+            try {
+              const rd = editCourseTarget.roundData;
+              const result = await roundsAPI.saveRound({
+                ...rd,
+                courseName: trimmed,
+                replaceRoundNumber: editCourseTarget.roundNumber,
+              });
+              if (result.success) {
+                queryClient.invalidateQueries({ queryKey: ['stats'] });
+                queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+              } else {
+                throw new Error('Save failed');
+              }
+            } catch {
+              setErrorMessage('Failed to update course name. Please try again.');
+              errorModal.open();
+            }
+          }
+        }}
+        title="Edit Course Name"
+        message={
+          <div>
+            <p style={{ marginBottom: '0.75rem', opacity: 0.8 }}>Enter the correct course name:</p>
+            <input
+              type="text"
+              value={editCourseValue}
+              onChange={(e) => setEditCourseValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const trimmed = editCourseValue.trim();
+                  if (trimmed) {
+                    // Trigger the confirm via button click simulation isn't easy, 
+                    // but we can just let Enter blur/submit naturally
+                  }
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '0.6rem 0.75rem',
+                fontSize: 'var(--font-base)',
+                backgroundColor: 'rgba(221, 237, 210, 0.08)',
+                border: '1px solid var(--border-primary)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--text-primary)',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+              placeholder="Course name"
+              autoFocus
+            />
+          </div>
+        }
+        type="info"
+        confirmText="Save"
+        cancelText="Cancel"
+      />
     </>
   );
 }

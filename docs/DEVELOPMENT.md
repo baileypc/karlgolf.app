@@ -1,6 +1,6 @@
 # Karl's GIR - Development Setup
 
-**Version:** 3.7.0
+**Version:** 3.8.0
 **Last Updated:** December 2025
 
 ## 🚀 Quick Start
@@ -197,4 +197,4 @@ See **[FTP Upload Guide](FTP-UPLOAD-GUIDE.md)** for complete instructions.
 
 ---
 
-**Last Updated:** v3.7.0 Production Release
+**Last Updated:** v3.8.0 Production Release

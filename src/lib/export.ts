@@ -18,13 +18,13 @@ export function exportToCSV(holes: Hole[], roundName = 'Round'): void {
       h.gir === 'y' ? 'Yes' : 'No',
       h.putts,
       h.fairway ? (h.fairway === 'y' ? 'Yes' : 'No') : 'N/A',
-      h.approachDistance || '',
+      h.proximity || '',
       h.penalty || 'None',
       scrambled ? 'Yes' : 'No',
     ].join(',');
   }).join('\n');
 
-  const header = 'Hole,Par,Score,To Par,GIR,Putts,Fairway,Approach Dist (yds),Penalty,Scrambled\n';
+  const header = 'Hole,Par,Score,To Par,GIR,Putts,Fairway,Proximity (yds),Penalty,Scrambled\n';
 
   // Calculate stats
   const stats = calculateRoundStats(holes);
@@ -62,7 +62,7 @@ export function exportToCSV(holes: Hole[], roundName = 'Round'): void {
 export function exportAllRoundsToCSV(rounds: any[]): void {
   // Sort rounds chronologically (oldest first or newest first - usually newest is first in the array already)
   
-  const header = 'Date,Course,Hole,Par,Score,To Par,GIR,Putts,Fairway,Approach Dist (yds),Penalty,Scrambled\n';
+  const header = 'Date,Course,Hole,Par,Score,To Par,GIR,Putts,Fairway,Proximity (yds),Penalty,Scrambled\n';
   
   let csv = '';
   
@@ -87,7 +87,7 @@ export function exportAllRoundsToCSV(rounds: any[]): void {
         h.gir === 'y' ? 'Yes' : 'No',
         h.putts,
         h.fairway ? (h.fairway === 'y' ? 'Yes' : 'No') : 'N/A',
-        h.approachDistance || '',
+        h.proximity || '',
         h.penalty || 'None',
         scrambled ? 'Yes' : 'No',
       ];
@@ -109,4 +109,8 @@ export function exportAllRoundsToCSV(rounds: any[]): void {
   a.click();
   document.body.removeChild(a);
   window.URL.revokeObjectURL(url);
+}
+
+export function exportRoundToCSV({ courseName, holes }: { courseName: string; holes: Hole[] | readonly any[] }): void {
+  exportToCSV(holes as Hole[], courseName);
 }
