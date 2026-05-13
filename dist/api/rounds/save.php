@@ -1,8 +1,7 @@
 <?php
 /**
  * Karl's GIR - Save Round to User Account
- * Saves completed round data to user's rounds.json file
- * Uses shared components for session, file locking, stats, and validation
+ * Saves round data to user's rounds.json file with stable round IDs.
  */
 
 require_once __DIR__ . '/../common/session.php';
@@ -14,12 +13,12 @@ require_once __DIR__ . '/../common/validation.php';
 require_once __DIR__ . '/../common/logger.php';
 require_once __DIR__ . '/../common/analytics-tracker.php';
 require_once __DIR__ . '/../common/data-path.php';
+require_once __DIR__ . '/../common/csrf.php';
 
-// Initialize session
 initSession();
 
-// Require authentication
 $auth = requireAuth();
+requireCsrfForSessionAuth($auth);
 $userHash = $auth['userHash'];
 $userEmail = $auth['userEmail'] ?? '';
 $dataDir = getDataDirectory();
@@ -27,37 +26,32 @@ $userDir = $dataDir . '/' . $userHash;
 $roundsFile = $userDir . '/rounds.json';
 $passwordFile = $userDir . '/password.txt';
 
-// Check if user directory exists
 if (!is_dir($userDir)) {
     logError('User account not found - directory missing', [
         'userHash' => $userHash,
-        'userEmail' => $userEmail ?? 'unknown',
-        'sessionId' => session_id()
+        'userEmail' => $userEmail ?? 'unknown'
     ]);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'User account not found. Please log out and log back in.',
         'errorCode' => 'ACCOUNT_NOT_FOUND'
     ]);
     exit;
 }
 
-// Verify password.txt exists (ensures account is valid)
-// This is critical - without password.txt, the account is incomplete and login will fail
 if (!file_exists($passwordFile)) {
     logError('User account invalid - password file missing', [
         'userHash' => $userHash,
         'userEmail' => $userEmail ?? 'unknown'
     ]);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'Account data is invalid. Please log out and log back in.',
         'errorCode' => 'ACCOUNT_INVALID'
     ]);
     exit;
 }
 
-// Get and validate JSON input
 $json = file_get_contents('php://input');
 $roundData = json_decode($json, true);
 
@@ -67,12 +61,11 @@ if (!$roundData) {
     exit;
 }
 
-// Validate round data
 $validation = validateRoundData($roundData);
 if (!$validation['valid']) {
     logWarning('Round data validation failed', ['errors' => $validation['errors']]);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'Validation failed: ' . implode(', ', $validation['errors'])
     ]);
     exit;
@@ -81,258 +74,215 @@ if (!$validation['valid']) {
 $roundData = $validation['sanitized'];
 $courseName = $roundData['courseName'];
 $mergeIntoRoundId = $roundData['mergeIntoRoundId'] ?? null;
-$isMerging = $mergeIntoRoundId !== null && $mergeIntoRoundId !== '';
-$completed = $roundData['completed'] ?? false; // Track if user explicitly ended the round
+$replaceRoundNumber = $roundData['replaceRoundNumber'] ?? null;
+$completed = $roundData['completed'] ?? false;
+$roundId = $roundData['roundId'] ?? ('round_' . bin2hex(random_bytes(16)));
+$roundData['roundId'] = $roundId;
 
-logInfo('Save round request', [
-    'mergeIntoRoundId' => $mergeIntoRoundId,
-    'isMerging' => $isMerging,
-    'holesCount' => count($roundData['holes'] ?? []),
-    'holes' => array_map(function($h) { 
-        return ['holeNumber' => $h['holeNumber'] ?? 'N/A', 'score' => $h['score'] ?? 'N/A']; 
-    }, $roundData['holes'] ?? []),
-    'courseName' => $courseName
-]);
-
-// Load existing rounds with file locking
-$rounds = readJsonFile($roundsFile, []);
-
-// Handle explicit merge request
-if ($isMerging && $mergeIntoRoundId >= 0 && $mergeIntoRoundId < count($rounds)) {
-    $existingRound = $rounds[$mergeIntoRoundId];
-    $existingCourseName = trim($existingRound['courseName'] ?? '');
-    
-    // Verify course name matches (case-insensitive)
-    if (strtolower(trim($courseName)) !== strtolower($existingCourseName)) {
-        logWarning('Course name mismatch for merge', [
-            'existing' => $existingCourseName,
-            'new' => $courseName
-        ]);
-        echo json_encode(['success' => false, 'message' => 'Cannot merge into this round']);
-        exit;
+function findRoundIndexByRoundId($rounds, $roundId) {
+    foreach ($rounds as $idx => $round) {
+        if (($round['roundId'] ?? null) === $roundId) {
+            return $idx;
+        }
     }
-    
-    // Perform merge
+    return null;
+}
+
+function findRoundIndexByRoundNumber($rounds, $roundNumber) {
+    foreach ($rounds as $idx => $round) {
+        if (($round['roundNumber'] ?? ($idx + 1)) == $roundNumber) {
+            return $idx;
+        }
+    }
+    return null;
+}
+
+function applyRoundDataToExisting($existingRound, $roundData, $courseName, $completed, $roundId) {
+    $existingHoles = $existingRound['holes'] ?? [];
+    $newHoles = $roundData['holes'] ?? [];
+    $replaceMode = $completed || count($newHoles) <= count($existingHoles) || count($existingHoles) >= 18;
+
+    if ($replaceMode) {
+        $stats = calculateStats($newHoles);
+        if (!$stats) {
+            return ['success' => false, 'message' => 'No valid holes found'];
+        }
+
+        $existingRound['holes'] = $newHoles;
+        $existingRound['stats'] = $stats;
+        $existingRound['courseName'] = $courseName;
+        $existingRound['roundId'] = $existingRound['roundId'] ?? $roundId;
+        $existingRound['lastUpdated'] = date('Y-m-d H:i:s');
+        $existingRound['lastEdited'] = date('c');
+
+        if (array_key_exists('courseMetadata', $roundData)) {
+            $existingRound['courseMetadata'] = $roundData['courseMetadata'];
+        }
+        if ($completed) {
+            $existingRound['completed'] = true;
+        }
+
+        return [
+            'success' => true,
+            'round' => $existingRound,
+            'merged' => false,
+            'replaced' => true,
+            'holesAdded' => 0,
+            'holesUpdated' => count($newHoles),
+            'totalHoles' => count($newHoles)
+        ];
+    }
+
     $mergeResult = mergeRound($existingRound, $roundData);
-    
     if (!$mergeResult['success']) {
-        logWarning('Merge failed', ['error' => $mergeResult['error']]);
-        echo json_encode([
-            'success' => false,
-            'message' => $mergeResult['error'],
-            'totalHoles' => count($existingRound['holes'] ?? [])
-        ]);
-        exit;
+        return ['success' => false, 'message' => $mergeResult['error']];
     }
-    
-    // Update rounds array with merged round
-    // Preserve or set completed flag
-    if ($completed) {
-        $mergeResult['round']['completed'] = true;
-    }
-    $rounds[$mergeIntoRoundId] = $mergeResult['round'];
 
-    // Save with file locking
-    if (!writeJsonFile($roundsFile, $rounds)) {
-        logError('Failed to save merged round', ['roundIndex' => $mergeIntoRoundId]);
-        echo json_encode(['success' => false, 'message' => 'Failed to merge round']);
-        exit;
+    $mergedRound = $mergeResult['round'];
+    $mergedRound['roundId'] = $mergedRound['roundId'] ?? $roundId;
+    $mergedRound['courseName'] = $courseName;
+    if (array_key_exists('courseMetadata', $roundData)) {
+        $mergedRound['courseMetadata'] = $roundData['courseMetadata'];
     }
-    
-        logInfo('Round merged successfully', [
-            'roundNumber' => $mergeIntoRoundId + 1,
-            'holesAdded' => $mergeResult['added'],
-            'holesUpdated' => $mergeResult['updated'],
-            'totalHoles' => count($mergeResult['round']['holes']),
-            'holeNumbers' => array_map(function($h) { 
-                return $h['holeNumber'] ?? 'N/A'; 
-            }, $mergeResult['round']['holes'])
-        ]);
-        
-        // Track round completion for analytics
-        $totalHoles = count($mergeResult['round']['holes']);
-        $completed = $totalHoles >= 9;
-        trackRoundEvent('save', 'registered', $userHash, $totalHoles, $completed);
-        
-        echo json_encode([
+    if ($completed) {
+        $mergedRound['completed'] = true;
+    }
+
+    return [
+        'success' => true,
+        'round' => $mergedRound,
+        'merged' => true,
+        'replaced' => false,
+        'holesAdded' => $mergeResult['added'],
+        'holesUpdated' => $mergeResult['updated'],
+        'totalHoles' => count($mergedRound['holes'] ?? []),
+        'maxHoleNumber' => $mergeResult['maxHoleNumber']
+    ];
+}
+
+$response = null;
+$analyticsHoles = 0;
+$analyticsCompleted = false;
+
+$result = updateJsonFile($roundsFile, function($rounds) use (
+    &$response,
+    &$analyticsHoles,
+    &$analyticsCompleted,
+    $roundData,
+    $courseName,
+    $completed,
+    $roundId,
+    $mergeIntoRoundId,
+    $replaceRoundNumber
+) {
+    if (!is_array($rounds)) {
+        $rounds = [];
+    }
+
+    // Prefer stable identity when present. This makes retries idempotent.
+    $targetIndex = findRoundIndexByRoundId($rounds, $roundId);
+
+    if ($targetIndex === null && $replaceRoundNumber !== null) {
+        $targetIndex = findRoundIndexByRoundNumber($rounds, $replaceRoundNumber);
+        if ($targetIndex === null) {
+            $response = ['success' => false, 'message' => 'Round not found'];
+            return $rounds;
+        }
+    }
+
+    if ($targetIndex === null && $mergeIntoRoundId !== null && $mergeIntoRoundId !== '' && $mergeIntoRoundId >= 0 && $mergeIntoRoundId < count($rounds)) {
+        $existingCourseName = trim($rounds[$mergeIntoRoundId]['courseName'] ?? '');
+        if (strtolower(trim($courseName)) !== strtolower($existingCourseName)) {
+            $response = ['success' => false, 'message' => 'Cannot merge into this round'];
+            return $rounds;
+        }
+        $targetIndex = (int)$mergeIntoRoundId;
+    }
+
+    if ($targetIndex === null) {
+        $targetIndex = findIncompleteRoundByCourse($rounds, $courseName);
+    }
+
+    if ($targetIndex !== null) {
+        $update = applyRoundDataToExisting($rounds[$targetIndex], $roundData, $courseName, $completed, $roundId);
+        if (!$update['success']) {
+            $response = ['success' => false, 'message' => $update['message']];
+            return $rounds;
+        }
+
+        $rounds[$targetIndex] = $update['round'];
+        $analyticsHoles = $update['totalHoles'];
+        $analyticsCompleted = $completed || $analyticsHoles >= 9;
+        $response = [
             'success' => true,
             'message' => 'Round updated successfully',
-            'roundNumber' => $mergeIntoRoundId + 1,
+            'roundId' => $rounds[$targetIndex]['roundId'],
+            'roundNumber' => $rounds[$targetIndex]['roundNumber'] ?? ($targetIndex + 1),
             'totalRounds' => count($rounds),
-            'merged' => true,
-            'totalHoles' => $totalHoles,
-            'holesAdded' => $mergeResult['added'],
-            'holesUpdated' => $mergeResult['updated'],
-            'maxHoleNumber' => $mergeResult['maxHoleNumber']
-        ]);
-        exit;
-}
-
-// Handle round replacement (editing a completed round)
-$replaceRoundNumber = $roundData['replaceRoundNumber'] ?? null;
-if ($replaceRoundNumber !== null) {
-    // Find the round by roundNumber (1-indexed)
-    $found = false;
-    foreach ($rounds as $idx => &$existingRound) {
-        if (($existingRound['roundNumber'] ?? ($idx + 1)) == $replaceRoundNumber) {
-            // Recalculate stats with new holes
-            $newStats = calculateStats($roundData['holes']);
-            
-            // Replace the round data
-            $existingRound['holes'] = $roundData['holes'];
-            $existingRound['stats'] = $newStats;
-            $existingRound['courseName'] = $courseName;
-            if ($completed) {
-                $existingRound['completed'] = true;
-            }
-            $existingRound['lastEdited'] = date('c');
-            
-            $found = true;
-            break;
+            'merged' => $update['merged'],
+            'replaced' => $update['replaced'],
+            'totalHoles' => $analyticsHoles,
+            'holesAdded' => $update['holesAdded'],
+            'holesUpdated' => $update['holesUpdated']
+        ];
+        if (isset($update['maxHoleNumber'])) {
+            $response['maxHoleNumber'] = $update['maxHoleNumber'];
         }
+
+        return $rounds;
     }
-    unset($existingRound);
-    
-    if (!$found) {
-        logWarning('Round not found for replacement', ['roundNumber' => $replaceRoundNumber]);
-        echo json_encode(['success' => false, 'message' => 'Round not found']);
-        exit;
+
+    $stats = calculateStats($roundData['holes']);
+    if (!$stats) {
+        $response = ['success' => false, 'message' => 'No valid holes found'];
+        return $rounds;
     }
-    
-    if (!writeJsonFile($roundsFile, $rounds)) {
-        logError('Failed to save replaced round', ['roundNumber' => $replaceRoundNumber]);
-        echo json_encode(['success' => false, 'message' => 'Failed to save edited round']);
-        exit;
+
+    $holeCount = count($roundData['holes'] ?? []);
+    $newRound = [
+        'roundId' => $roundId,
+        'timestamp' => date('Y-m-d H:i:s'),
+        'date' => date('Y-m-d'),
+        'courseName' => $courseName,
+        'roundNumber' => count($rounds) + 1,
+        'holes' => $roundData['holes'],
+        'stats' => $stats,
+        'completed' => (bool)$completed
+    ];
+
+    if (array_key_exists('courseMetadata', $roundData)) {
+        $newRound['courseMetadata'] = $roundData['courseMetadata'];
     }
-    
-    logInfo('Round replaced successfully', [
-        'roundNumber' => $replaceRoundNumber,
-        'totalHoles' => count($roundData['holes'])
-    ]);
-    
-    echo json_encode([
+
+    $rounds[] = $newRound;
+    $analyticsHoles = $holeCount;
+    $analyticsCompleted = $completed || $holeCount >= 9;
+    $response = [
         'success' => true,
-        'message' => 'Round updated successfully',
-        'roundNumber' => $replaceRoundNumber,
+        'message' => 'Round saved successfully',
+        'roundId' => $roundId,
+        'roundNumber' => $newRound['roundNumber'],
         'totalRounds' => count($rounds),
-        'replaced' => true
-    ]);
-    exit;
-}
+        'totalHoles' => $holeCount
+    ];
 
-// Check for auto-merge (incomplete round with same course name)
-if (!$isMerging) {
-    $incompleteRoundIdx = findIncompleteRoundByCourse($rounds, $courseName);
-    
-    if ($incompleteRoundIdx !== null) {
-        logInfo('Auto-merging into existing incomplete round', [
-            'roundIndex' => $incompleteRoundIdx,
-            'courseName' => $courseName
-        ]);
-        
-        $existingRound = $rounds[$incompleteRoundIdx];
-        $mergeResult = mergeRound($existingRound, $roundData);
-        
-        if (!$mergeResult['success']) {
-            logWarning('Auto-merge failed', ['error' => $mergeResult['error']]);
-            echo json_encode([
-                'success' => false,
-                'message' => $mergeResult['error'],
-                'totalHoles' => count($existingRound['holes'] ?? [])
-            ]);
-            exit;
-        }
-        
-        // Update rounds array
-        // Preserve or set completed flag
-        if ($completed) {
-            $mergeResult['round']['completed'] = true;
-        }
-        $rounds[$incompleteRoundIdx] = $mergeResult['round'];
+    return $rounds;
+}, []);
 
-        // Save with file locking
-        if (!writeJsonFile($roundsFile, $rounds)) {
-            logError('Failed to save auto-merged round', ['roundIndex' => $incompleteRoundIdx]);
-            echo json_encode(['success' => false, 'message' => 'Failed to auto-merge round']);
-            exit;
-        }
-        
-        logInfo('Round auto-merged successfully', [
-            'roundNumber' => $incompleteRoundIdx + 1,
-            'holesAdded' => $mergeResult['added'],
-            'holesUpdated' => $mergeResult['updated']
-        ]);
-        
-        // Track round completion for analytics
-        $totalHoles = count($mergeResult['round']['holes']);
-        $completed = $totalHoles >= 9;
-        trackRoundEvent('save', 'registered', $userHash, $totalHoles, $completed);
-        
-        echo json_encode([
-            'success' => true,
-            'message' => 'Round auto-merged successfully',
-            'roundNumber' => $incompleteRoundIdx + 1,
-            'totalRounds' => count($rounds),
-            'merged' => true,
-            'autoMerged' => true,
-            'totalHoles' => $totalHoles,
-            'holesAdded' => $mergeResult['added'],
-            'holesUpdated' => $mergeResult['updated'],
-            'maxHoleNumber' => $mergeResult['maxHoleNumber']
-        ]);
-        exit;
-    }
-}
-
-// Create new round
-$today = date('Y-m-d');
-$holeCount = count($roundData['holes'] ?? []);
-
-// Calculate stats for new round
-$stats = calculateStats($roundData['holes']);
-if (!$stats) {
-    logWarning('No valid holes in round data');
-    echo json_encode(['success' => false, 'message' => 'No valid holes found']);
-    exit;
-}
-
-$newRound = [
-    'timestamp' => date('Y-m-d H:i:s'),
-    'date' => $today,
-    'courseName' => $courseName,
-    'roundNumber' => count($rounds) + 1,
-    'holes' => $roundData['holes'],
-    'stats' => $stats,
-    'completed' => $completed // Mark if user explicitly ended the round
-];
-
-// Add round to array
-$rounds[] = $newRound;
-
-// Save with file locking
-if (!writeJsonFile($roundsFile, $rounds)) {
-    logError('Failed to save new round');
+if (!$result['success']) {
+    logError('Failed to save round transaction', ['error' => $result['error'] ?? 'unknown']);
     echo json_encode(['success' => false, 'message' => 'Failed to save round']);
     exit;
 }
 
-logInfo('New round saved successfully', [
-    'roundNumber' => $newRound['roundNumber'],
-    'totalRounds' => count($rounds),
-    'holesCount' => $holeCount,
-    'holeNumbers' => array_map(function($h) { 
-        return $h['holeNumber'] ?? 'N/A'; 
-    }, $newRound['holes'])
-]);
+if (!$response) {
+    echo json_encode(['success' => false, 'message' => 'Failed to save round']);
+    exit;
+}
 
-// Track round completion for analytics
-$completed = $holeCount >= 9; // Consider 9+ holes as completed
-trackRoundEvent('save', 'registered', $userHash, $holeCount, $completed);
+if (!empty($response['success'])) {
+    trackRoundEvent('save', 'registered', $userHash, $analyticsHoles, $analyticsCompleted);
+}
 
-echo json_encode([
-    'success' => true,
-    'message' => 'Round saved successfully',
-    'roundNumber' => $newRound['roundNumber'],
-    'totalRounds' => count($rounds)
-]);
+echo json_encode($response);
 ?>

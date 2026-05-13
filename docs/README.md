@@ -1,13 +1,13 @@
 # Karl's GIR - Documentation Index
 
-**Version:** 3.8.0  
+**Version:** 3.8.1
 **Last Updated:** March 2026
 
 This directory contains all documentation for the Karl's GIR Golf Tracker application.
 
 ---
 
-## 📚 Documentation Overview
+## ðŸ“š Documentation Overview
 
 ### **Essential Reading (Start Here)**
 
@@ -35,7 +35,7 @@ This directory contains all documentation for the Karl's GIR Golf Tracker applic
 
 ---
 
-## 🚀 Quick Start for New Developers
+## ðŸš€ Quick Start for New Developers
 
 ### **1. Understand the System**
 Read in this order:
@@ -60,7 +60,7 @@ Read in this order:
 
 ---
 
-## 📖 Documentation by Topic
+## ðŸ“– Documentation by Topic
 
 ### **Architecture & Design**
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture overview
@@ -90,7 +90,7 @@ Read in this order:
 
 ---
 
-## 🔑 Key Concepts
+## ðŸ”‘ Key Concepts
 
 ### **File-Based Storage**
 - No database - all data stored in JSON files
@@ -101,12 +101,12 @@ Read in this order:
 ### **Build Process**
 ```
 npm run build
-  ↓
-1. pre-build.js → Update service worker version
-2. tsc → TypeScript compilation
-3. vite build → Bundle React app
-4. build-deploy.js → Copy API, admin, assets
-  ↓
+  â†“
+1. pre-build.js â†’ Update service worker version
+2. tsc â†’ TypeScript compilation
+3. vite build â†’ Bundle React app
+4. build-deploy.js â†’ Copy API, admin, assets
+  â†“
 Output: /public/ folder (ready for deployment)
 ```
 
@@ -122,7 +122,7 @@ Output: /public/ folder (ready for deployment)
 
 ---
 
-## 🛠️ Common Tasks
+## ðŸ› ï¸ Common Tasks
 
 ### **Add a New Feature**
 1. Create/edit components in `/src/`
@@ -149,7 +149,7 @@ Output: /public/ folder (ready for deployment)
 
 ---
 
-## 📊 System Overview
+## ðŸ“Š System Overview
 
 ### **Frontend**
 - **Framework:** React 19.2.0 + TypeScript 5.9.3
@@ -172,7 +172,7 @@ Output: /public/ folder (ready for deployment)
 
 ---
 
-## 🔍 Troubleshooting
+## ðŸ” Troubleshooting
 
 ### **Build Errors**
 - Check TypeScript errors: `npm run build`
@@ -187,7 +187,7 @@ Output: /public/ folder (ready for deployment)
 ### **Production Issues**
 - Check `/data/logs/app.log` on server
 - Verify file permissions (755 for directories, 644 for files)
-- Clear server cache (SiteGround → Speed → Caching)
+- Clear server cache (SiteGround â†’ Speed â†’ Caching)
 - Hard refresh browser (Ctrl+Shift+R)
 
 ### **Session Issues**
@@ -197,7 +197,7 @@ Output: /public/ folder (ready for deployment)
 
 ---
 
-## 📞 Support
+## ðŸ“ž Support
 
 For questions or issues:
 1. Check relevant documentation in this folder
@@ -207,7 +207,7 @@ For questions or issues:
 
 ---
 
-## 📝 Contributing to Documentation
+## ðŸ“ Contributing to Documentation
 
 When adding or updating documentation:
 1. Use clear, concise language
@@ -218,6 +218,6 @@ When adding or updating documentation:
 
 ---
 
-**Current Version:** 3.8.0  
+**Current Version:** 3.8.1
 **Documentation Last Updated:** December 2025
 

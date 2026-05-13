@@ -26,7 +26,7 @@ export default function DashboardPage() {
   const [editCourseTarget, setEditCourseTarget] = useState<
     { type: 'incomplete' } | { type: 'complete'; roundNumber: number; roundData: any } | null
   >(null);
-  const [roundToDelete, setRoundToDelete] = useState<{ roundNumber: number; courseName: string; isIncompleteCard?: boolean } | null>(null);
+  const [roundToDelete, setRoundToDelete] = useState<{ roundNumber?: number; roundId?: string; courseName: string; isIncompleteCard?: boolean } | null>(null);
   
   // Track which recent rounds are expanded (by roundNumber)
   const [expandedRounds, setExpandedRounds] = useState<number[]>([]);
@@ -43,6 +43,7 @@ export default function DashboardPage() {
   const [incompleteRound, setIncompleteRound] = useState<{
     courseName: string;
     holes: number;
+    roundId?: string;
   } | null>(null);
 
   // Check server for incomplete rounds (only if logged in)
@@ -86,7 +87,8 @@ export default function DashboardPage() {
     if (localData && localData.holes && localData.holes.length > 0) {
       setIncompleteRound({
         courseName: localData.courseName || 'Unknown Course',
-        holes: localData.holes.length
+        holes: localData.holes.length,
+        roundId: localData.roundId
       });
     } else if (firstServer) {
       // Check both holes array and holeCount property
@@ -94,7 +96,8 @@ export default function DashboardPage() {
       if (holeCount > 0) {
         setIncompleteRound({
           courseName: firstServer.courseName || 'Unknown Course',
-          holes: holeCount
+          holes: holeCount,
+          roundId: firstServer.roundId
         });
       } else {
         setIncompleteRound(null);
@@ -252,7 +255,7 @@ export default function DashboardPage() {
               )}
               <button
                 onClick={() => {
-                  setRoundToDelete({ roundNumber: 0, courseName: incompleteRound.courseName, isIncompleteCard: true });
+                  setRoundToDelete({ roundNumber: 0, roundId: incompleteRound.roundId, courseName: incompleteRound.courseName, isIncompleteCard: true });
                   deleteSingleRoundModal.open();
                 }}
                 className="btn btn-secondary"
@@ -305,6 +308,14 @@ export default function DashboardPage() {
                     <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Putts/Hole</div>
                   </div>
                   <div style={{ padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.holeOuts ?? 0}</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Hole-Outs</div>
+                  </div>
+                  <div style={{ padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{(statsData.cumulative.holeOutsPer18 ?? 0).toFixed(1)}</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>HO/18</div>
+                  </div>
+                  <div style={{ padding: '0.5rem 0' }}>
                     <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.totalScore}</div>
                     <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Strokes</div>
                   </div>
@@ -316,8 +327,38 @@ export default function DashboardPage() {
                     <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.avgProximity > 0 ? `${Math.round(statsData.cumulative.avgProximity)}yd` : 'N/A'}</div>
                     <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Approach</div>
                   </div>
+                  <div style={{ padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.totalPenaltyStrokes ?? statsData.cumulative.penalties ?? 0}</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Penalty Strokes</div>
+                  </div>
                 </div>
               </div>
+
+              {statsData.cumulative?.holeOuts > 0 && (
+                <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.75rem', textAlign: 'center', fontWeight: 'bold' }}>
+                    Short Game Finish
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', textAlign: 'center' }}>
+                    <div style={{ padding: '0.5rem 0.25rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>{statsData.cumulative.holeOuts}</div>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Hole-Outs</div>
+                    </div>
+                    <div style={{ padding: '0.5rem 0.25rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>{statsData.cumulative.missedGirHoleOuts ?? 0}</div>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Missed GIR</div>
+                    </div>
+                    <div style={{ padding: '0.5rem 0.25rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>{(statsData.cumulative.missedGirHoleOutPct ?? 0).toFixed(1)}%</div>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Save Finish</div>
+                    </div>
+                    <div style={{ padding: '0.5rem 0.25rem', backgroundColor: 'rgba(221, 237, 210, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: 'var(--font-lg)', fontWeight: '700' }}>{statsData.cumulative.underParHoleOuts ?? 0}</div>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Under Par</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Approach Shot Performance - Compact */}
               <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '1rem' }}>
@@ -397,13 +438,13 @@ export default function DashboardPage() {
                       { label: 'Double Bogeys', value: statsData.cumulative.tigerFive.doubleBogeys, avg: ((statsData.cumulative.tigerFive.doubleBogeys / statsData.cumulative.totalHoles) * 18).toFixed(1), goal: '< 1' },
                       { label: 'Par 5 Bogeys', value: statsData.cumulative.tigerFive.par5Bogeys, avg: ((statsData.cumulative.tigerFive.par5Bogeys / statsData.cumulative.totalHoles) * 18).toFixed(1), goal: '0' },
                       { label: 'Three Putts', value: statsData.cumulative.tigerFive.threePutts, avg: ((statsData.cumulative.tigerFive.threePutts / statsData.cumulative.totalHoles) * 18).toFixed(1), goal: '< 1' },
-                      { label: 'Bogey from <150yd', value: statsData.cumulative.tigerFive.bogeyFromInside150, avg: ((statsData.cumulative.tigerFive.bogeyFromInside150 / statsData.cumulative.totalHoles) * 18).toFixed(1), goal: '0' },
+                      { label: 'Bogey from <150yd', value: statsData.cumulative.tigerFive.bogeyFromInside150, avg: ((statsData.cumulative.tigerFive.bogeyFromInside150 / statsData.cumulative.totalHoles) * 18).toFixed(1), goal: '0', title: 'Bogey or worse after an approach from 150 yards or closer, including putting mistakes after hitting the green.' },
                       { label: 'Blown Saves', value: statsData.cumulative.tigerFive.blownSaves, avg: ((statsData.cumulative.tigerFive.blownSaves / statsData.cumulative.totalHoles) * 18).toFixed(1), goal: '< 1' },
                     ].map((item) => {
                       const avgNum = parseFloat(item.avg);
                       const isGood = item.goal === '0' ? avgNum === 0 : avgNum < 1;
                       return (
-                        <div key={item.label} style={{
+                        <div key={item.label} title={(item as any).title} style={{
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                           padding: '0.75rem 1rem',
                           backgroundColor: 'rgba(221, 237, 210, 0.08)',
@@ -787,6 +828,12 @@ export default function DashboardPage() {
                                   {group.stats.avgPutts.toFixed(1)}
                                 </div>
                               </div>
+                              <div>
+                                <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)' }}>Hole-Outs</div>
+                                <div style={{ fontSize: 'var(--font-base)', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                  {group.stats.holeOuts ?? 0}
+                                </div>
+                              </div>
                               <div style={{ gridColumn: '1 / -1' }}>
                               <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Hole Scores</div>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
@@ -867,7 +914,7 @@ export default function DashboardPage() {
                         </button>
                         <button
                           onClick={() => {
-                            setRoundToDelete({ roundNumber: group.roundNumber, courseName: group.courseName });
+                            setRoundToDelete({ roundNumber: group.roundNumber, roundId: group.rounds[0]?.roundId, courseName: group.courseName });
                             deleteSingleRoundModal.open();
                           }}
                           className="btn btn-secondary"
@@ -1090,7 +1137,7 @@ export default function DashboardPage() {
             await roundsAPI.resetData();
             localStorage.removeItem('karlsGIR_currentRound');
             queryClient.invalidateQueries({ queryKey: ['stats'] });
-            queryClient.invalidateQueries({ queryKey: ['incompleteRound'] });
+            queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
             deleteRoundsModal.close();
             window.location.reload();
           } catch (error) {
@@ -1125,13 +1172,15 @@ export default function DashboardPage() {
                 if (incompleteRounds.success && incompleteRounds.incompleteRounds.length > 0) {
                   // Find the matching round by course name
                   const matchingRound = incompleteRounds.incompleteRounds.find(
-                    (r: any) => r.courseName.toLowerCase().trim() === roundToDelete.courseName.toLowerCase().trim()
+                    (r: any) => roundToDelete.roundId
+                      ? r.roundId === roundToDelete.roundId
+                      : r.courseName.toLowerCase().trim() === roundToDelete.courseName.toLowerCase().trim()
                   );
 
-                  if (matchingRound && matchingRound.roundNumber) {
+                  if (matchingRound && (matchingRound.roundNumber || matchingRound.roundId)) {
                     // Delete from rounds.json
                     try {
-                      await roundsAPI.deleteRound(matchingRound.roundNumber);
+                      await roundsAPI.deleteRound(matchingRound.roundNumber, matchingRound.roundId);
                     } catch (e) {
                       console.error('Failed to delete from rounds.json:', e);
                       // Continue anyway - will try to clear current_round.json
@@ -1174,7 +1223,7 @@ export default function DashboardPage() {
 
           // Delete from rounds.json (this handles both complete and incomplete rounds saved to rounds.json)
           try {
-            const result = await roundsAPI.deleteRound(roundToDelete.roundNumber);
+            const result = await roundsAPI.deleteRound(roundToDelete.roundNumber, roundToDelete.roundId);
             if (result.success) {
               // Also clear localStorage and current_round.json if this was the active incomplete round
               // (in case the user was working on this round)
@@ -1240,30 +1289,35 @@ export default function DashboardPage() {
               throw new Error('No incomplete round found');
             }
 
-            // Save the round with completed: true
-            const result = await roundsAPI.saveRound({
-              courseName: roundData.courseName || incompleteRound?.courseName || 'Unknown Course',
-              courseMetadata: roundData.courseMetadata || null,
-              holes: roundData.holes || [],
-              completed: true, // Mark as completed so it won't show in "Continue Your Round"
-              mergeIntoRoundId: firstServer?.index, // Merge into existing server round if it exists
-            } as any);
+            if (isLoggedIn) {
+              // Save the round with completed: true
+              const result = await roundsAPI.saveRound({
+                roundId: roundData.roundId || firstServer?.roundId,
+                courseName: roundData.courseName || incompleteRound?.courseName || 'Unknown Course',
+                courseMetadata: roundData.courseMetadata || null,
+                holes: roundData.holes || [],
+                completed: true, // Mark as completed so it won't show in "Continue Your Round"
+                ...(firstServer?.roundId ? {} : { mergeIntoRoundId: firstServer?.index }),
+              } as any);
 
-            if (result.success) {
+              if (!result.success) {
+                throw new Error(result.message || 'Failed to end round');
+              }
+            }
+
               // Clear localStorage
               localStorage.removeItem('karlsGIR_currentRound');
 
-              // Invalidate queries to refresh dashboard
-              queryClient.invalidateQueries({ queryKey: ['stats'] });
-              queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+              if (isLoggedIn) {
+                // Invalidate queries to refresh dashboard
+                queryClient.invalidateQueries({ queryKey: ['stats'] });
+                queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+              }
 
               endRoundModal.close();
 
               // Reload to refresh the dashboard
               window.location.reload();
-            } else {
-              throw new Error(result.message || 'Failed to end round');
-            }
           } catch (error) {
             console.error('End round failed:', error);
             setErrorMessage('❌ Failed to end round. Please try again.');
@@ -1344,6 +1398,7 @@ export default function DashboardPage() {
                 const localRaw = localStorage.getItem('karlsGIR_currentRound');
                 const localData = localRaw ? JSON.parse(localRaw) : {};
                 await roundsAPI.syncCurrentRound({
+                  roundId: localData.roundId,
                   courseName: trimmed,
                   courseMetadata: localData.courseMetadata || null,
                   holes: localData.holes || [],

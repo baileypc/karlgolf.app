@@ -8,19 +8,19 @@ require_once __DIR__ . '/../common/session.php';
 require_once __DIR__ . '/../common/file-lock.php';
 require_once __DIR__ . '/../common/logger.php';
 require_once __DIR__ . '/../common/data-path.php';
+require_once __DIR__ . '/../common/admin-auth.php';
 
 // Initialize session
 initSession();
 
-// Check admin authentication
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    echo json_encode(['success' => false, 'message' => 'Not authenticated']);
-    exit;
-}
+requireAdminAuth(false);
 
 // Get data directory (auto-detects local vs production)
 $dataDir = getDataDirectory();
 $users = [];
+$analyticsFile = $dataDir ? $dataDir . '/admin/analytics.json' : null;
+$analyticsData = ($analyticsFile && file_exists($analyticsFile)) ? readJsonFile($analyticsFile, []) : [];
+$signups = is_array($analyticsData['signups'] ?? null) ? $analyticsData['signups'] : [];
 
 // Scan data directory for user folders
 if (is_dir($dataDir)) {
@@ -37,28 +37,22 @@ if (is_dir($dataDir)) {
         // Check if it's a directory and has a password.txt file (registered user)
         if (is_dir($userDir) && file_exists($userDir . '/password.txt')) {
             $userHash = $dir;
+            $roundsFile = $userDir . '/rounds.json';
             
             // Try to get email from analytics signups (where it's tracked)
             $email = null;
-            $analyticsFile = $dataDir . '/admin/analytics.json';
-            if (file_exists($analyticsFile)) {
-                $analyticsData = readJsonFile($analyticsFile, []);
-                $signups = $analyticsData['signups'] ?? [];
-                // Find signup with matching userHash
-                foreach ($signups as $signup) {
-                    if (($signup['userHash'] ?? '') === $userHash) {
-                        // Check if email is stored in signup data
-                        if (isset($signup['email']) && !empty($signup['email'])) {
-                            $email = $signup['email'];
-                        }
-                        break;
+            foreach ($signups as $signup) {
+                if (($signup['userHash'] ?? '') === $userHash) {
+                    // Check if email is stored in signup data
+                    if (isset($signup['email']) && !empty($signup['email'])) {
+                        $email = $signup['email'];
                     }
+                    break;
                 }
             }
             
             // Fallback: Try to get email from rounds.json metadata
             if (!$email) {
-                $roundsFile = $userDir . '/rounds.json';
                 if (file_exists($roundsFile)) {
                     $roundsData = readJsonFile($roundsFile, []);
                     if (isset($roundsData['_metadata']['email']) && !empty($roundsData['_metadata']['email'])) {
@@ -70,17 +64,12 @@ if (is_dir($dataDir)) {
             // Additional fallback: Try to reverse hash (not possible, but check if userHash matches any known email hash)
             // Note: SHA256 is one-way, but we can check all signups to see if any email hashes match
             if (!$email) {
-                $analyticsFileFallback = $dataDir . '/admin/analytics.json';
-                if (file_exists($analyticsFileFallback)) {
-                    $analyticsData = readJsonFile($analyticsFileFallback, []);
-                    $signups = $analyticsData['signups'] ?? [];
-                    foreach ($signups as $signup) {
-                        if (isset($signup['email']) && !empty($signup['email'])) {
-                            $emailHash = hash('sha256', strtolower($signup['email']));
-                            if ($emailHash === $userHash) {
-                                $email = $signup['email'];
-                                break;
-                            }
+                foreach ($signups as $signup) {
+                    if (isset($signup['email']) && !empty($signup['email'])) {
+                        $emailHash = hash('sha256', strtolower($signup['email']));
+                        if ($emailHash === $userHash) {
+                            $email = $signup['email'];
+                            break;
                         }
                     }
                 }
@@ -112,15 +101,10 @@ if (is_dir($dataDir)) {
             
             // Get signup date from analytics if available
             $signupDate = null;
-            $analyticsFileSignup = $dataDir . '/admin/analytics.json';
-            if (file_exists($analyticsFileSignup)) {
-                $analyticsData = readJsonFile($analyticsFileSignup, []);
-                $signups = $analyticsData['signups'] ?? [];
-                foreach ($signups as $signup) {
-                    if (($signup['userHash'] ?? '') === $userHash) {
-                        $signupDate = $signup['timestamp'] ?? null;
-                        break;
-                    }
+            foreach ($signups as $signup) {
+                if (($signup['userHash'] ?? '') === $userHash) {
+                    $signupDate = $signup['timestamp'] ?? null;
+                    break;
                 }
             }
             

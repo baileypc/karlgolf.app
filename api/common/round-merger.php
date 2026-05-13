@@ -95,9 +95,7 @@ function mergeRound($existingRound, $newRoundData) {
         $mergeResult = mergeHoles($existingHoles, $newHoles);
     }
     
-    // Log merge details for debugging
     $isReplace = count($newHoles) < count($existingHoles);
-    error_log("Merge details - Existing holes: " . count($existingHoles) . ", New holes: " . count($newHoles) . ", Mode: " . ($isReplace ? "REPLACE" : "MERGE") . ", Added: " . $mergeResult['added'] . ", Updated: " . $mergeResult['updated'] . ", Final: " . count($mergeResult['holes']));
     
     // If no holes were added or updated AND we're not doing a replace, this is a duplicate save attempt
     // Note: Replace operations (deletes) always have updated > 0, so this check is safe

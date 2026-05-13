@@ -4,6 +4,29 @@
 import type { Hole } from '@/types';
 import { calculateRoundStats } from './stats';
 
+const csvCell = (value: unknown): string => {
+  const text = value === null || value === undefined ? '' : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+const formatFairway = (fairway: unknown): string => {
+  if (fairway === null || fairway === undefined || fairway === 'na') return 'N/A';
+  if (fairway === 'y') return 'Yes';
+  if (fairway === 'n') return 'No';
+  if (fairway === 'c') return 'Center';
+  if (fairway === 'l') return 'Left';
+  if (fairway === 'r') return 'Right';
+  if (fairway === 'rough') return 'Rough/Trees';
+  if (fairway === 'sand') return 'Sand';
+  return String(fairway);
+};
+
+const formatPenalty = (hole: any): string => {
+  if (hole.penaltyStrokes && hole.penaltyStrokes > 0) return `+${hole.penaltyStrokes}`;
+  if (hole.penalty && hole.penalty !== '0') return String(hole.penalty);
+  return 'None';
+};
+
 export function exportToCSV(holes: Hole[], roundName = 'Round'): void {
   const csv = holes.map(h => {
     const toPar = h.score - h.par;
@@ -17,14 +40,15 @@ export function exportToCSV(holes: Hole[], roundName = 'Round'): void {
       toParStr,
       h.gir === 'y' ? 'Yes' : 'No',
       h.putts,
-      h.fairway ? (h.fairway === 'y' ? 'Yes' : 'No') : 'N/A',
+      (h as any).holedOut || h.putts === 0 ? 'Yes' : 'No',
+      formatFairway((h as any).fairway),
       h.proximity || '',
-      h.penalty || 'None',
+      formatPenalty(h),
       scrambled ? 'Yes' : 'No',
-    ].join(',');
+    ].map(csvCell).join(',');
   }).join('\n');
 
-  const header = 'Hole,Par,Score,To Par,GIR,Putts,Fairway,Proximity (yds),Penalty,Scrambled\n';
+  const header = 'Hole,Par,Score,To Par,GIR,Putts,Holed Out,Fairway,Approach Distance (yds),Penalty,Scrambled\n';
 
   // Calculate stats
   const stats = calculateRoundStats(holes);
@@ -37,11 +61,15 @@ export function exportToCSV(holes: Hole[], roundName = 'Round'): void {
     `Total Par,${stats.totalPar}\n` +
     `To Par,${toParStr}\n` +
     `GIR,${stats.girsHit}/${stats.totalHoles} (${stats.girPercentage?.toFixed(1) || '0.0'}%)\n` +
-    `Avg Proximity,${Number(stats.avgProximity || 0).toFixed(1)} feet\n` +
+    `Avg Approach Distance,${Number(stats.avgProximity || 0).toFixed(1)} yards\n` +
     `Fairways,${stats.fairwaysHit}/${stats.eligibleFairways} (${stats.fairwayPercentage?.toFixed(1) || '0.0'}%)\n` +
     `Total Putts,${stats.totalPutts} (${stats.avgPutts?.toFixed(2) || '0.00'} avg)\n` +
+    `Putts per GIR,${Number(stats.puttsPerGIR || 0).toFixed(2)}\n` +
+    `Hole-Outs,${stats.holeOuts || 0}\n` +
+    `Missed-GIR Hole-Outs,${stats.missedGirHoleOuts || 0}\n` +
     `Scrambling,${stats.scrambling}/${stats.totalHoles - stats.girsHit} (${Number(stats.scramblingPercentage || 0).toFixed(1)}%)\n` +
-    `Penalties,${stats.penalties}\n` +
+    `Penalty Holes,${stats.penalties}\n` +
+    `Penalty Strokes,${stats.totalPenaltyStrokes ?? stats.penalties ?? 0}\n` +
     `Date,${new Date().toISOString().split('T')[0]}`;
 
   // Create and download
@@ -62,12 +90,12 @@ export function exportToCSV(holes: Hole[], roundName = 'Round'): void {
 export function exportAllRoundsToCSV(rounds: any[]): void {
   // Sort rounds chronologically (oldest first or newest first - usually newest is first in the array already)
   
-  const header = 'Date,Course,Hole,Par,Score,To Par,GIR,Putts,Fairway,Proximity (yds),Penalty,Scrambled\n';
+  const header = 'Date,Course,Hole,Par,Score,To Par,GIR,Putts,Holed Out,Fairway,Approach Distance (yds),Penalty,Scrambled\n';
   
   let csv = '';
   
   rounds.forEach(round => {
-    const course = `"${(round.courseName || 'Unknown Course').replace(/"/g, '""')}"`;
+    const course = round.courseName || 'Unknown Course';
     const date = round.date || '';
     
     if (!round.holes || !Array.isArray(round.holes)) return;
@@ -86,13 +114,14 @@ export function exportAllRoundsToCSV(rounds: any[]): void {
         toParStr,
         h.gir === 'y' ? 'Yes' : 'No',
         h.putts,
-        h.fairway ? (h.fairway === 'y' ? 'Yes' : 'No') : 'N/A',
+        (h as any).holedOut || h.putts === 0 ? 'Yes' : 'No',
+        formatFairway((h as any).fairway),
         h.proximity || '',
-        h.penalty || 'None',
+        formatPenalty(h),
         scrambled ? 'Yes' : 'No',
       ];
       
-      csv += row.join(',') + '\n';
+      csv += row.map(csvCell).join(',') + '\n';
     });
   });
 

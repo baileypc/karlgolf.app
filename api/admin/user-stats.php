@@ -4,31 +4,18 @@
  * Get detailed stats for a specific user
  */
 
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+require_once __DIR__ . '/../common/environment.php';
+require_once __DIR__ . '/../common/session.php';
+require_once __DIR__ . '/../common/cors.php';
+require_once __DIR__ . '/../common/file-lock.php';
+require_once __DIR__ . '/../common/admin-auth.php';
 
-// Set JSON header
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+error_reporting(isDevelopment() ? E_ALL : 0);
+ini_set('display_errors', '0');
 
-// Handle preflight
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+initSession();
 
-// Start session
-session_start();
-
-// Check if admin is logged in
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+requireAdminAuth(false);
 
 // Get user hash from query parameter
 if (!isset($_GET['userHash']) || empty($_GET['userHash'])) {
@@ -38,6 +25,11 @@ if (!isset($_GET['userHash']) || empty($_GET['userHash'])) {
 }
 
 $userHash = $_GET['userHash'];
+if (!is_string($userHash) || !preg_match('/^[a-f0-9]{64}$/i', $userHash)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid user hash']);
+    exit;
+}
 
 // Get data directory
 require_once __DIR__ . '/../common/data-path.php';
@@ -58,12 +50,33 @@ if (file_exists($emailFile)) {
     $email = trim(file_get_contents($emailFile));
 }
 
+if (!$email) {
+    $analyticsFile = $dataDir . '/admin/analytics.json';
+    $analyticsData = file_exists($analyticsFile) ? readJsonFile($analyticsFile, []) : [];
+    $signups = is_array($analyticsData['signups'] ?? null) ? $analyticsData['signups'] : [];
+
+    foreach ($signups as $signup) {
+        $signupEmail = $signup['email'] ?? '';
+        if (($signup['userHash'] ?? '') === $userHash) {
+            $email = $signupEmail ?: null;
+            break;
+        }
+
+        if ($signupEmail && hash('sha256', strtolower($signupEmail)) === $userHash) {
+            $email = $signupEmail;
+            break;
+        }
+    }
+}
+
 // Get user rounds
 $roundsFile = $userDir . '/rounds.json';
 $rounds = [];
 if (file_exists($roundsFile)) {
-    $roundsData = file_get_contents($roundsFile);
-    $rounds = json_decode($roundsData, true) ?: [];
+    $rounds = readJsonFile($roundsFile, []);
+    $rounds = array_values(array_filter($rounds, function($round) {
+        return is_array($round) && isset($round['holes']) && is_array($round['holes']);
+    }));
 }
 
 // Calculate stats
@@ -98,7 +111,8 @@ foreach ($rounds as $round) {
         
         // Fairway (only for par 4 and 5)
         $par = intval($hole['par'] ?? 0);
-        if ($par >= 4 && isset($hole['fairway']) && strtolower($hole['fairway']) === 'y') {
+        $fairwayValue = isset($hole['fairway']) && is_string($hole['fairway']) ? strtolower($hole['fairway']) : null;
+        if ($par >= 4 && in_array($fairwayValue, ['y', 'c', 'l', 'r'], true)) {
             $totalFairways++;
         }
         
@@ -183,4 +197,3 @@ echo json_encode([
         ];
     }, $rounds)
 ]);
-

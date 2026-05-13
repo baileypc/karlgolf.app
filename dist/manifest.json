@@ -73,7 +73,7 @@
       "name": "Track Round",
       "short_name": "Track",
       "description": "Start tracking a new round",
-      "url": "track-round.html",
+      "url": "./#/track-round",
       "icons": [
         {
           "src": "images/icons/icon-96.png",
@@ -86,7 +86,7 @@
       "name": "Dashboard",
       "short_name": "Stats",
       "description": "View your statistics",
-      "url": "dashboard.html",
+      "url": "./#/dashboard",
       "icons": [
         {
           "src": "images/icons/icon-96.png",
@@ -99,7 +99,7 @@
       "name": "Track Live Round",
       "short_name": "Live",
       "description": "Track a round without login",
-      "url": "track-live.html",
+      "url": "./#/track-live",
       "icons": [
         {
           "src": "images/icons/icon-96.png",
@@ -110,4 +110,3 @@
     }
   ]
 }
-

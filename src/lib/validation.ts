@@ -27,11 +27,13 @@ export function validateHoleData(holeData: Partial<Hole>, par: number): Validati
     errors.push({ field: 'shotsToGreen', message: 'For Par 3, Shots to Reach Green cannot be 1' });
   }
 
-  if (!holeData.puttDistances || holeData.puttDistances.length === 0) {
+  const isHoledOut = holeData.putts === 0 || holeData.holedOut === true;
+
+  if (!isHoledOut && (!holeData.puttDistances || holeData.puttDistances.length === 0)) {
     errors.push({ field: 'puttDistances', message: 'At least one putt distance is required' });
   }
 
-  if (holeData.puttDistances) {
+  if (!isHoledOut && holeData.puttDistances) {
     const invalidPutts = holeData.puttDistances.some((p, i, arr) => {
       const val = parseFloat(String(p));
       if (isNaN(val) || val < 0) return true;

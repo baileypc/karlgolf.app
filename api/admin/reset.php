@@ -3,33 +3,27 @@
 require_once __DIR__ . '/../common/session.php';
 require_once __DIR__ . '/../common/logger.php';
 require_once __DIR__ . '/../common/file-lock.php';
+require_once __DIR__ . '/../common/csrf.php';
 
 // Initialize session
 initSession();
 
-// Ensure user is logged in (either regular user or admin testing)
-if (!isset($_SESSION['user_hash'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Not authenticated - please log in first']);
-    exit;
-}
+$auth = requireAuth();
+requireCsrfForSessionAuth($auth);
 
 require_once __DIR__ . '/../common/data-path.php';
 
-$userId = $_SESSION['user_hash'];
+$userId = $auth['userHash'];
 $baseDataDir = getDataDirectory();
 $dataDir = $baseDataDir . '/' . $userId;
 
 try {
-    // Delete user's rounds.json file
     $roundsFile = $dataDir . '/rounds.json';
-    if (file_exists($roundsFile)) {
-        unlink($roundsFile);
-        logInfo('User data reset', ['userId' => $userId, 'file' => 'rounds.json']);
+    if (!writeJsonFile($roundsFile, [])) {
+        throw new Exception('Failed to clear rounds file');
     }
-    
-    // Create empty rounds.json
-    file_put_contents($roundsFile, json_encode([], JSON_PRETTY_PRINT));
+
+    logInfo('User data reset', ['userId' => $userId, 'file' => 'rounds.json']);
     
     echo json_encode([
         'success' => true,

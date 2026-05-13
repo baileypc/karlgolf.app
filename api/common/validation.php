@@ -42,13 +42,97 @@ function validateCourseName($courseName) {
     ];
 }
 
+function normalizeGirValue($gir) {
+    return $gir === 'y' ? 'y' : 'n';
+}
+
+function normalizeFairwayValue($fairway, $par) {
+    if ((int)$par === 3) {
+        return null;
+    }
+
+    if ($fairway === null || $fairway === 'na' || $fairway === 'rough' || $fairway === 'sand' || $fairway === 'n') {
+        return 'n';
+    }
+
+    if (in_array($fairway, ['y', 'c', 'l', 'r'], true)) {
+        return 'y';
+    }
+
+    return 'n';
+}
+
+function normalizeApproachLieValue($lie) {
+    if ($lie === 'c') {
+        return 'fairway';
+    }
+
+    if (in_array($lie, ['fairway', 'rough', 'sand'], true)) {
+        return $lie;
+    }
+
+    return null;
+}
+
+function normalizeSecondShotLieValue($lie) {
+    if ($lie === 'c') {
+        return 'fairway';
+    }
+
+    if ($lie === 'na') {
+        return 'hazard';
+    }
+
+    if (in_array($lie, ['fairway', 'rough', 'sand', 'hazard', 'green'], true)) {
+        return $lie;
+    }
+
+    return null;
+}
+
+function positiveIntOrNull($value) {
+    return is_numeric($value) && (int)$value > 0 ? (int)$value : null;
+}
+
+function nonNegativeIntOrNull($value) {
+    return is_numeric($value) && (int)$value >= 0 ? (int)$value : null;
+}
+
+function positiveFloatOrNull($value) {
+    return is_numeric($value) && (float)$value > 0 ? (float)$value : null;
+}
+
+function sanitizeNumericArray($values, $maxItems = 10) {
+    if (!is_array($values)) {
+        return [];
+    }
+
+    $sanitized = [];
+    foreach (array_slice($values, 0, $maxItems) as $value) {
+        if (is_numeric($value) && (float)$value >= 0) {
+            $sanitized[] = (float)$value;
+        }
+    }
+
+    return $sanitized;
+}
+
 /**
  * Validate hole data structure
  * @param array $hole Hole data array
- * @return array ['valid' => bool, 'errors' => array]
+ * @return array ['valid' => bool, 'errors' => array, 'sanitized' => array|null]
  */
 function validateHole($hole) {
     $errors = [];
+    $sanitized = [];
+
+    if (!is_array($hole)) {
+        return [
+            'valid' => false,
+            'errors' => ['Invalid hole data'],
+            'sanitized' => null
+        ];
+    }
     
     if (!isset($hole['holeNumber']) || !is_numeric($hole['holeNumber']) || $hole['holeNumber'] < 1) {
         $errors[] = 'Invalid hole number';
@@ -75,10 +159,79 @@ function validateHole($hole) {
     if ($par !== 3 && !isset($hole['fairway'])) {
         $errors[] = 'Fairway hit is required for par 4 and par 5';
     }
+
+    if (!empty($errors)) {
+        return [
+            'valid' => false,
+            'errors' => $errors,
+            'sanitized' => null
+        ];
+    }
+
+    $sanitized['holeNumber'] = (int)$hole['holeNumber'];
+    $sanitized['par'] = (int)$hole['par'];
+    $sanitized['score'] = (int)$hole['score'];
+    $sanitized['gir'] = normalizeGirValue($hole['gir']);
+    $sanitized['putts'] = (int)$hole['putts'];
+    $sanitized['puttDistances'] = sanitizeNumericArray($hole['puttDistances'] ?? [], 6);
+    $sanitized['holedOut'] = !empty($hole['holedOut']);
+    $sanitized['fairway'] = normalizeFairwayValue($hole['fairway'] ?? null, $sanitized['par']);
+
+    if (($value = positiveIntOrNull($hole['shotsToGreen'] ?? null)) !== null) {
+        $sanitized['shotsToGreen'] = $value;
+    }
+
+    if (isset($hole['penalty']) && is_string($hole['penalty']) && $hole['penalty'] !== '' && $hole['penalty'] !== '0') {
+        $allowedPenalties = ['ob', 'water', 'lost', 'wrong', 'other'];
+        $sanitized['penalty'] = in_array($hole['penalty'], $allowedPenalties, true) ? $hole['penalty'] : 'other';
+    } else {
+        $sanitized['penalty'] = null;
+    }
+
+    if (($value = positiveIntOrNull($hole['penaltyStrokes'] ?? null)) !== null) {
+        $sanitized['penaltyStrokes'] = $value;
+        if ($sanitized['penalty'] === null) {
+            $sanitized['penalty'] = 'other';
+        }
+    }
+
+    foreach (['proximity', 'approachDistance', 'secondShotDistance', 'wedgeShotDistance', 'holeDistance'] as $field) {
+        $value = positiveFloatOrNull($hole[$field] ?? null);
+        if ($value !== null) {
+            $sanitized[$field] = $value;
+        }
+    }
+
+    $approachLie = normalizeApproachLieValue($hole['approachLie'] ?? null);
+    if ($approachLie !== null) {
+        $sanitized['approachLie'] = $approachLie;
+    }
+
+    $secondShotLie = normalizeSecondShotLieValue($hole['secondShotLie'] ?? null);
+    if ($secondShotLie !== null) {
+        $sanitized['secondShotLie'] = $secondShotLie;
+    }
+
+    if (($value = positiveIntOrNull($hole['secondShotPenalty'] ?? null)) !== null) {
+        $sanitized['secondShotPenalty'] = $value;
+    }
+
+    if (isset($hole['approachMissLocation']) && is_string($hole['approachMissLocation'])) {
+        $allowedMisses = ['short', 'sand', 'long', 'hazard', 'left', 'right', 'fringe', 'fringe-left', 'fringe-right', 'fringe-long', 'fringe-short'];
+        if (in_array($hole['approachMissLocation'], $allowedMisses, true)) {
+            $sanitized['approachMissLocation'] = $hole['approachMissLocation'];
+        }
+    }
+
+    $wedgeShotDistances = sanitizeNumericArray($hole['wedgeShotDistances'] ?? [], 3);
+    if (!empty($wedgeShotDistances)) {
+        $sanitized['wedgeShotDistances'] = $wedgeShotDistances;
+    }
     
     return [
         'valid' => empty($errors),
-        'errors' => $errors
+        'errors' => $errors,
+        'sanitized' => $sanitized
     ];
 }
 
@@ -98,6 +251,7 @@ function validateRoundData($roundData) {
     }
     
     $holes = $roundData['holes'];
+    $sanitizedHoles = [];
     if (empty($holes)) {
         $errors[] = 'At least one hole is required';
     }
@@ -107,6 +261,8 @@ function validateRoundData($roundData) {
         $holeValidation = validateHole($hole);
         if (!$holeValidation['valid']) {
             $errors[] = "Hole " . ($index + 1) . ": " . implode(', ', $holeValidation['errors']);
+        } elseif (isset($holeValidation['sanitized'])) {
+            $sanitizedHoles[] = $holeValidation['sanitized'];
         }
     }
     
@@ -124,7 +280,7 @@ function validateRoundData($roundData) {
         $errors[] = 'Stats must be an array';
     }
     
-    $sanitized['holes'] = $holes;
+    $sanitized['holes'] = $sanitizedHoles;
     if (isset($roundData['mergeIntoRoundId'])) {
         $sanitized['mergeIntoRoundId'] = $roundData['mergeIntoRoundId'];
     }
@@ -136,6 +292,18 @@ function validateRoundData($roundData) {
     }
     if (isset($roundData['replaceRoundNumber'])) {
         $sanitized['replaceRoundNumber'] = (int)$roundData['replaceRoundNumber'];
+    }
+    if (isset($roundData['roundId']) && is_string($roundData['roundId'])) {
+        $roundId = trim($roundData['roundId']);
+        if ($roundId !== '' && preg_match('/^[A-Za-z0-9._:-]{1,100}$/', $roundId)) {
+            $sanitized['roundId'] = $roundId;
+        }
+    }
+    if (isset($roundData['clientRequestId']) && is_string($roundData['clientRequestId'])) {
+        $clientRequestId = trim($roundData['clientRequestId']);
+        if ($clientRequestId !== '' && preg_match('/^[A-Za-z0-9._:-]{1,100}$/', $clientRequestId)) {
+            $sanitized['clientRequestId'] = $clientRequestId;
+        }
     }
 
     return [

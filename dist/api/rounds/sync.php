@@ -10,12 +10,14 @@ require_once __DIR__ . '/../common/cors.php';
 require_once __DIR__ . '/../common/file-lock.php';
 require_once __DIR__ . '/../common/logger.php';
 require_once __DIR__ . '/../common/data-path.php';
+require_once __DIR__ . '/../common/csrf.php';
 
 // Initialize session
 initSession();
 
 // Require authentication
 $auth = requireAuth();
+requireCsrfForSessionAuth($auth);
 $userHash = $auth['userHash'];
 $dataDir = getDataDirectory();
 $userDir = $dataDir . '/' . $userHash;
@@ -35,6 +37,7 @@ if ($action === 'get') {
             'holes' => $data['holes'] ?? [],
             'currentHole' => $data['currentHole'] ?? 1,
             'roundStarted' => $data['roundStarted'] ?? false,
+            'roundId' => $data['roundId'] ?? null,
             'courseName' => $data['courseName'] ?? '',
             'selectedRoundId' => $data['selectedRoundId'] ?? null,
             'lastUpdated' => $data['lastUpdated'] ?? null
@@ -46,6 +49,7 @@ if ($action === 'get') {
             'holes' => [],
             'currentHole' => 1,
             'roundStarted' => false,
+            'roundId' => null,
             'courseName' => '',
             'selectedRoundId' => null,
             'lastUpdated' => null
@@ -64,14 +68,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['success' => false, 'message' => 'Invalid data']);
         exit;
     }
+
+    $action = $data['action'] ?? $action;
+    $payload = isset($data['roundData']) && is_array($data['roundData']) ? $data['roundData'] : $data;
+
+    if ($action === 'clear') {
+        if (file_exists($currentRoundFile) && !unlink($currentRoundFile)) {
+            logError('Failed to delete current round file', ['file' => $currentRoundFile]);
+            echo json_encode(['success' => false, 'message' => 'Failed to clear current round']);
+            exit;
+        }
+
+        logInfo('Current round cleared');
+        echo json_encode(['success' => true, 'message' => 'Current round cleared']);
+        exit;
+    }
     
     // Save current round data (including round state and selectedRoundId)
     $currentRoundData = [
-        'holes' => $data['holes'] ?? [],
-        'currentHole' => $data['currentHole'] ?? 1,
-        'roundStarted' => $data['roundStarted'] ?? false,
-        'courseName' => $data['courseName'] ?? '',
-        'selectedRoundId' => $data['selectedRoundId'] ?? null,
+        'holes' => is_array($payload['holes'] ?? null) ? $payload['holes'] : [],
+        'currentHole' => isset($payload['currentHole']) && is_numeric($payload['currentHole']) ? max(1, (int)$payload['currentHole']) : 1,
+        'roundStarted' => !empty($payload['roundStarted']),
+        'roundId' => is_string($payload['roundId'] ?? null) ? trim($payload['roundId']) : null,
+        'courseName' => is_string($payload['courseName'] ?? null) ? trim($payload['courseName']) : '',
+        'selectedRoundId' => $payload['selectedRoundId'] ?? null,
         'lastUpdated' => date('Y-m-d H:i:s')
     ];
     

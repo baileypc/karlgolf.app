@@ -8,15 +8,12 @@ require_once __DIR__ . '/../common/session.php';
 require_once __DIR__ . '/../common/file-lock.php';
 require_once __DIR__ . '/../common/analytics-tracker.php';
 require_once __DIR__ . '/../common/logger.php';
+require_once __DIR__ . '/../common/admin-auth.php';
 
 // Initialize session
 initSession();
 
-// Check admin authentication
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    echo json_encode(['success' => false, 'message' => 'Not authenticated']);
-    exit;
-}
+requireAdminAuth(false);
 
 // Get analytics data
 $analyticsFile = getAnalyticsFilePath();

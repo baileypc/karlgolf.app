@@ -92,6 +92,7 @@ foreach ($rounds as $index => $round) {
     // Include full holes array so client can load the round data
     $incompleteRounds[] = [
         'index' => $index,
+        'roundId' => $round['roundId'] ?? null,
         'roundNumber' => $round['roundNumber'] ?? ($index + 1),
         'courseName' => $roundCourse,
         'date' => $roundDate,

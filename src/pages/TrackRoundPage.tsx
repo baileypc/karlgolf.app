@@ -5,7 +5,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPencil, faTrash, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { roundsAPI } from '@/lib/api';
 import { exportRoundToCSV } from '@/lib/export';
-import type { Hole as APIHole, CourseMetadata } from '@/types';
+import { convertToAPIHole } from '@/lib/hole-conversion';
+import type { CourseMetadata } from '@/types';
 import IconNav from '../components/IconNav';
 import Modal, { useModal } from '../components/Modal';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,6 +21,7 @@ interface LocalHole {
   gir: 'y' | 'n';
   putts: number;
   puttDistances: number[];
+  holedOut?: boolean;
   fairway?: 'l' | 'c' | 'r' | 'na' | 'rough' | 'sand'; // left, center, right, not applicable, rough/trees, sand
   shotsToGreen?: number;
   penalty?: string;
@@ -34,78 +36,20 @@ interface LocalHole {
   holeDistance?: number;
 }
 
-// Convert local hole format to API format
-const convertToAPIHole = (localHole: LocalHole): APIHole => {
-  // Convert detailed fairway tracking to API format
-  let apiFairway: 'y' | 'n' | null;
-  if (localHole.par === 3) {
-    apiFairway = null; // Par 3s don't have fairways
-  } else if (!localHole.fairway) {
-    apiFairway = 'n'; // Default to missed if not set
-  } else if (localHole.fairway === 'na' || localHole.fairway === 'rough' || localHole.fairway === 'sand') {
-    apiFairway = 'n'; // Hazard, Rough, or Sand = missed fairway
-  } else if (localHole.fairway === 'c' || localHole.fairway === 'l' || localHole.fairway === 'r') {
-    apiFairway = 'y'; // Left, Center, or Right = hit fairway
-  } else {
-    apiFairway = 'n'; // Unknown/missing = missed fairway
-  }
-
-  // Penalty strokes calculation (total numeric)
-  const totalPenalties = parseInt(localHole.penalty || '0', 10);
-
-  const apiHole: APIHole = {
-    holeNumber: localHole.holeNumber,
-    par: localHole.par,
-    score: localHole.score,
-    gir: localHole.gir,
-    putts: localHole.putts,
-    puttDistances: localHole.puttDistances,
-    fairway: apiFairway,
-    // IMPORTANT: Include penalties in shotsToGreen calculation if GIR was missed
-    // For Par 5, exclude secondShotPenalty as it's sent in a dedicated field
-    shotsToGreen: localHole.gir === 'n' 
-      ? (localHole.shotsToGreen || 0) + totalPenalties - (localHole.par === 5 ? parseInt(localHole.secondShotPenalty || '0', 10) : 0)
-      : localHole.shotsToGreen,
-    penalty: localHole.penalty ? 'other' : null, // Set a placeholder for penalties to trigger server awareness
-    penaltyStrokes: totalPenalties > 0 ? totalPenalties : undefined,
-    proximity: localHole.proximity,
-    approachLie: localHole.par === 3 ? null
-      : localHole.par === 5
-          // Par 5: approach is the 3rd shot, played from wherever the 2nd shot landed
-          ? (localHole.secondShotLie === 'c' ? 'fairway'
-            : localHole.secondShotLie === 'rough' ? 'rough'
-            : localHole.secondShotLie === 'sand' ? 'sand'
-            : null)
-      : localHole.fairway === 'c' || localHole.fairway === 'l' || localHole.fairway === 'r' ? 'fairway'
-      : localHole.fairway === 'rough' ? 'rough'
-      : localHole.fairway === 'sand' ? 'sand'
-      : (localHole.fairway === 'na' && localHole.secondShotLie)
-          ? (localHole.secondShotLie === 'c' ? 'fairway'
-            : localHole.secondShotLie === 'rough' ? 'rough'
-            : localHole.secondShotLie === 'sand' ? 'sand'
-            : null)
-          : null,
-  };
-  if (localHole.par === 5) {
-    if (localHole.secondShotDistance != null) apiHole.secondShotDistance = localHole.secondShotDistance;
-    if (localHole.secondShotLie != null) {
-      apiHole.secondShotLie = localHole.secondShotLie === 'na' ? 'hazard' : localHole.secondShotLie === 'c' ? 'fairway' : localHole.secondShotLie;
-    }
-    if (localHole.secondShotPenalty != null && localHole.secondShotPenalty !== '') apiHole.secondShotPenalty = parseInt(localHole.secondShotPenalty, 10);
-  }
-  if (localHole.approachMissLocation != null) apiHole.approachMissLocation = localHole.approachMissLocation;
-  if (localHole.wedgeShotDistances != null && localHole.wedgeShotDistances.length > 0) apiHole.wedgeShotDistances = localHole.wedgeShotDistances;
-  else if (localHole.wedgeShotDistance != null) apiHole.wedgeShotDistance = localHole.wedgeShotDistance;
-  if (localHole.holeDistance != null) apiHole.holeDistance = localHole.holeDistance;
-  return apiHole;
-};
-
 const formatMissLocation = (loc: string): string => {
   if (loc.startsWith('fringe-')) {
     const sub = loc.replace('fringe-', '');
     return `Fringe · ${sub.charAt(0).toUpperCase() + sub.slice(1)}`;
   }
   return loc.charAt(0).toUpperCase() + loc.slice(1);
+};
+
+const createRoundId = (): string => {
+  const cryptoObj = globalThis.crypto;
+  if (cryptoObj?.randomUUID) {
+    return cryptoObj.randomUUID();
+  }
+  return `round_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 };
 
 export default function TrackRoundPage() {
@@ -121,6 +65,7 @@ export default function TrackRoundPage() {
   const [coursePar, setCoursePar] = useState<number | null>(null);
   const [serverIncompleteRound, setServerIncompleteRound] = useState<any>(null);
   const [editingRoundNumber, setEditingRoundNumber] = useState<number | null>(null);
+  const [roundId, setRoundId] = useState<string>(() => createRoundId());
 
   // Modal states
   const discardModal = useModal();
@@ -144,6 +89,7 @@ export default function TrackRoundPage() {
   const [gir, setGir] = useState<'y' | 'n' | null>(null);
   const [putts, setPutts] = useState<number | null>(null);
   const [puttDistances, setPuttDistances] = useState<number[]>([]);
+  const [holedOut, setHoledOut] = useState(false);
   const [fairway, setFairway] = useState<'l' | 'c' | 'r' | 'na' | 'rough' | 'sand' | null>(null);
   const [shotsToGreen, setShotsToGreen] = useState<number | null>(null);
   const [penalty, setPenalty] = useState('');
@@ -165,6 +111,15 @@ export default function TrackRoundPage() {
   const MAX_WEDGE_SHOTS = 3; // cap wedge shot inputs (never more than 3); allow typing >3 to show "Call your coach!"
   const wedgeCount = Math.min(Math.max(0, Number(shotsToGreen) || 0), MAX_WEDGE_SHOTS);
   const wedgeOverThree = (shotsToGreen ?? 0) > 3;
+
+  const selectHoledOut = () => {
+    setHoledOut(true);
+    setPutts(0);
+    setPuttDistances([]);
+    if (par === 3 && gir === 'y' && shotsToGreen === null) {
+      setShotsToGreen(1);
+    }
+  };
 
   // Check server for incomplete rounds on mount (only when logged in)
   const { data: incompleteData, refetch: refetchIncomplete } = useQuery({
@@ -204,6 +159,7 @@ export default function TrackRoundPage() {
 
     const rd = state.roundData;
     setEditingRoundNumber(state.roundNumber ?? null);
+    setRoundId(rd.roundId || createRoundId());
     setCourseName(rd.courseName || '');
     setCourseMetadata(rd.courseMetadata || null);
     if (rd.coursePar) setCoursePar(rd.coursePar);
@@ -218,6 +174,7 @@ export default function TrackRoundPage() {
         gir: h.gir || 'n',
         putts: h.putts || 0,
         puttDistances: h.puttDistances || [],
+        holedOut: Boolean(h.holedOut || (h.putts === 0 && (h.puttDistances?.length ?? 0) === 0)),
         fairway: h.fairway === 'y' ? 'c' : h.fairway === 'n' ? 'rough' : h.fairway || undefined,
         shotsToGreen: h.shotsToGreen,
         penalty: h.penalty || '',
@@ -266,6 +223,9 @@ export default function TrackRoundPage() {
         if (localData.editingRoundNumber != null) {
           setEditingRoundNumber(localData.editingRoundNumber);
         }
+        if (localData.roundId) {
+          setRoundId(localData.roundId);
+        }
         setRoundStarted(true);
 
         // Restore in-progress form state (half-entered hole)
@@ -275,6 +235,7 @@ export default function TrackRoundPage() {
           if (f.gir !== undefined) setGir(f.gir);
           if (f.putts !== undefined) setPutts(f.putts);
           if (f.puttDistances) setPuttDistances(f.puttDistances);
+          if (f.holedOut !== undefined) setHoledOut(Boolean(f.holedOut));
           if (f.fairway !== undefined) setFairway(f.fairway);
           if (f.shotsToGreen !== undefined) setShotsToGreen(f.shotsToGreen);
           if (f.penalty !== undefined) setPenalty(f.penalty);
@@ -333,6 +294,7 @@ export default function TrackRoundPage() {
           setHoles(localData.holes);
           setCurrentHole(localData.holes.length + 1);
           setCourseName(localData.courseName || '');
+          if (localData.roundId) setRoundId(localData.roundId);
           setRoundStarted(true);
           return;
         } else {
@@ -344,6 +306,7 @@ export default function TrackRoundPage() {
             gir: h.gir,
             putts: h.putts,
             puttDistances: h.puttDistances || [],
+            holedOut: Boolean(h.holedOut || (h.putts === 0 && (h.puttDistances?.length ?? 0) === 0)),
             fairway: h.fairway === 'y' ? 'c' : h.fairway === 'n' ? 'rough' : undefined,
             shotsToGreen: h.shotsToGreen,
             penalty: h.penalty || '',
@@ -352,10 +315,12 @@ export default function TrackRoundPage() {
           setHoles(serverHoles);
           setCurrentHole(serverHoles.length + 1);
           setCourseName(firstServer.courseName || '');
+          setRoundId(firstServer.roundId || createRoundId());
           setRoundStarted(true);
           localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
             holes: serverHoles,
             courseName: firstServer.courseName,
+            roundId: firstServer.roundId || roundId,
             roundStarted: true,
             lastUpdated: new Date().toISOString(),
           }));
@@ -369,6 +334,7 @@ export default function TrackRoundPage() {
       setHoles(localData.holes);
       setCurrentHole(localData.holes.length + 1);
       setCourseName(localData.courseName || '');
+      if (localData.roundId) setRoundId(localData.roundId);
       setRoundStarted(true);
     }
   }, [location, navigate, isLoggedIn, incompleteData]);
@@ -379,6 +345,7 @@ export default function TrackRoundPage() {
     if (holes.length > 0 || roundStarted) {
       localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
         holes,
+        roundId,
         courseName,
         courseMetadata,
         coursePar,
@@ -389,6 +356,7 @@ export default function TrackRoundPage() {
           gir,
           putts,
           puttDistances,
+          holedOut,
           fairway,
           shotsToGreen,
           penalty,
@@ -404,7 +372,7 @@ export default function TrackRoundPage() {
         lastUpdated: new Date().toISOString(),
       }));
     }
-  }, [holes, courseName, courseMetadata, coursePar, roundStarted, editingRoundNumber, par, gir, putts, puttDistances, fairway, shotsToGreen, penalty, proximity, teePenalty, holeDistance, secondShotDistance, secondShotLie, secondShotPenalty, approachMissLocation, wedgeShotDistances]);
+  }, [holes, roundId, courseName, courseMetadata, coursePar, roundStarted, editingRoundNumber, par, gir, putts, puttDistances, holedOut, fairway, shotsToGreen, penalty, proximity, teePenalty, holeDistance, secondShotDistance, secondShotLie, secondShotPenalty, approachMissLocation, wedgeShotDistances]);
 
   // Helper function to show alert modal
 
@@ -416,6 +384,12 @@ export default function TrackRoundPage() {
       setPuttDistances(newDistances);
     }
   }, [putts]);
+
+  useEffect(() => {
+    if (putts !== 0 && holedOut) {
+      setHoledOut(false);
+    }
+  }, [putts, holedOut]);
 
   const handleCourseSelected = (name: string, metadata: CourseMetadata | null) => {
     setCourseName(name);
@@ -442,6 +416,7 @@ export default function TrackRoundPage() {
     setGir(hole.gir);
     setPutts(hole.putts);
     setPuttDistances(hole.puttDistances);
+    setHoledOut(Boolean(hole.holedOut || (hole.putts === 0 && (hole.puttDistances?.length ?? 0) === 0)));
     setFairway(hole.fairway || null);
     setShotsToGreen(hole.shotsToGreen || null);
     setPenalty(hole.penalty || '');
@@ -515,6 +490,7 @@ export default function TrackRoundPage() {
     // Update localStorage immediately (before server save)
     localStorage.setItem('karlsGIR_currentRound', JSON.stringify({
       holes: newHoles,
+      roundId,
       courseName,
       courseMetadata,
       roundStarted,
@@ -525,6 +501,7 @@ export default function TrackRoundPage() {
     if (isLoggedIn) {
       try {
         const apiData: any = {
+          roundId,
           courseName: courseName.trim(),
           courseMetadata: courseMetadata,
           holes: newHoles.map(convertToAPIHole),
@@ -707,13 +684,16 @@ export default function TrackRoundPage() {
       const isEditing = editingHole !== null;
       const holeNumber = isEditing ? editingHole! : currentHole;
 
+      const officialGir: 'y' | 'n' = isGirAutoDenied ? 'n' : (gir || 'n');
+
       const hole: LocalHole = {
         holeNumber: holeNumber,
         par: par as 3 | 4 | 5,
         score,
-        gir: gir || 'n',
+        gir: officialGir,
         putts,
         puttDistances,
+        holedOut: holedOut || putts === 0,
         fairway: par === 3 ? 'na' : fairway!,
         shotsToGreen: shotsToGreen || undefined,
         penalty: teePenaltyNum > 0 || secondShotPenaltyNum > 0 || approachPenaltyNum > 0
@@ -755,6 +735,7 @@ export default function TrackRoundPage() {
       if (isLoggedIn) {
         try {
           const roundData: any = {
+            roundId,
             courseName: courseName.trim(), // Ensure course name is trimmed
             courseMetadata: courseMetadata,
             holes: newHoles.map(convertToAPIHole),
@@ -807,6 +788,7 @@ export default function TrackRoundPage() {
       setGir(null);
       setPutts(null);
       setPuttDistances([]);
+      setHoledOut(false);
       setFairway(null);
       setShotsToGreen(null);
       setPenalty('');
@@ -1264,7 +1246,7 @@ export default function TrackRoundPage() {
                       <button
                         onClick={() => {
                           setGir('y');
-                          setTeePenalty(''); setFairway(null); setPutts(null); setPuttDistances([]);
+                          setTeePenalty(''); setFairway(null); setPutts(null); setHoledOut(false); setPuttDistances([]);
                           setShotsToGreen(null); setWedgeShotDistances([]);
                           setApproachMissLocation(null); setProximity(holeDistance ?? null);
                           setActiveCard(5); // On green → putting
@@ -1281,7 +1263,7 @@ export default function TrackRoundPage() {
                       {/* Ace! */}
                       <button
                         onClick={() => {
-                          setGir('y'); setShotsToGreen(1); setPutts(0); setPuttDistances([]);
+                          setGir('y'); setShotsToGreen(1); setPutts(0); setHoledOut(true); setPuttDistances([]);
                           setTeePenalty(''); setFairway(null); setWedgeShotDistances([]);
                           setApproachMissLocation(null); setProximity(null);
                           setActiveCard(5);
@@ -1302,7 +1284,7 @@ export default function TrackRoundPage() {
                       <button
                         onClick={() => {
                           setGir('n');
-                          setTeePenalty(''); setFairway(null); setPutts(null); setPuttDistances([]);
+                          setTeePenalty(''); setFairway(null); setPutts(null); setHoledOut(false); setPuttDistances([]);
                           setShotsToGreen(null); setWedgeShotDistances([]);
                           setApproachMissLocation(null); setProximity(null);
                           setActiveCard(3); // Missed → recovery
@@ -1321,7 +1303,7 @@ export default function TrackRoundPage() {
                     <button
                       onClick={() => {
                         setFairway('na');
-                        setGir(null); setTeePenalty(''); setPutts(null); setPuttDistances([]);
+                        setGir(null); setTeePenalty(''); setPutts(null); setHoledOut(false); setPuttDistances([]);
                         setShotsToGreen(null); setWedgeShotDistances([]);
                         setApproachMissLocation(null); setProximity(null);
                       }}
@@ -1339,7 +1321,7 @@ export default function TrackRoundPage() {
                         onClick={() => {
                           setTeePenalty('1');
                           setGir(null);
-                          setPutts(null); setPuttDistances([]);
+                          setPutts(null); setHoledOut(false); setPuttDistances([]);
                           setShotsToGreen(null); setWedgeShotDistances([]);
                           setApproachMissLocation(null);
                           setActiveCard(4);
@@ -1371,6 +1353,7 @@ export default function TrackRoundPage() {
                             setTeePenalty('');
                             setGir(null);
                             setPutts(null);
+                            setHoledOut(false);
                             setPuttDistances([]);
                             setShotsToGreen(null);
                             setWedgeShotDistances([]);
@@ -1394,7 +1377,7 @@ export default function TrackRoundPage() {
                         {par === 4 && idx === 0 && (
                           <button
                             onClick={() => {
-                              setFairway('c'); setGir('y'); setShotsToGreen(1); setPutts(0); setPuttDistances([]); setActiveCard(5);
+                              setFairway('c'); setGir('y'); setShotsToGreen(1); setPutts(0); setHoledOut(true); setPuttDistances([]); setActiveCard(5);
                             }}
                             className="btn btn-secondary"
                             style={{ 
@@ -1433,6 +1416,7 @@ export default function TrackRoundPage() {
                           setTeePenalty('');
                           setGir(null);
                           setPutts(null);
+                          setHoledOut(false);
                           setPuttDistances([]);
                           setShotsToGreen(null);
                           setWedgeShotDistances([]);
@@ -1475,6 +1459,7 @@ export default function TrackRoundPage() {
                       setTeePenalty('1');
                       setGir('n');
                       setPutts(null);
+                      setHoledOut(false);
                       setPuttDistances([]);
                       setShotsToGreen(null);
                       setWedgeShotDistances([]);
@@ -1601,7 +1586,7 @@ export default function TrackRoundPage() {
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
                   <button
                     onClick={() => {
-                      setSecondShotLie('green'); setSecondShotPenalty(''); setGir('y'); setPutts(0); setShotsToGreen(2); setPuttDistances([]); setActiveCard(6);
+                      setSecondShotLie('green'); setSecondShotPenalty(''); setGir('y'); setPutts(0); setHoledOut(true); setShotsToGreen(2); setPuttDistances([]); setActiveCard(6);
                     }}
                     className="btn btn-secondary"
                     style={{ flex: 1, fontSize: '0.75rem', padding: '0.4rem', borderColor: '#FFD700', color: '#FFD700' }}
@@ -1610,7 +1595,7 @@ export default function TrackRoundPage() {
                   </button>
                   <button
                     onClick={() => {
-                      setSecondShotLie('green'); setSecondShotPenalty(''); setGir('y'); setPutts(null); setPuttDistances([]); setShotsToGreen(2); setActiveCard(6);
+                      setSecondShotLie('green'); setSecondShotPenalty(''); setGir('y'); setPutts(null); setHoledOut(false); setPuttDistances([]); setShotsToGreen(2); setActiveCard(6);
                     }}
                     className="btn btn-secondary"
                     style={{ flex: 1, fontSize: '0.75rem', padding: '0.4rem', borderColor: 'var(--color-interactive)', color: 'var(--color-interactive)' }}
@@ -1809,7 +1794,7 @@ export default function TrackRoundPage() {
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => {
-                            setGir('y'); setPutts(0); setShotsToGreen(null); setPuttDistances([]); setActiveCard(6);
+                            setGir('y'); setPutts(0); setHoledOut(true); setShotsToGreen(null); setPuttDistances([]); setActiveCard(6);
                           }}
                           className="btn btn-secondary"
                           style={{ flex: 1, fontSize: '0.75rem', padding: '0.4rem', borderColor: 'var(--color-interactive)', color: 'var(--color-interactive)' }}
@@ -2325,6 +2310,7 @@ export default function TrackRoundPage() {
                               setGir(option.value as 'y' | 'n');
                               setWedgeShotDistances([]);
                               setPutts(null);
+                              setHoledOut(false);
                               setPuttDistances([]);
                               if (option.value === 'y') {
                                 // Tee penalty + re-tee reached green (Par 3/4): shotsToGreen=1 so
@@ -2353,6 +2339,7 @@ export default function TrackRoundPage() {
                               onClick={() => {
                                 setGir('y');
                                 setPutts(0);
+                                setHoledOut(true);
                                 setShotsToGreen(1);
                                 setWedgeShotDistances([]);
                                 setPuttDistances([]);
@@ -2390,7 +2377,7 @@ export default function TrackRoundPage() {
                         {par === 4 && (parseInt(teePenalty) || 0) === 0 && (
                           <button
                             onClick={() => {
-                              setGir('y'); setPutts(0); setShotsToGreen(2); setPuttDistances([]); setActiveCard(5);
+                              setGir('y'); setPutts(0); setHoledOut(true); setShotsToGreen(2); setPuttDistances([]); setActiveCard(5);
                             }}
                             className="btn btn-secondary"
                             style={{ flex: 1, fontSize: '0.75rem', padding: '0.4rem', borderColor: 'var(--color-interactive)', color: 'var(--color-interactive)' }}
@@ -2618,7 +2605,7 @@ export default function TrackRoundPage() {
                 ? (shotsToGreen || (par! - 2)) + putts + totalPenaltiesForScore
                 : baseShotsBeforeRecovery + (shotsToGreen || 0) + extraMissedApproach + putts + penaltiesToAdd)
               : null;
-            const isHoleOut = putts === 0 && puttDistances.length === 0;
+            const isHoleOut = putts === 0 && (holedOut || puttDistances.length === 0);
             const isAce = isHoleOut && gir === 'y' && shotsToGreen === 1 && currentScore === 1;
             const isBirdie = currentScore !== null && currentScore === par! - 1 && !isAce;
             const isEagle = currentScore !== null && currentScore === par! - 2 && !isAce;
@@ -2676,7 +2663,25 @@ export default function TrackRoundPage() {
                   </div>
                 </div>
               ) : isHoleOut ? (
-                null
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Putts & distance (ft)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHoledOut(false);
+                      setPutts(null);
+                      setPuttDistances([]);
+                    }}
+                    className="btn btn-secondary"
+                    style={{
+                      width: '100%',
+                      backgroundColor: 'var(--color-interactive)',
+                      color: '#000',
+                    }}
+                  >
+                    Holed Out (0 putts)
+                  </button>
+                </div>
               ) : (
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Putts & distance (ft)</label>
@@ -2691,6 +2696,7 @@ export default function TrackRoundPage() {
                         value={putts != null ? String(putts) : ''}
                         onChange={(e) => {
                           const val = e.target.value;
+                          setHoledOut(false);
                           if (val === '') { setPutts(null); setPuttDistances([]); return; }
                           const digit = val.slice(-1);
                           const n = parseInt(digit, 10);
@@ -2758,6 +2764,14 @@ export default function TrackRoundPage() {
                       </div>
                     ))}
                   </div>
+                  <button
+                    type="button"
+                    onClick={selectHoledOut}
+                    className="btn btn-secondary"
+                    style={{ width: '100%', marginTop: '0.75rem' }}
+                  >
+                    Holed Out (0 putts)
+                  </button>
                 </div>
               )}
 
@@ -2786,6 +2800,7 @@ export default function TrackRoundPage() {
                       setGir(null);
                       setPutts(null);
                       setPuttDistances([]);
+                      setHoledOut(false);
                       setFairway(null);
                       setShotsToGreen(null);
                       setPenalty('');
@@ -2893,9 +2908,17 @@ export default function TrackRoundPage() {
                     // Less than 9 holes - discard round (no server save, just clear localStorage)
                     setModalMessage(`Discard this round? You have ${holes.length} hole${holes.length !== 1 ? 's' : ''} entered. Minimum 9 holes required to save stats.`);
                     setModalAction(() => async () => {
-                      // Just clear localStorage and navigate - no server save for < 9 holes
+                      if (isLoggedIn) {
+                        try {
+                          await roundsAPI.deleteRound(undefined, roundId);
+                          await roundsAPI.deleteIncompleteRound();
+                          queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+                        } catch (error) {
+                          console.error('Failed to discard server round:', error);
+                        }
+                      }
                       localStorage.removeItem('karlsGIR_currentRound');
-                      navigate('/dashboard');
+                      navigate(isLoggedIn ? '/dashboard' : '/');
                     });
                     discardModal.open();
                   } else if (incompleteHoles > 0) {
@@ -2905,22 +2928,27 @@ export default function TrackRoundPage() {
                       // Save only the complete nines to API
                       const holesToSave = holes.slice(0, completeNines * 9).map(convertToAPIHole);
                       try {
-                        await roundsAPI.saveRound({
-                          courseName,
-                          courseMetadata,
-                          holes: holesToSave as any,
-                          completed: true, // Mark round as completed so it won't show in "Resume Round"
-                          ...(editingRoundNumber != null ? { replaceRoundNumber: editingRoundNumber } : {}),
-                        } as any);
+                        if (isLoggedIn) {
+                          await roundsAPI.saveRound({
+                            roundId,
+                            courseName,
+                            courseMetadata,
+                            holes: holesToSave as any,
+                            completed: true, // Mark round as completed so it won't show in "Resume Round"
+                            ...(editingRoundNumber != null ? { replaceRoundNumber: editingRoundNumber } : {}),
+                          } as any);
+                        }
 
                         // Track round save event
                         const roundType = isLoggedIn ? 'registered' : 'live';
                         const userHash = isLoggedIn ? localStorage.getItem('userHash') : null;
                         Analytics.trackRoundEvent('save', roundType, userHash, holesToSave.length, true);
 
-                        // Invalidate stats query so dashboard refreshes
-                        queryClient.invalidateQueries({ queryKey: ['stats'] });
-                        queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+                        if (isLoggedIn) {
+                          // Invalidate stats query so dashboard refreshes
+                          queryClient.invalidateQueries({ queryKey: ['stats'] });
+                          queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+                        }
                       } catch (error) {
                         console.error('Failed to save round:', error);
                         setValidationError('Failed to save round. Please try again.');
@@ -2928,7 +2956,7 @@ export default function TrackRoundPage() {
                         return;
                       }
                       localStorage.removeItem('karlsGIR_currentRound');
-                      navigate('/dashboard');
+                      navigate(isLoggedIn ? '/dashboard' : '/');
                     });
                     endRoundIncompleteModal.open();
                   } else {
@@ -2936,7 +2964,7 @@ export default function TrackRoundPage() {
                     setModalMessage(
                       <div>
                         <div style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>
-                          End round and save {holes.length} holes?
+                          {isLoggedIn ? `End round and save ${holes.length} holes?` : `End round with ${holes.length} holes?`}
                         </div>
                         {Object.values(stats.approachCategories || {}).some(c => c.attempts > 0) && (
                           <div style={{ textAlign: 'left', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
@@ -2964,22 +2992,27 @@ export default function TrackRoundPage() {
                       // Save all holes to API
                       const holesToSave = holes.map(convertToAPIHole);
                       try {
-                        await roundsAPI.saveRound({
-                          courseName,
-                          courseMetadata,
-                          holes: holesToSave as any,
-                          completed: true,
-                          ...(editingRoundNumber != null ? { replaceRoundNumber: editingRoundNumber } : {}),
-                        } as any);
+                        if (isLoggedIn) {
+                          await roundsAPI.saveRound({
+                            roundId,
+                            courseName,
+                            courseMetadata,
+                            holes: holesToSave as any,
+                            completed: true,
+                            ...(editingRoundNumber != null ? { replaceRoundNumber: editingRoundNumber } : {}),
+                          } as any);
+                        }
 
                         // Track round save event
                         const roundType = isLoggedIn ? 'registered' : 'live';
                         const userHash = isLoggedIn ? localStorage.getItem('userHash') : null;
                         Analytics.trackRoundEvent('save', roundType, userHash, holesToSave.length, true);
 
-                        // Invalidate stats query so dashboard refreshes
-                        queryClient.invalidateQueries({ queryKey: ['stats'] });
-                        queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+                        if (isLoggedIn) {
+                          // Invalidate stats query so dashboard refreshes
+                          queryClient.invalidateQueries({ queryKey: ['stats'] });
+                          queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+                        }
                       } catch (error) {
                         console.error('Failed to save round:', error);
                         setValidationError('Failed to save round. Please try again.');
@@ -2987,7 +3020,7 @@ export default function TrackRoundPage() {
                         return;
                       }
                       localStorage.removeItem('karlsGIR_currentRound');
-                      navigate('/dashboard');
+                      navigate(isLoggedIn ? '/dashboard' : '/');
                     });
                     endRoundCompleteModal.open();
                   }
@@ -3005,30 +3038,40 @@ export default function TrackRoundPage() {
               {holes.length >= 9 && (
                 <button
                   onClick={() => {
-                    setModalMessage(`Pause round with ${holes.length} holes? You can continue this round later from the dashboard.`);
+                    setModalMessage(isLoggedIn
+                      ? `Pause round with ${holes.length} holes? You can continue this round later from the dashboard.`
+                      : `Pause round with ${holes.length} holes? You can continue this round later on this device.`
+                    );
                     setModalAction(() => async () => {
                       // Save round WITHOUT completed flag so it can be resumed
                       const holesToSave = holes.map(convertToAPIHole);
                       try {
-                        await roundsAPI.saveRound({
-                          courseName,
-                          courseMetadata,
-                          holes: holesToSave as any,
-                          ...(editingRoundNumber != null ? { replaceRoundNumber: editingRoundNumber } : {}),
-                        } as any);
+                        if (isLoggedIn) {
+                          await roundsAPI.saveRound({
+                            roundId,
+                            courseName,
+                            courseMetadata,
+                            holes: holesToSave as any,
+                            ...(editingRoundNumber != null ? { replaceRoundNumber: editingRoundNumber } : {}),
+                          } as any);
 
-                        // Invalidate queries so dashboard shows the paused round
-                        queryClient.invalidateQueries({ queryKey: ['stats'] });
-                        queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+                          // Invalidate queries so dashboard shows the paused round
+                          queryClient.invalidateQueries({ queryKey: ['stats'] });
+                          queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+                        }
                       } catch (error) {
                         console.error('Failed to pause round:', error);
                         setValidationError('Failed to pause round. Please try again.');
                         validationErrorModal.open();
                         return;
                       }
-                      // Clear localStorage and navigate to dashboard
-                      localStorage.removeItem('karlsGIR_currentRound');
-                      navigate('/dashboard');
+                      if (isLoggedIn) {
+                        // Clear localStorage and navigate to dashboard
+                        localStorage.removeItem('karlsGIR_currentRound');
+                        navigate('/dashboard');
+                      } else {
+                        navigate('/');
+                      }
                     });
                     saveNineModal.open();
                   }}
@@ -3214,7 +3257,7 @@ export default function TrackRoundPage() {
                         Hole {hole.holeNumber} - Strokes {hole.score}
                       </div>
                       <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>
-                        Par {hole.par} • GIR: {hole.gir === 'y' ? 'Yes' : 'No'} • Putts: {hole.putts}
+                        Par {hole.par} • GIR: {hole.gir === 'y' ? 'Yes' : 'No'} • Putts: {hole.putts}{hole.holedOut ? ' • Holed Out' : ''}
                         {hole.par !== 3 && (
                           <span>
                             {' • '}

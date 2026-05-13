@@ -84,6 +84,7 @@
             const [password, setPassword] = useState('');
             const [loginError, setLoginError] = useState('');
             const [isLoggingIn, setIsLoggingIn] = useState(false);
+            const [csrfToken, setCsrfToken] = useState('');
             const [analytics, setAnalytics] = useState(null);
             const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
             const [users, setUsers] = useState(null);
@@ -99,16 +100,6 @@
             useEffect(() => {
                 // Force fresh data on every mount
                 checkAuth();
-            }, []);
-            
-            // Force refresh on component mount to prevent stale cache
-            useEffect(() => {
-                // Add timestamp to prevent caching
-                const timestamp = Date.now();
-                console.log('%c✅✅✅ NEW VERSION 9.0.0 LOADED ✅✅✅', 'background: #DDEDD2; color: #000; font-size: 24px; font-weight: bold; padding: 20px;');
-                console.log('Admin Dashboard loaded at:', new Date(timestamp).toISOString());
-                console.log('If you see this message, the NEW version is loading!');
-                console.log('%cIf you do NOT see this green banner, you are viewing the OLD cached version!', 'background: red; color: white; font-size: 16px; padding: 10px;');
             }, []);
             
             // Load analytics and users when authenticated
@@ -142,6 +133,7 @@
                     const response = await fetch('../api/admin/auth.php?action=check');
                     const data = await response.json();
                     setIsAuthenticated(data.loggedIn || false);
+                    setCsrfToken(data.csrfToken || '');
                     if (data.loggedIn) {
                         setUsername(data.username || 'admin');
                     }
@@ -172,6 +164,7 @@
                     
                     if (data.success) {
                         setIsAuthenticated(true);
+                        setCsrfToken(data.csrfToken || '');
                         setPassword('');
                     } else {
                         setLoginError(data.message || 'Login failed');
@@ -186,10 +179,14 @@
             
             const handleLogout = async () => {
                 try {
-                    await fetch('../api/admin/auth.php?action=logout');
+                    await fetch('../api/admin/auth.php?action=logout', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-Token': csrfToken }
+                    });
                     setIsAuthenticated(false);
                     setUsername('');
                     setPassword('');
+                    setCsrfToken('');
                     setAnalytics(null);
                 } catch (error) {
                     console.error('Logout error:', error);
@@ -240,7 +237,10 @@
                 try {
                     const response = await fetch('../api/admin/delete-user.php', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
                         body: JSON.stringify({
                             userHash: userToDelete.userHash
                         })

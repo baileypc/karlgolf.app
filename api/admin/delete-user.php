@@ -4,31 +4,18 @@
  * Allows admin to delete a user account
  */
 
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+require_once __DIR__ . '/../common/environment.php';
+require_once __DIR__ . '/../common/session.php';
+require_once __DIR__ . '/../common/cors.php';
+require_once __DIR__ . '/../common/logger.php';
+require_once __DIR__ . '/../common/admin-auth.php';
 
-// Set JSON header
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+error_reporting(isDevelopment() ? E_ALL : 0);
+ini_set('display_errors', '0');
 
-// Handle preflight
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+initSession();
 
-// Start session
-session_start();
-
-// Check if admin is logged in
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+requireAdminAuth(true);
 
 // Only allow POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -47,6 +34,11 @@ if (!isset($input['userHash']) || empty($input['userHash'])) {
 }
 
 $userHash = $input['userHash'];
+if (!is_string($userHash) || !preg_match('/^[a-f0-9]{64}$/i', $userHash)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid user hash']);
+    exit;
+}
 
 // Get data directory
 require_once __DIR__ . '/../common/data-path.php';
@@ -88,8 +80,6 @@ if (is_dir($userDir)) {
     @rmdir($userDir);
 }
 
-// Log the deletion
-error_log("Admin deleted user: $userHash");
+logInfo('Admin deleted user', ['userHash' => $userHash]);
 
 echo json_encode(['success' => true, 'message' => 'User deleted successfully']);
-

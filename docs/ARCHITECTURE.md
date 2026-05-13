@@ -1,13 +1,13 @@
 # Karl's GIR - System Architecture
 
-**Version:** 3.8.0  
+**Version:** 3.8.1
 **Last Updated:** December 2025
 
 This document provides a comprehensive overview of the Karl's GIR system architecture for developers who need to understand, maintain, or rebuild the application.
 
 ---
 
-## 📋 Table of Contents
+## ðŸ“‹ Table of Contents
 
 1. [System Overview](#system-overview)
 2. [Technology Stack](#technology-stack)
@@ -65,89 +65,89 @@ Karl's GIR is a Progressive Web App (PWA) for tracking golf statistics. It uses 
 
 ```
 karlgolf.app/
-├── src/                          # TypeScript source code
-│   ├── components/               # Reusable React components
-│   │   ├── IconNav.tsx          # Top navigation bar
-│   │   ├── Modal.tsx            # Modal component with hook
-│   │   ├── PWAInstallPrompt.tsx # PWA install banner
-│   │   └── ErrorBoundary.tsx    # Error handling
-│   ├── pages/                   # Page components
-│   │   ├── HomePage.tsx         # Landing page
-│   │   ├── LoginPage.tsx        # Login/Register
-│   │   ├── DashboardPage.tsx    # User dashboard
-│   │   ├── TrackRoundPage.tsx   # Round tracking
-│   │   ├── TrackLivePage.tsx    # Guest entry point
-│   │   ├── ResetPasswordPage.tsx # Password reset
-│   │   ├── OfflinePage.tsx      # Offline fallback
-│   │   └── NotFoundPage.tsx     # 404 page
-│   ├── hooks/                   # Custom React hooks
-│   │   ├── useAuth.ts           # Authentication hook
-│   │   └── usePageTracking.ts   # Analytics tracking
-│   ├── lib/                     # Utility libraries
-│   │   ├── api.ts               # API client
-│   │   ├── stats.ts             # Statistics calculations
-│   │   ├── storage.ts           # localStorage wrapper
-│   │   ├── csv-export.ts        # CSV export logic
-│   │   └── analytics.ts         # Analytics tracking
-│   ├── types/                   # TypeScript definitions
-│   │   └── index.ts             # Type definitions
-│   ├── main.tsx                 # App entry point
-│   └── App.tsx                  # Router configuration
-│
-├── public/                      # Static assets (copied to build)
-│   ├── api/                     # PHP backend (copied during build)
-│   │   ├── auth/                # Authentication endpoints
-│   │   │   ├── login.php        # Login/register/check/logout
-│   │   │   └── password-reset.php # Password reset
-│   │   ├── rounds/              # Round management
-│   │   │   ├── save.php         # Save round
-│   │   │   ├── load.php         # Load rounds
-│   │   │   ├── delete.php       # Delete round
-│   │   │   └── incomplete.php   # Get incomplete rounds
-│   │   ├── stats/               # Statistics
-│   │   │   └── load.php         # Load user stats
-│   │   ├── admin/               # Admin endpoints
-│   │   │   ├── auth.php         # Admin authentication
-│   │   │   ├── analytics.php    # Analytics data
-│   │   │   ├── delete-user.php  # Delete user
-│   │   │   └── user-stats.php   # Individual user stats
-│   │   └── common/              # Shared PHP utilities
-│   │       ├── session.php      # Session management
-│   │       ├── file-lock.php    # File locking
-│   │       ├── validation.php   # Input validation
-│   │       ├── logger.php       # Logging utilities
-│   │       ├── environment.php  # Environment detection
-│   │       └── analytics-tracker.php # Analytics tracking
-│   ├── admin/                   # Admin dashboard
-│   │   ├── index.html           # Admin UI (React from CDN)
-│   │   ├── admin-styles.css     # Admin styles
-│   │   └── .htaccess            # Admin access control
-│   ├── images/                  # Static images
-│   │   └── karls_gir.png        # App logo
-│   ├── icons/                   # PWA icons
-│   ├── styles.css               # Global CSS (semantic variables)
-│   ├── manifest.json            # PWA manifest
-│   ├── service-worker.js        # Service worker
-│   ├── .htaccess                # Apache configuration
-│   └── index.html               # HTML template (Vite injects scripts)
-│
-├── api/                         # Source API files (copied to public during build)
-├── admin/                       # Source admin files (copied to public during build)
-├── data/                        # User data (local dev only)
-│   └── {user_hash}/             # Per-user directories
-│       ├── password.txt         # Hashed password
-│       ├── email.txt            # User email
-│       ├── rounds.json          # All rounds (complete + incomplete)
-│       ├── current_round.json   # Optional sync state (legacy/unused by main UI)
-│       └── reset_token.json     # Password reset token
-│
-├── docs/                        # Documentation
-├── pre-build.js                 # Pre-build script (version update)
-├── build-deploy.js              # Post-build script (copy assets)
-├── package.json                 # NPM dependencies
-├── tsconfig.json                # TypeScript configuration
-├── vite.config.ts               # Vite configuration
-└── README.md                    # Main documentation
+â”œâ”€â”€ src/                          # TypeScript source code
+â”‚   â”œâ”€â”€ components/               # Reusable React components
+â”‚   â”‚   â”œâ”€â”€ IconNav.tsx          # Top navigation bar
+â”‚   â”‚   â”œâ”€â”€ Modal.tsx            # Modal component with hook
+â”‚   â”‚   â”œâ”€â”€ PWAInstallPrompt.tsx # PWA install banner
+â”‚   â”‚   â””â”€â”€ ErrorBoundary.tsx    # Error handling
+â”‚   â”œâ”€â”€ pages/                   # Page components
+â”‚   â”‚   â”œâ”€â”€ HomePage.tsx         # Landing page
+â”‚   â”‚   â”œâ”€â”€ LoginPage.tsx        # Login/Register
+â”‚   â”‚   â”œâ”€â”€ DashboardPage.tsx    # User dashboard
+â”‚   â”‚   â”œâ”€â”€ TrackRoundPage.tsx   # Round tracking
+â”‚   â”‚   â”œâ”€â”€ TrackLivePage.tsx    # Guest entry point
+â”‚   â”‚   â”œâ”€â”€ ResetPasswordPage.tsx # Password reset
+â”‚   â”‚   â”œâ”€â”€ OfflinePage.tsx      # Offline fallback
+â”‚   â”‚   â””â”€â”€ NotFoundPage.tsx     # 404 page
+â”‚   â”œâ”€â”€ hooks/                   # Custom React hooks
+â”‚   â”‚   â”œâ”€â”€ useAuth.ts           # Authentication hook
+â”‚   â”‚   â””â”€â”€ usePageTracking.ts   # Analytics tracking
+â”‚   â”œâ”€â”€ lib/                     # Utility libraries
+â”‚   â”‚   â”œâ”€â”€ api.ts               # API client
+â”‚   â”‚   â”œâ”€â”€ stats.ts             # Statistics calculations
+â”‚   â”‚   â”œâ”€â”€ storage.ts           # localStorage wrapper
+â”‚   â”‚   â”œâ”€â”€ csv-export.ts        # CSV export logic
+â”‚   â”‚   â””â”€â”€ analytics.ts         # Analytics tracking
+â”‚   â”œâ”€â”€ types/                   # TypeScript definitions
+â”‚   â”‚   â””â”€â”€ index.ts             # Type definitions
+â”‚   â”œâ”€â”€ main.tsx                 # App entry point
+â”‚   â””â”€â”€ App.tsx                  # Router configuration
+â”‚
+â”œâ”€â”€ public/                      # Static assets (copied to build)
+â”‚   â”œâ”€â”€ api/                     # PHP backend (copied during build)
+â”‚   â”‚   â”œâ”€â”€ auth/                # Authentication endpoints
+â”‚   â”‚   â”‚   â”œâ”€â”€ login.php        # Login/register/check/logout
+â”‚   â”‚   â”‚   â””â”€â”€ password-reset.php # Password reset
+â”‚   â”‚   â”œâ”€â”€ rounds/              # Round management
+â”‚   â”‚   â”‚   â”œâ”€â”€ save.php         # Save round
+â”‚   â”‚   â”‚   â”œâ”€â”€ load.php         # Load rounds
+â”‚   â”‚   â”‚   â”œâ”€â”€ delete.php       # Delete round
+â”‚   â”‚   â”‚   â””â”€â”€ incomplete.php   # Get incomplete rounds
+â”‚   â”‚   â”œâ”€â”€ stats/               # Statistics
+â”‚   â”‚   â”‚   â””â”€â”€ load.php         # Load user stats
+â”‚   â”‚   â”œâ”€â”€ admin/               # Admin endpoints
+â”‚   â”‚   â”‚   â”œâ”€â”€ auth.php         # Admin authentication
+â”‚   â”‚   â”‚   â”œâ”€â”€ analytics.php    # Analytics data
+â”‚   â”‚   â”‚   â”œâ”€â”€ delete-user.php  # Delete user
+â”‚   â”‚   â”‚   â””â”€â”€ user-stats.php   # Individual user stats
+â”‚   â”‚   â””â”€â”€ common/              # Shared PHP utilities
+â”‚   â”‚       â”œâ”€â”€ session.php      # Session management
+â”‚   â”‚       â”œâ”€â”€ file-lock.php    # File locking
+â”‚   â”‚       â”œâ”€â”€ validation.php   # Input validation
+â”‚   â”‚       â”œâ”€â”€ logger.php       # Logging utilities
+â”‚   â”‚       â”œâ”€â”€ environment.php  # Environment detection
+â”‚   â”‚       â””â”€â”€ analytics-tracker.php # Analytics tracking
+â”‚   â”œâ”€â”€ admin/                   # Admin dashboard
+â”‚   â”‚   â”œâ”€â”€ index.html           # Admin UI (React from CDN)
+â”‚   â”‚   â”œâ”€â”€ admin-styles.css     # Admin styles
+â”‚   â”‚   â””â”€â”€ .htaccess            # Admin access control
+â”‚   â”œâ”€â”€ images/                  # Static images
+â”‚   â”‚   â””â”€â”€ karls_gir.png        # App logo
+â”‚   â”œâ”€â”€ icons/                   # PWA icons
+â”‚   â”œâ”€â”€ styles.css               # Global CSS (semantic variables)
+â”‚   â”œâ”€â”€ manifest.json            # PWA manifest
+â”‚   â”œâ”€â”€ service-worker.js        # Service worker
+â”‚   â”œâ”€â”€ .htaccess                # Apache configuration
+â”‚   â””â”€â”€ index.html               # HTML template (Vite injects scripts)
+â”‚
+â”œâ”€â”€ api/                         # Source API files (copied to public during build)
+â”œâ”€â”€ admin/                       # Source admin files (copied to public during build)
+â”œâ”€â”€ data/                        # User data (local dev only)
+â”‚   â””â”€â”€ {user_hash}/             # Per-user directories
+â”‚       â”œâ”€â”€ password.txt         # Hashed password
+â”‚       â”œâ”€â”€ email.txt            # User email
+â”‚       â”œâ”€â”€ rounds.json          # All rounds (complete + incomplete)
+â”‚       â”œâ”€â”€ current_round.json   # Optional sync state (legacy/unused by main UI)
+â”‚       â””â”€â”€ reset_token.json     # Password reset token
+â”‚
+â”œâ”€â”€ docs/                        # Documentation
+â”œâ”€â”€ pre-build.js                 # Pre-build script (version update)
+â”œâ”€â”€ build-deploy.js              # Post-build script (copy assets)
+â”œâ”€â”€ package.json                 # NPM dependencies
+â”œâ”€â”€ tsconfig.json                # TypeScript configuration
+â”œâ”€â”€ vite.config.ts               # Vite configuration
+â””â”€â”€ README.md                    # Main documentation
 ```
 
 ---
@@ -158,16 +158,16 @@ karlgolf.app/
 
 ```
 npm run build
-    ↓
-1. pre-build.js          → Updates version in service-worker.js
-    ↓
-2. tsc                   → TypeScript compilation (type checking)
-    ↓
-3. vite build            → Bundles React app to public/
-    ↓
-4. build-deploy.js       → Copies api/, admin/, static assets to public/
-    ↓
-5. Output: public/       → Ready for deployment
+    â†“
+1. pre-build.js          â†’ Updates version in service-worker.js
+    â†“
+2. tsc                   â†’ TypeScript compilation (type checking)
+    â†“
+3. vite build            â†’ Bundles React app to public/
+    â†“
+4. build-deploy.js       â†’ Copies api/, admin/, static assets to public/
+    â†“
+5. Output: public/       â†’ Ready for deployment
 ```
 
 ### Build Scripts
@@ -188,19 +188,19 @@ npm run build
 After build, `/public/` contains:
 ```
 public/
-├── index.html              # Main app entry
-├── assets/                 # Bundled JS/CSS (hashed filenames)
-│   ├── index-{hash}.js    # Main app bundle
-│   ├── vendor-{hash}.js   # Vendor libraries
-│   └── query-{hash}.js    # React Query
-├── api/                    # PHP backend
-├── admin/                  # Admin dashboard
-├── images/                 # Static images
-├── icons/                  # PWA icons
-├── styles.css              # Global CSS
-├── manifest.json           # PWA manifest
-├── service-worker.js       # Service worker
-└── .htaccess               # Apache config
+â”œâ”€â”€ index.html              # Main app entry
+â”œâ”€â”€ assets/                 # Bundled JS/CSS (hashed filenames)
+â”‚   â”œâ”€â”€ index-{hash}.js    # Main app bundle
+â”‚   â”œâ”€â”€ vendor-{hash}.js   # Vendor libraries
+â”‚   â””â”€â”€ query-{hash}.js    # React Query
+â”œâ”€â”€ api/                    # PHP backend
+â”œâ”€â”€ admin/                  # Admin dashboard
+â”œâ”€â”€ images/                 # Static images
+â”œâ”€â”€ icons/                  # PWA icons
+â”œâ”€â”€ styles.css              # Global CSS
+â”œâ”€â”€ manifest.json           # PWA manifest
+â”œâ”€â”€ service-worker.js       # Service worker
+â””â”€â”€ .htaccess               # Apache config
 ```
 
 ---
@@ -210,68 +210,68 @@ public/
 ### User Registration Flow
 
 ```
-User fills form → LoginPage.tsx
-    ↓
-handleRegister() → useAuth hook
-    ↓
-authAPI.register() → api/auth/login.php?action=register
-    ↓
+User fills form â†’ LoginPage.tsx
+    â†“
+handleRegister() â†’ useAuth hook
+    â†“
+authAPI.register() â†’ api/auth/login.php?action=register
+    â†“
 PHP validates email/password
-    ↓
+    â†“
 Creates /data/{hash}/ directory
-    ↓
+    â†“
 Saves password.txt (bcrypt hash)
-    ↓
+    â†“
 Saves email.txt
-    ↓
+    â†“
 Creates session ($_SESSION['user_email'], $_SESSION['user_hash'])
-    ↓
-Returns success → Frontend navigates to /track-round
+    â†“
+Returns success â†’ Frontend navigates to /track-round
 ```
 
 ### Round Tracking Flow (Registered User)
 
 ```
-User enters hole data → TrackRoundPage.tsx
-    ↓
-calculateScore() → Auto-calculates score
-    ↓
+User enters hole data â†’ TrackRoundPage.tsx
+    â†“
+calculateScore() â†’ Auto-calculates score
+    â†“
 Saves to local state (holes array)
-    ↓
-On "Save Hole" → roundsAPI.saveRound()
-    ↓
+    â†“
+On "Save Hole" â†’ roundsAPI.saveRound()
+    â†“
 api/rounds/save.php
-    ↓
+    â†“
 Validates session
-    ↓
+    â†“
 Loads existing rounds.json
-    ↓
+    â†“
 Auto-merges into matching incomplete round (same course) or appends new round
-    ↓
+    â†“
 Writes back to rounds.json (incomplete rounds remain in rounds.json)
-    ↓
+    â†“
 If user ends round, sets completed=true (so it will not appear as resumable)
-    ↓
-Returns success → Frontend updates UI
+    â†“
+Returns success â†’ Frontend updates UI
 ```
 
 ### Statistics Calculation Flow
 
 ```
-User visits dashboard → DashboardPage.tsx
-    ↓
-useQuery(['stats']) → api/stats/load.php
-    ↓
+User visits dashboard â†’ DashboardPage.tsx
+    â†“
+useQuery(['stats']) â†’ api/stats/load.php
+    â†“
 PHP loads rounds.json
-    ↓
+    â†“
 Calculates aggregate stats:
   - GIR percentage
   - Fairway percentage
   - Average putts
   - Scrambling percentage
   - Average score to par
-    ↓
-Returns JSON → Frontend displays stats
+    â†“
+Returns JSON â†’ Frontend displays stats
 ```
 
 ---
@@ -305,10 +305,10 @@ session_set_cookie_params([
 
 ### Password Reset Flow
 
-1. User requests reset → Email sent with 6-digit token
+1. User requests reset â†’ Email sent with 6-digit token
 2. Token stored in `/data/{hash}/reset_token.json` (1-hour expiry)
-3. User enters token → Validated against stored token
-4. New password saved → Token deleted
+3. User enters token â†’ Validated against stored token
+4. New password saved â†’ Token deleted
 
 ---
 
@@ -340,9 +340,9 @@ $action = $_GET['action'] ?? '';
 if ($action === 'example') {
     $auth = requireAuth();  // Exits if not logged in
     $userHash = $auth['userHash'];
-    
+
     // Business logic here
-    
+
     echo json_encode(['success' => true, 'data' => $result]);
     exit;
 }
@@ -442,19 +442,19 @@ if (!isset($_SESSION['admin_logged_in'])) {
 
 ```
 http://karlgolf.app.test/
-├── Frontend: Vite dev server (port 3000)
-├── Backend: Laragon PHP
-└── Data: C:\Users\...\karlgolf.app\data\
+â”œâ”€â”€ Frontend: Vite dev server (port 3000)
+â”œâ”€â”€ Backend: Laragon PHP
+â””â”€â”€ Data: C:\Users\...\karlgolf.app\data\
 ```
 
 ### Production (SiteGround)
 
 ```
 https://karlgolf.app/
-├── Frontend: /public_html/ (static files)
-├── Backend: /public_html/api/ (PHP)
-├── Admin: /public_html/admin/
-└── Data: /home/username/data/ (outside public_html)
+â”œâ”€â”€ Frontend: /public_html/ (static files)
+â”œâ”€â”€ Backend: /public_html/api/ (PHP)
+â”œâ”€â”€ Admin: /public_html/admin/
+â””â”€â”€ Data: /home/username/data/ (outside public_html)
 ```
 
 ### Environment Detection
@@ -464,7 +464,7 @@ https://karlgolf.app/
 ```php
 function isProduction() {
     $host = $_SERVER['HTTP_HOST'] ?? '';
-    return !in_array($host, ['localhost', '127.0.0.1']) 
+    return !in_array($host, ['localhost', '127.0.0.1'])
            && !str_ends_with($host, '.local')
            && !str_ends_with($host, '.test');
 }
@@ -490,6 +490,6 @@ function isProduction() {
 
 ---
 
-**For detailed deployment instructions, see [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md)**  
+**For detailed deployment instructions, see [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md)**
 **For development setup, see [DEVELOPMENT.md](DEVELOPMENT.md)**
 

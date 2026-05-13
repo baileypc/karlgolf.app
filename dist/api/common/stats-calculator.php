@@ -37,6 +37,10 @@ function calculateStats($holes) {
     $missedGirs = 0;
     $penalties = 0;
     $totalPenaltyStrokes = 0;
+    $holeOuts = 0;
+    $missedGirHoleOuts = 0;
+    $underParHoleOuts = 0;
+    $holeOutsByPar = ['par3' => 0, 'par4' => 0, 'par5' => 0];
     $puttsOnGIR = 0;
     $girHolesCount = 0;
     $allApproachesSum = 0;
@@ -111,6 +115,8 @@ function calculateStats($holes) {
         // Putts
         $putts = isset($h['putts']) ? (int)$h['putts'] : 0;
         $totalPutts += $putts;
+        $puttDistances = (isset($h['puttDistances']) && is_array($h['puttDistances'])) ? $h['puttDistances'] : [];
+        $isHoleOut = !empty($h['holedOut']) || ($putts === 0 && count($puttDistances) === 0);
         
         // GIR stats — must be strict === 'y' check; !empty() returns true for 'n' too
         if (($h['gir'] ?? '') === 'y') {
@@ -124,11 +130,29 @@ function calculateStats($holes) {
                 $scrambles++;
             }
         }
+
+        if ($isHoleOut) {
+            $holeOuts++;
+            if (($h['gir'] ?? '') !== 'y') {
+                $missedGirHoleOuts++;
+            }
+            if ($score > 0 && $par > 0 && $score < $par) {
+                $underParHoleOuts++;
+            }
+            if ($par == 3) {
+                $holeOutsByPar['par3']++;
+            } elseif ($par == 4) {
+                $holeOutsByPar['par4']++;
+            } elseif ($par == 5) {
+                $holeOutsByPar['par5']++;
+            }
+        }
         
         // Fairway stats (only for par 4 and par 5)
         if ($par != 3) {
             $eligibleFairways++;
-            if (isset($h['fairway']) && $h['fairway'] === 'y') {
+            $fairwayValue = $h['fairway'] ?? null;
+            if (in_array($fairwayValue, ['y', 'c', 'l', 'r'], true)) {
                 $fairwaysHit++;
             }
         }
@@ -223,6 +247,16 @@ function calculateStats($holes) {
         
         // GIR by approach lie
         $approachLie = $h['approachLie'] ?? null;
+        if (!$approachLie && $par == 5 && (($h['secondShotLie'] ?? null) === 'green')) {
+            $fairwayValue = $h['fairway'] ?? null;
+            if (in_array($fairwayValue, ['y', 'c', 'l', 'r'], true)) {
+                $approachLie = 'fairway';
+            } elseif ($fairwayValue === 'rough') {
+                $approachLie = 'rough';
+            } elseif ($fairwayValue === 'sand') {
+                $approachLie = 'sand';
+            }
+        }
         if ($approachLie) {
             $isGir = (($h['gir'] ?? '') === 'y');
             if ($approachLie === 'fairway') {
@@ -309,6 +343,9 @@ function calculateStats($holes) {
     $fairwayPct = $eligibleFairways > 0 ? round(($fairwaysHit / $eligibleFairways) * 100, 1) : 0;
     $puttsPerGIR = $girHolesCount > 0 ? round($puttsOnGIR / $girHolesCount, 2) : 0;
     $scramblingPct = $missedGirs > 0 ? round(($scrambles / $missedGirs) * 100, 1) : 0;
+    $holeOutPct = $totalHoles > 0 ? round(($holeOuts / $totalHoles) * 100, 1) : 0;
+    $missedGirHoleOutPct = $missedGirs > 0 ? round(($missedGirHoleOuts / $missedGirs) * 100, 1) : 0;
+    $holeOutsPer18 = $totalHoles > 0 ? round(($holeOuts / $totalHoles) * 18, 1) : 0;
     $avgPutts = $totalHoles > 0 ? round($totalPutts / $totalHoles, 2) : 0;
     $avgProximity = $allApproachesCount > 0 ? round($allApproachesSum / $allApproachesCount, 1) : 0;
     $avgProximityGIR = $girApproachesCount > 0 ? round($girApproachesSum / $girApproachesCount, 1) : 0;
@@ -338,6 +375,13 @@ function calculateStats($holes) {
         'scrambles' => $scrambles,
         'missedGirs' => $missedGirs,
         'scramblingPct' => $scramblingPct,
+        'holeOuts' => $holeOuts,
+        'missedGirHoleOuts' => $missedGirHoleOuts,
+        'underParHoleOuts' => $underParHoleOuts,
+        'holeOutPct' => $holeOutPct,
+        'missedGirHoleOutPct' => $missedGirHoleOutPct,
+        'holeOutsPer18' => $holeOutsPer18,
+        'holeOutsByPar' => $holeOutsByPar,
         'penalties' => $penalties,
         'totalPenaltyStrokes' => $totalPenaltyStrokes,
         'avgProximity' => $avgProximity,

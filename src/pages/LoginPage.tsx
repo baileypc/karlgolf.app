@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { storage } from '@/lib/storage';
 import { roundsAPI } from '@/lib/api';
+import { convertToAPIHole } from '@/lib/hole-conversion';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -87,22 +88,13 @@ export default function LoginPage() {
         try {
           const roundData = JSON.parse(guestRound);
           if (roundData.holes && roundData.holes.length > 0) {
-            // Convert localStorage holes to API format
-            const apiHoles = roundData.holes.map((hole: any) => ({
-              holeNumber: hole.holeNumber,
-              par: hole.par,
-              score: hole.score,
-              gir: hole.gir,
-              putts: hole.putts,
-              puttDistances: hole.puttDistances || [],
-              fairway: hole.fairway === 'na' ? null : hole.fairway === 'l' ? 'l' : hole.fairway === 'c' ? 'c' : hole.fairway === 'r' ? 'r' : null,
-              shotsToGreen: hole.shotsToGreen,
-              penalty: null,
-            }));
+            const apiHoles = roundData.holes.map(convertToAPIHole);
 
             // Save to new account
             await roundsAPI.saveRound({
+              roundId: roundData.roundId,
               courseName: roundData.courseName,
+              courseMetadata: roundData.courseMetadata || null,
               holes: apiHoles,
             });
           }

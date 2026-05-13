@@ -8,6 +8,9 @@ require_once __DIR__ . '/../common/session.php';
 require_once __DIR__ . '/../common/file-lock.php';
 require_once __DIR__ . '/../common/logger.php';
 require_once __DIR__ . '/../common/data-path.php';
+require_once __DIR__ . '/../common/rate-limiter.php';
+require_once __DIR__ . '/../common/csrf.php';
+require_once __DIR__ . '/../common/admin-auth.php';
 
 
 // Initialize session
@@ -30,47 +33,37 @@ $credentialsFile = $adminDir . '/admin_credentials.json';
 
 // Initialize admin credentials if they don't exist
 if (!file_exists($credentialsFile)) {
-    // Username: karl, Password: +1 867-5309 Jenny
-    $adminCredentials = [
-        'username' => 'karl',
-        'passwordHash' => password_hash('+1 867-5309 Jenny', PASSWORD_DEFAULT)
-    ];
-    writeJsonFile($credentialsFile, $adminCredentials);
+    $envUsername = getenv('KARLGOLF_ADMIN_USERNAME');
+    $envPassword = getenv('KARLGOLF_ADMIN_PASSWORD');
+
+    if ($envUsername && $envPassword) {
+        $adminCredentials = [
+            'username' => $envUsername,
+            'passwordHash' => password_hash($envPassword, PASSWORD_DEFAULT)
+        ];
+        writeJsonFile($credentialsFile, $adminCredentials);
+    }
 }
 
 // Check if admin is logged in
 if ($action === 'check') {
-    $isAdmin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
-
-    // Check session timeout (30 minutes of inactivity)
-    if ($isAdmin) {
-        $timeout = 30 * 60; // 30 minutes in seconds
-        $lastActivity = $_SESSION['admin_last_activity'] ?? 0;
-
-        if (time() - $lastActivity > $timeout) {
-            // Session expired
-            unset($_SESSION['admin_logged_in']);
-            unset($_SESSION['admin_username']);
-            unset($_SESSION['admin_last_activity']);
-            logInfo('Admin session expired due to inactivity');
-            $isAdmin = false;
-        } else {
-            // Update last activity time
-            $_SESSION['admin_last_activity'] = time();
-        }
-    }
+    $status = getAdminAuthStatus();
 
     echo json_encode([
-        'loggedIn' => $isAdmin,
-        'username' => $isAdmin ? ($_SESSION['admin_username'] ?? 'admin') : null
+        'success' => true,
+        'loggedIn' => $status['loggedIn'],
+        'username' => $status['username'],
+        'csrfToken' => $status['loggedIn'] ? getCsrfToken() : null
     ]);
     exit;
 }
 
 // Logout
 if ($action === 'logout') {
+    requireAdminAuth(true);
     unset($_SESSION['admin_logged_in']);
     unset($_SESSION['admin_username']);
+    unset($_SESSION['admin_last_activity']);
     session_destroy();
     logInfo('Admin logged out');
     echo json_encode(['success' => true]);
@@ -91,6 +84,17 @@ if ($action === 'login') {
         echo json_encode(['success' => false, 'message' => 'Username and password required']);
         exit;
     }
+
+    $rateLimit = checkRateLimit('admin-login', 5, 15);
+    if (!$rateLimit['allowed']) {
+        http_response_code(429);
+        echo json_encode([
+            'success' => false,
+            'message' => $rateLimit['message'],
+            'retryAfter' => $rateLimit['retryAfter']
+        ]);
+        exit;
+    }
     
     // Load admin credentials
     $credentials = readJsonFile($credentialsFile, null);
@@ -109,9 +113,10 @@ if ($action === 'login') {
 
         // Regenerate session ID for security
         session_regenerate_id(true);
+        $csrfToken = rotateCsrfToken();
 
         logInfo('Admin logged in', ['username' => $username]);
-        echo json_encode(['success' => true, 'message' => 'Login successful']);
+        echo json_encode(['success' => true, 'message' => 'Login successful', 'csrfToken' => $csrfToken]);
     } else {
         logWarning('Admin login attempt failed', ['username' => $username]);
         echo json_encode(['success' => false, 'message' => 'Invalid username or password']);

@@ -1,6 +1,6 @@
 # Karl's GIR - System Diagrams
 
-**Version:** 3.8.0  
+**Version:** 3.8.1
 **Last Updated:** December 2025
 
 This document contains visual diagrams of the Karl's GIR system architecture using Mermaid.
@@ -29,23 +29,23 @@ graph TB
         C[Service Worker]
         D[localStorage]
     end
-    
+
     subgraph "Backend (PHP)"
         E[API Endpoints]
         F[Session Management]
         G[File Operations]
     end
-    
+
     subgraph "Storage"
         H[JSON Files]
         I[User Data Directory]
     end
-    
+
     subgraph "Admin"
         J[Admin Dashboard]
         K[Admin API]
     end
-    
+
     A -->|HTTPS| B
     B -->|API Calls| E
     B -->|Guest Data| D
@@ -69,7 +69,7 @@ sequenceDiagram
     participant A as API (PHP)
     participant S as Session
     participant D as Data Files
-    
+
     U->>F: Enter email/password
     F->>A: POST /api/auth/login.php?action=register
     A->>A: Validate email format
@@ -155,7 +155,7 @@ graph TB
         A --> C[user_hash_2/]
         A --> D[user_hash_n/]
     end
-    
+
     subgraph "Per User Directory"
         B --> E[password.txt - bcrypt hash]
         B --> F[email.txt - user email]
@@ -164,7 +164,7 @@ graph TB
         B --> I[reset_token.json - password reset]
         B --> J[.lock - file lock]
     end
-    
+
     subgraph "rounds.json Structure"
         G --> K["[{
             courseName: string,
@@ -173,7 +173,7 @@ graph TB
             completed: boolean
         }]"]
     end
-    
+
     subgraph "Hole Structure"
         K --> L["{
             holeNumber: 1-18,
@@ -196,28 +196,28 @@ graph TB
 ```mermaid
 flowchart TD
     A[Client Request] --> B{Request Type}
-    
+
     B -->|GET| C[api/stats/load.php]
     B -->|POST| D[api/rounds/save.php]
     B -->|POST| E[api/auth/login.php]
-    
+
     C --> F[initSession]
     D --> F
     E --> F
-    
+
     F --> G[requireAuth or checkAuth]
-    
+
     G --> H{Authenticated?}
     H -->|No| I[Return 401 Unauthorized]
     H -->|Yes| J[Get userHash from session]
-    
+
     J --> K[acquireLock]
     K --> L[Read JSON file]
     L --> M[Process data]
     M --> N[Write JSON file]
     N --> O[releaseLock]
     O --> P[Return JSON response]
-    
+
     I --> Q[Client handles error]
     P --> R[Client updates UI]
 ```
@@ -234,19 +234,19 @@ graph TB
         C[Babel Standalone]
         D[jsPDF Library]
     end
-    
+
     subgraph "Admin API"
         E[admin/auth.php]
         F[admin/analytics.php]
         G[admin/delete-user.php]
         H[admin/user-stats.php]
     end
-    
+
     subgraph "Data Access"
         I[All User Directories]
         J[Analytics Aggregation]
     end
-    
+
     A --> B
     A --> C
     A --> D
@@ -254,15 +254,15 @@ graph TB
     A -->|Dashboard| F
     A -->|Delete User| G
     A -->|View Stats| H
-    
+
     E -->|Session| K[Admin Session]
     F -->|Read All| I
     G -->|Delete| I
     H -->|Read One| I
-    
+
     F --> J
     J -->|Metrics| L[DAU, WAU, Signups, etc.]
-    
+
     D -->|Generate| M[PDF Report]
 ```
 
@@ -273,26 +273,26 @@ graph TB
 ```mermaid
 flowchart TD
     A[User Opens App] --> B{Logged In?}
-    
+
     B -->|No - Guest| C[localStorage Only]
     B -->|Yes - Registered| D[Server Storage]
-    
+
     C --> E[Track Round]
     D --> E
-    
+
     E --> F[Enter Hole Data]
     F --> G{User Type?}
-    
+
     G -->|Guest| H[Save to localStorage]
     G -->|Registered| I[Save to Server API]
-    
+
     H --> J[Data persists on device only]
     I --> K[Data synced to server]
-    
+
     J --> L{Create Account?}
     L -->|Yes| M[Migrate localStorage to Server]
     L -->|No| N[Continue as Guest]
-    
+
     M --> K
 ```
 
@@ -303,24 +303,24 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[User Enters Hole Data] --> B{GIR?}
-    
+
     B -->|Yes| C[Score = par - 2 + putts + penalties]
     B -->|No| D[Score = 1 tee + shotsToGreen + putts + penalties]
-    
+
     C --> E{Validate Score}
     D --> E
-    
+
     E --> F{Score >= Par - 2?}
     F -->|Yes| G[Valid Score]
     F -->|No| H[Show Warning - Possible Error]
-    
+
     G --> I[Save Hole]
     H --> I
-    
+
     I --> J{User Ends Round?}
     J -->|Yes| K[Mark completed=true]
     J -->|No| L[Leave completed=false]
-    
+
     K --> M[Write rounds.json]
     L --> M
 ```
@@ -335,12 +335,12 @@ sequenceDiagram
     participant F as Frontend
     participant A as API
     participant S as PHP Session
-    
+
     Note over B,S: Initial Page Load
     B->>F: Load App
     F->>A: GET /api/auth/login.php?action=check
     A->>S: Check $_SESSION['user_email']
-    
+
     alt Session Exists
         S->>A: Return user data
         A->>F: {loggedIn: true, email: "..."}
@@ -350,7 +350,7 @@ sequenceDiagram
         A->>F: {loggedIn: false}
         F->>F: Set isLoggedIn = false
     end
-    
+
     Note over B,S: User Logs In
     B->>F: Submit login form
     F->>A: POST /api/auth/login.php?action=login
@@ -374,32 +374,32 @@ graph TB
         B[React App]
         C[Service Worker]
     end
-    
+
     subgraph "Cache Storage"
         D[App Shell Cache]
         E[API Cache]
         F[Image Cache]
     end
-    
+
     subgraph "Network"
         G[API Server]
         H[Static Assets]
     end
-    
+
     A -->|Interact| B
     B -->|Register| C
-    
+
     C -->|Cache First| D
     C -->|Network First| E
     C -->|Cache First| F
-    
+
     D -.->|Fallback| H
     E -.->|Fallback| G
-    
+
     B -->|Offline?| I{Network Available?}
     I -->|No| C
     I -->|Yes| G
-    
+
     C -->|Serve from Cache| B
 ```
 
@@ -414,32 +414,32 @@ graph TB
         B[Laragon PHP]
         C[Local Data Directory]
     end
-    
+
     subgraph "Build Process"
         D[npm run build]
         E[/public/ folder]
     end
-    
+
     subgraph "Production (SiteGround)"
         F[/public_html/]
         G[Apache + PHP]
         H[/home/username/data/]
     end
-    
+
     A -->|Proxy /api/*| B
     B -->|Read/Write| C
-    
+
     D --> E
     E -->|FTP Upload| F
-    
+
     F --> G
     G -->|Read/Write| H
-    
+
     I[User Browser] -->|HTTPS| F
 ```
 
 ---
 
-**For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md)**  
+**For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md)**
 **For development setup, see [DEVELOPMENT.md](DEVELOPMENT.md)**
 

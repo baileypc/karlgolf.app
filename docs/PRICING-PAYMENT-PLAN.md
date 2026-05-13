@@ -1,18 +1,18 @@
 # Karl Golf GIR - Pricing & Payment System Plan
 
-**Version:** 3.8.0  
-**Status:** 📋 Planning Phase  
+**Version:** 3.8.1
+**Status:** ðŸ“‹ Planning Phase
 **Last Updated:** November 2025
 
 ---
 
-## 🎯 Overview
+## ðŸŽ¯ Overview
 
 This document outlines the implementation plan for adding a subscription-based payment system to Karl Golf GIR. The system will require users to pay $10/year for unlimited access while allowing a free trial of one complete 18-hole round.
 
 ---
 
-## 💰 Pricing Model
+## ðŸ’° Pricing Model
 
 ### Single Tier Pricing
 - **Price:** $10.00 USD per year
@@ -31,15 +31,15 @@ This document outlines the implementation plan for adding a subscription-based p
 
 ---
 
-## 🔐 User Flow & Access Control
+## ðŸ” User Flow & Access Control
 
 ### Flow 1: New Guest User (No Account)
 ```
-1. User opens app → Home page
-2. User clicks "Track Round" → Course selection
-3. User tracks 1st round (1-18 holes) → ✅ Allowed
-4. User completes 1st round → Round saved to localStorage
-5. User tries to start 2nd round → 🚫 BLOCKED
+1. User opens app â†’ Home page
+2. User clicks "Track Round" â†’ Course selection
+3. User tracks 1st round (1-18 holes) â†’ âœ… Allowed
+4. User completes 1st round â†’ Round saved to localStorage
+5. User tries to start 2nd round â†’ ðŸš« BLOCKED
 6. Paywall modal appears:
    - "Create account & subscribe ($10/year) to continue"
    - "Sign In" (if they already have account)
@@ -54,7 +54,7 @@ This document outlines the implementation plan for adding a subscription-based p
    - Payment required checkbox (checked, disabled)
 3. User enters email/password
 4. Payment gateway opens (Stripe Checkout)
-5. User completes payment → Account created
+5. User completes payment â†’ Account created
 6. User redirected to dashboard with full access
 7. Welcome email sent with receipt
 ```
@@ -65,9 +65,9 @@ This document outlines the implementation plan for adding a subscription-based p
 2. Login form appears
 3. User enters credentials
 4. Backend checks payment status:
-   - If paid → Full access granted
-   - If unpaid → Redirect to payment page
-   - If admin override → Full access granted
+   - If paid â†’ Full access granted
+   - If unpaid â†’ Redirect to payment page
+   - If admin override â†’ Full access granted
 ```
 
 ### Flow 4: Admin Override
@@ -82,7 +82,7 @@ This document outlines the implementation plan for adding a subscription-based p
 
 ---
 
-## 📊 Database Schema Changes
+## ðŸ“Š Database Schema Changes
 
 ### New User Files (per user directory)
 
@@ -127,13 +127,13 @@ This document outlines the implementation plan for adding a subscription-based p
 ```
 /data/
   /{user_hash}/
-    ├── password.txt              (existing)
-    ├── email.txt                 (existing)
-    ├── rounds.json               (existing - updated)
-    ├── current_round.json (optional sync state)        (existing)
-    ├── reset_token.json          (existing)
-    ├── subscription.json         (NEW)
-    └── payment_history.json      (NEW)
+    â”œâ”€â”€ password.txt              (existing)
+    â”œâ”€â”€ email.txt                 (existing)
+    â”œâ”€â”€ rounds.json               (existing - updated)
+    â”œâ”€â”€ current_round.json (optional sync state)        (existing)
+    â”œâ”€â”€ reset_token.json          (existing)
+    â”œâ”€â”€ subscription.json         (NEW)
+    â””â”€â”€ payment_history.json      (NEW)
 ```
 
 #### `payment_history.json`
@@ -154,7 +154,7 @@ This document outlines the implementation plan for adding a subscription-based p
 
 ---
 
-## 🛠️ Technical Implementation
+## ðŸ› ï¸ Technical Implementation
 
 ### Phase 1: Backend Infrastructure
 
@@ -286,11 +286,11 @@ This document outlines the implementation plan for adding a subscription-based p
 - Payment method
 
 **User Actions Menu**
-- ✅ Grant Access (admin override)
-- ❌ Revoke Access
-- 📧 Send Payment Reminder
-- 🔍 View Payment History
-- 🗑️ Delete User (existing)
+- âœ… Grant Access (admin override)
+- âŒ Revoke Access
+- ðŸ“§ Send Payment Reminder
+- ðŸ” View Payment History
+- ðŸ—‘ï¸ Delete User (existing)
 
 **Subscription Filters**
 - All Users
@@ -316,7 +316,7 @@ This document outlines the implementation plan for adding a subscription-based p
 
 ---
 
-## 💳 Payment Integration (Stripe)
+## ðŸ’³ Payment Integration (Stripe)
 
 ### Stripe Setup Requirements
 
@@ -351,7 +351,7 @@ STRIPE_ANNUAL_PRICE_ID=price_xxxxx
 
 ---
 
-## 🔒 Security Considerations
+## ðŸ”’ Security Considerations
 
 1. **Webhook Signature Verification**
    - Always verify Stripe webhook signatures
@@ -374,7 +374,7 @@ STRIPE_ANNUAL_PRICE_ID=price_xxxxx
 
 ---
 
-## 📧 Email Notifications
+## ðŸ“§ Email Notifications
 
 ### New Email Templates
 
@@ -406,43 +406,43 @@ STRIPE_ANNUAL_PRICE_ID=price_xxxxx
 
 ---
 
-## 🧪 Testing Plan
+## ðŸ§ª Testing Plan
 
 ### Test Scenarios
 
 1. **Guest User Trial**
-   - ✅ Track 1st round (allowed)
-   - ✅ Complete 1st round (saved)
-   - ✅ Try 2nd round (blocked)
-   - ✅ Paywall appears
+   - âœ… Track 1st round (allowed)
+   - âœ… Complete 1st round (saved)
+   - âœ… Try 2nd round (blocked)
+   - âœ… Paywall appears
 
 2. **Registration & Payment**
-   - ✅ Register with payment
-   - ✅ Payment succeeds → Account created
-   - ✅ Payment fails → Error shown
-   - ✅ Payment cancelled → Return to registration
+   - âœ… Register with payment
+   - âœ… Payment succeeds â†’ Account created
+   - âœ… Payment fails â†’ Error shown
+   - âœ… Payment cancelled â†’ Return to registration
 
 3. **Subscription Management**
-   - ✅ View subscription status
-   - ✅ Update payment method
-   - ✅ Cancel subscription
-   - ✅ Reactivate subscription
+   - âœ… View subscription status
+   - âœ… Update payment method
+   - âœ… Cancel subscription
+   - âœ… Reactivate subscription
 
 4. **Admin Override**
-   - ✅ Grant access to user
-   - ✅ User gets unlimited access
-   - ✅ Revoke access
-   - ✅ User blocked again
+   - âœ… Grant access to user
+   - âœ… User gets unlimited access
+   - âœ… Revoke access
+   - âœ… User blocked again
 
 5. **Edge Cases**
-   - ✅ Expired subscription → Block access
-   - ✅ Failed renewal → Grace period
-   - ✅ Multiple devices → Sync status
-   - ✅ Offline mode → Check on reconnect
+   - âœ… Expired subscription â†’ Block access
+   - âœ… Failed renewal â†’ Grace period
+   - âœ… Multiple devices â†’ Sync status
+   - âœ… Offline mode â†’ Check on reconnect
 
 ---
 
-## 📋 Implementation Checklist
+## ðŸ“‹ Implementation Checklist
 
 ### Backend
 - [ ] Create subscription.json schema
@@ -516,7 +516,7 @@ STRIPE_ANNUAL_PRICE_ID=price_xxxxx
 
 ---
 
-## 🚀 Deployment Strategy
+## ðŸš€ Deployment Strategy
 
 ### Phase 1: Development (v3.8.0-dev)
 - Build all features in test mode
@@ -538,7 +538,7 @@ STRIPE_ANNUAL_PRICE_ID=price_xxxxx
 
 ---
 
-## 💡 Future Enhancements
+## ðŸ’¡ Future Enhancements
 
 1. **Multiple Plans**
    - Monthly option ($1.99/month)
@@ -561,7 +561,7 @@ STRIPE_ANNUAL_PRICE_ID=price_xxxxx
 
 ---
 
-## ❓ Open Questions
+## â“ Open Questions
 
 1. **Grandfathering Existing Users?**
    - Should current users get free access?
@@ -585,7 +585,7 @@ STRIPE_ANNUAL_PRICE_ID=price_xxxxx
 
 ---
 
-## 📞 Support & Contact
+## ðŸ“ž Support & Contact
 
 For questions about this implementation plan, contact:
 - **Developer:** baileypc@gmail.com

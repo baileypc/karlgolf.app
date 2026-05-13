@@ -1,6 +1,5 @@
 # Node
 node_modules/
-package-lock.json
 
 # Build artifacts
 tailwind.input.css
@@ -16,6 +15,7 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+php_errorlog
 
 # User data (keep out of version control)
 data/*
@@ -28,3 +28,4 @@ data/*
 
 # Ignore zip files
 ._docs/*.zip
+*.zip

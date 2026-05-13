@@ -1,5 +1,34 @@
 # Version History
 
+## Version 3.8.1 - Production Stability Patch (May 2026)
+
+### Bug Fixes
+
+**Stats accuracy and export parity:**
+- Fairway percentage now treats normalized center/left/right fairway values as fairway hits across PHP, TypeScript, admin stats, and exports.
+- Added TypeScript/export parity for `puttsPerGIR` and `totalPenaltyStrokes`.
+- Par 5 green-in-2 holes are now attributed correctly in GIR-by-lie stats.
+- Scrambling calculations now guard against incomplete score/par data consistently.
+
+**Data validation and persistence:**
+- Shared hole conversion normalizes local round input before API save.
+- Server validation now sanitizes fairway, GIR, lie, penalty, and numeric hole fields more defensively.
+- JSON reads/writes now use safer file locking with backup/recovery behavior.
+
+**Auth, admin, and API stability:**
+- Added CSRF protection for cookie-authenticated state-changing requests.
+- Hardened admin API authentication and admin delete/logout CSRF handling.
+- Fixed local `.test` CORS handling for Laragon testing.
+- Moved public analytics tracking to `/api/track.php`.
+- Fixed admin users and user-stats endpoints returning PHP warning HTML before JSON.
+
+**Release readiness:**
+- Added stats regression tests covering fairway normalization, putts per GIR, penalty strokes, par 5 green-in-2 GIR-by-lie behavior, and validation normalization.
+- Updated production dependency lockfile; `npm audit --omit=dev` reports zero vulnerabilities.
+- Deployment output remains `/dist`.
+
+---
+
 ## Version 3.8.0 - Stats Accuracy Audit & Data Pipeline Fixes (April 2026)
 
 ### 🔧 Bug Fixes
@@ -282,6 +311,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.8.0 (Production)
+**Current Version:** 3.8.1 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

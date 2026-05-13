@@ -12,6 +12,7 @@ require_once __DIR__ . '/../common/validation.php';
 require_once __DIR__ . '/../common/logger.php';
 require_once __DIR__ . '/../common/analytics-tracker.php';
 require_once __DIR__ . '/../common/rate-limiter.php';
+require_once __DIR__ . '/../common/csrf.php';
 require_once __DIR__ . '/welcome-email.php';
 
 // Initialize session
@@ -28,23 +29,50 @@ $data = json_decode($json, true);
 
 // Get action from GET, POST, or JSON data
 $action = $_GET['action'] ?? ($_POST['action'] ?? ($data['action'] ?? ''));
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+function requirePostMethod() {
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+        exit;
+    }
+}
 
 // Check if user is logged in
 if ($action === 'check') {
     $auth = checkAuth();
-    // Debug logging
-    error_log('🔍 Auth Check - Session ID: ' . session_id());
-    error_log('🔍 Auth Check - Session data: ' . json_encode($_SESSION));
-    error_log('🔍 Auth Check - Result: ' . json_encode($auth));
     echo json_encode([
+        'success' => true,
         'loggedIn' => $auth['loggedIn'],
-        'email' => $auth['userEmail']
+        'email' => $auth['userEmail'],
+        'csrfToken' => $auth['loggedIn'] && (($auth['authMethod'] ?? '') === 'session') ? getCsrfToken() : null
+    ]);
+    exit;
+}
+
+if ($action === 'csrf') {
+    echo json_encode([
+        'success' => true,
+        'csrfToken' => getCsrfToken()
     ]);
     exit;
 }
 
 // Logout
 if ($action === 'logout') {
+    requirePostMethod();
+    $auth = checkAuth();
+    requireCsrfForSessionAuth($auth);
+
+    if (($auth['authMethod'] ?? '') === 'token') {
+        require_once __DIR__ . '/../common/auth-token.php';
+        $token = getBearerToken();
+        if ($token) {
+            invalidateAuthToken($token);
+        }
+    }
+
     session_destroy();
     logInfo('User logged out');
     echo json_encode(['success' => true]);
@@ -53,8 +81,10 @@ if ($action === 'logout') {
 
 // Reset Dashboard (delete all rounds)
 if ($action === 'reset-dashboard') {
+    requirePostMethod();
     require_once __DIR__ . '/../common/data-path.php';
     $auth = requireAuth();
+    requireCsrfForSessionAuth($auth);
     $userHash = $auth['userHash'];
     $dataDir = getDataDirectory();
     $userDir = $dataDir . '/' . $userHash;
@@ -205,6 +235,12 @@ if ($action === 'register') {
     // Create session
     $_SESSION['user_email'] = $email;
     $_SESSION['user_hash'] = $emailHash;
+    session_regenerate_id(true);
+    $csrfToken = rotateCsrfToken();
+
+    // Generate auth token for native app support
+    require_once __DIR__ . '/../common/auth-token.php';
+    $authToken = generateAuthToken($emailHash);
     
     // Track signup for analytics (pass email so admin can see it)
     trackSignup($emailHash, $email);
@@ -227,7 +263,13 @@ if ($action === 'register') {
         'passwordFileExists' => file_exists($passwordFile),
         'roundsFileExists' => file_exists($userDir . '/rounds.json')
     ]);
-    echo json_encode(['success' => true, 'message' => 'Account created successfully']);
+    echo json_encode([
+        'success' => true,
+        'message' => 'Account created successfully',
+        'token' => $authToken,
+        'userHash' => $emailHash,
+        'csrfToken' => $csrfToken
+    ]);
     exit;
 }
 
@@ -264,21 +306,19 @@ if ($action === 'login') {
 
     // Regenerate session ID for security after login
     session_regenerate_id(true);
+    $csrfToken = rotateCsrfToken();
     
     // Generate auth token for native app support
     require_once __DIR__ . '/../common/auth-token.php';
     $authToken = generateAuthToken($emailHash);
-
-    // Debug logging
-    error_log('🔍 Login Success - Session ID: ' . session_id());
-    error_log('🔍 Login Success - Session data: ' . json_encode($_SESSION));
 
     logInfo('User logged in', ['email' => $email]);
     echo json_encode([
         'success' => true, 
         'message' => 'Login successful',
         'token' => $authToken,
-        'userHash' => $emailHash
+        'userHash' => $emailHash,
+        'csrfToken' => $csrfToken
     ]);
     exit;
 }
@@ -409,8 +449,10 @@ if ($action === 'reset-password') {
 
 // Delete Account
 if ($action === 'delete-account') {
+    requirePostMethod();
     // Require authentication
     $auth = requireAuth();
+    requireCsrfForSessionAuth($auth);
     $userHash = $auth['userHash'];
     $userEmail = $auth['userEmail'];
 

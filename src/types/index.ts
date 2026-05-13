@@ -8,6 +8,7 @@ export interface Hole {
   gir: 'y' | 'n';
   putts: number;
   puttDistances: number[];
+  holedOut?: boolean;
   fairway: 'y' | 'n' | null; // null for par 3s
   teeShotResult?: 'ob' | 'lost' | 'water' | 'left' | 'right' | 'other' | '';
   shotsToGreen?: number;
@@ -40,15 +41,22 @@ export interface RoundStats {
   toPar: number;
   girsHit: number;
   girPercentage: number;
-  totalGirs: number;
   fairwaysHit: number;
   eligibleFairways: number;
   fairwayPercentage: number;
   totalPutts: number;
   avgPutts: number;
+  puttsPerGIR?: number;
   scrambling: number;
   scramblingPercentage: string | number;
+  missedGirs?: number;
   penalties?: number;
+  holeOuts?: number;
+  missedGirHoleOuts?: number;
+  underParHoleOuts?: number;
+  holeOutPct?: number;
+  missedGirHoleOutPct?: number;
+  holeOutsPer18?: number;
   totalPenaltyStrokes?: number;
   avgProximity?: number;
   avgProximityGIR?: number;
@@ -116,6 +124,9 @@ export interface User {
 export interface AuthResponse {
   success: boolean;
   message: string;
+  csrfToken?: string | null;
+  token?: string;
+  userHash?: string;
 }
 
 export interface RoundSaveResponse {

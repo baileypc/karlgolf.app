@@ -1,40 +1,39 @@
 # Karl Golf GIR - Golf Tracking PWA
 
-**Version:** 3.8.0 (Production)
-**Status:** ✅ **LIVE IN PRODUCTION**
+**Version:** 3.8.1 (Production)
+**Status:** Production ready
 **Domain:** [https://karlgolf.app](https://karlgolf.app)
 
 A Progressive Web App for tracking golf performance with college coach metrics. Built for high school and college golf students, and serious recreational golfers seeking data-driven improvement.
 
 ---
 
-## 🎉 Version 3.8.0 - Current Release
+## Version 3.8.1 - Current Release
 
-**Deployed:** March 2026
-**Status:** ✅ Fully operational in production
+**Release type:** Production patch
+**Status:** Ready for deployment
 
-### What's New in v3.8.0
-- ✅ **Hazard Tee-Shot Penalty Flow** - Par 4/5: selecting Hazard in Fairway now immediately shows a Tee Shot Penalty picker (+1/+2/+3)
-- ✅ **GIR Auto-Deny Logic** - Par 4 + any tee penalty, Par 5 + ≥+2 penalty automatically denies GIR per strict PGA definition
-- 🐛 **Stroke Counter Fix** - Live stroke counter now reflects tee penalties immediately
-- 🐛 **Shots to Green Min** - Minimum drops to 1 after a tee penalty (player drops and plays from there)
-- 🎨 **Par Label** - Renamed "Over/Under" label to "Par" in Current Round Stats card
-- 🧹 **Redundant E Removed** - Removed duplicate Even indicator next to Course Par buttons
-
-### Previous Release (v3.8.0)
-- 🐛 **Completed Flag Fix** - Fixed rounds not being marked as complete due to validation stripping the `completed` field
-- 🐛 **Dashboard Stats Display** - Fixed Dashboard not displaying stats (API response parsing issue)
-- 🔧 **TypeScript Types** - Updated `loadStats()` return type to match actual API response
+### What's New in 3.8.1
+- **Stats accuracy hardening** - Fairway, GIR-by-lie, putts-per-GIR, penalty strokes, and TypeScript/PHP stat parity were tightened.
+- **Data normalization** - Local fairway values such as center/left/right are normalized before server stats and exports are calculated.
+- **Security hardening** - Added CSRF protection for cookie-authenticated state-changing requests and hardened admin API authentication.
+- **Admin stability** - Fixed admin users/user-stats JSON responses so PHP warnings cannot break the dashboard.
+- **File storage resilience** - Improved JSON file locking, backup, and recovery behavior for file-backed data.
+- **Regression coverage** - Added a PHP regression test suite for key stats-calculation cases.
+- **Dependency audit** - Updated the lockfile so production dependency audit reports zero vulnerabilities.
 
 ### Previous Release Highlights
-- ✅ **GPS Course Finder** - Find nearby golf courses using your device's GPS location
-- ✅ **Course Search** - Search for courses within 25 miles of your location
-- ✅ **Admin Dashboard** - Comprehensive analytics and user management
-- ✅ **PDF Reports** - Marketing-ready analytics reports with charts
+- **Hazard Tee-Shot Penalty Flow** - Par 4/5 hazard selection shows a tee-shot penalty picker.
+- **GIR Auto-Deny Logic** - Tee penalties deny GIR according to the app's strict scoring rules.
+- **Dashboard Stats Display** - Fixed dashboard stats API response parsing.
+
+- **GPS Course Finder** - Find nearby golf courses using device GPS.
+- **Admin Dashboard** - Analytics and user management.
+- **PDF Reports** - Marketing-ready analytics reports with charts.
 
 ---
 
-## 🎯 Features
+## Features
 
 ### Core Functionality
 - **Auto-Calculated Scores** - Calculates based on your game situation (par, GIR, putts, penalties)
@@ -67,7 +66,7 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 
 ---
 
-## 📱 How to Use
+## How to Use
 
 ### Tracking a Round
 
@@ -92,7 +91,7 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### For Users
 1. Visit [karlgolf.app](https://karlgolf.app)
@@ -108,7 +107,7 @@ npm install
 # Development server (hot reload)
 npm run dev
 
-# Sync version numbers in all markdown files
+# Sync current version references in markdown files
 npm run sync-version
 
 # Production build (automatically syncs versions)
@@ -118,15 +117,11 @@ npm run build
 npm run preview
 ```
 
-**Note:** The build process automatically syncs version numbers from `package.json` to all markdown files. You can also run `npm run sync-version` manually to update versions without building.
-
-### Recent updates (no version change)
-- UI and dashboard/track-round changes backed up in repo.
-- PRD added for upcoming features: **Round notes** (per-round notes on finished rounds) and **Exclude from stats** (keep round in history but omit from dashboard stats). See `docs/PRD-ROUND-NOTES-AND-EXCLUDE-STATS.md` when present.
+**Note:** The build process automatically syncs current version references from `package.json` and prepares the deployment package in `/dist`.
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 All detailed documentation is in the **`/docs`** folder:
 
@@ -145,21 +140,20 @@ All detailed documentation is in the **`/docs`** folder:
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-- **Frontend:** React 18, TypeScript, Vite
+- **Frontend:** React 19, TypeScript, Vite
 - **Backend:** PHP 8.x, JSON file storage
 - **PWA:** Service Worker, Web App Manifest
 - **State Management:** TanStack Query (React Query)
-- **Routing:** React Router v6
+- **Routing:** React Router 7
 - **Deployment:** SiteGround, SSL required
 
 ---
 
-## 🔒 Security
+## Security
 
-**Security Rating:** 🟢🟢 EXCELLENT (95/100)  
-**Status:** Production Ready ✅
+**Status:** Production ready
 
 ### Security Features
 - Content Security Policy (CSP) protection
@@ -174,7 +168,7 @@ See **[Security Assessment](docs/SECURITY-ASSESSMENT.md)** for complete analysis
 
 ---
 
-## 📊 Statistics Tracked
+## Statistics Tracked
 
 ### Scoring
 - Total score, to par
@@ -202,22 +196,22 @@ See **[Security Assessment](docs/SECURITY-ASSESSMENT.md)** for complete analysis
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 ### Production Deployment
 
 1. **Build:** `npm run build`
-2. **Upload:** All files from `/public/` to production `/public_html/`
+2. **Upload:** All files from `/dist/` to production `/public_html/`
 3. **Create:** `/data/` directory outside public_html (755 permissions)
 4. **Test:** `https://karlgolf.app`
 
-**Note:** Build output goes to `/public/` folder (not `/dist/`). The build process automatically copies all necessary files including API, admin dashboard, and static assets.
+**Note:** Build output goes to `/dist`. The build process automatically copies all necessary files including API, admin dashboard, and static assets.
 
 See **[Architecture Documentation](docs/ARCHITECTURE.md)** for complete system overview.
 
 ---
 
-## 🔮 Version 4.0.0 - Future Features
+## Version 4.0.0 - Future Features
 
 ### Planned Enhancements
 - **Course Selection** - Pre-populated US golf course database
@@ -231,7 +225,7 @@ See **[TODOs](docs/TODOS.md)** for complete list of future features.
 
 ---
 
-## 📋 Known Limitations
+## Known Limitations
 
 ### Not Currently Implemented
 - Tee selection (forward/middle/back)
@@ -245,7 +239,7 @@ See **[TODOs](docs/TODOS.md)** for complete list of future features.
 
 ---
 
-## 🎯 Created For
+## Created For
 
 **Karl** - to help improve his golf game through data-driven insights.
 
@@ -255,4 +249,4 @@ See **[TODOs](docs/TODOS.md)** for complete list of future features.
 **Website:** [cloudvirtue.com](https://cloudvirtue.com)
 **Repository:** Private
 **License:** Proprietary
-**Version:** 3.8.0 (Production)
+**Version:** 3.8.1 (Production)

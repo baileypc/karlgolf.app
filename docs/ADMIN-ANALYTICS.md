@@ -52,7 +52,7 @@
   - Requires admin authentication
 
 **Tracking (called from main app):**
-- `POST /api/admin/track.php` - Track events from main app
+- `POST /api/track.php` - Track events from main app
 
 ### Tracking Functions (PHP Backend)
 

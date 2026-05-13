@@ -4,9 +4,14 @@ import { Capacitor, CapacitorHttp } from '@capacitor/core';
 // Production API URL for native apps
 const PROD_API_URL = 'https://karlgolf.app/api';
 const AUTH_TOKEN_KEY = 'karl_golf_auth_token';
+const CSRF_TOKEN_KEY = 'karl_golf_csrf_token';
 
-// Simple token storage using localStorage (works in both PWA and native WebView)
+// Bearer tokens are only used by native builds. Browser/PWA auth stays cookie-only.
 function getStoredToken(): string | null {
+  if (!Capacitor.isNativePlatform()) {
+    return null;
+  }
+
   try {
     return localStorage.getItem(AUTH_TOKEN_KEY);
   } catch {
@@ -15,9 +20,12 @@ function getStoredToken(): string | null {
 }
 
 function storeToken(token: string): void {
+  if (!Capacitor.isNativePlatform()) {
+    return;
+  }
+
   try {
     localStorage.setItem(AUTH_TOKEN_KEY, token);
-    console.log('[API] Token stored');
   } catch (e) {
     console.error('[API] Failed to store token:', e);
   }
@@ -26,9 +34,40 @@ function storeToken(token: string): void {
 function clearToken(): void {
   try {
     localStorage.removeItem(AUTH_TOKEN_KEY);
-    console.log('[API] Token cleared');
   } catch (e) {
     console.error('[API] Failed to clear token:', e);
+  }
+}
+
+function getStoredCsrfToken(): string | null {
+  if (Capacitor.isNativePlatform()) {
+    return null;
+  }
+
+  try {
+    return sessionStorage.getItem(CSRF_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function storeCsrfToken(token?: string | null): void {
+  if (Capacitor.isNativePlatform() || !token) {
+    return;
+  }
+
+  try {
+    sessionStorage.setItem(CSRF_TOKEN_KEY, token);
+  } catch {
+    // CSRF will be refetched by the next auth check if sessionStorage is unavailable.
+  }
+}
+
+function clearCsrfToken(): void {
+  try {
+    sessionStorage.removeItem(CSRF_TOKEN_KEY);
+  } catch {
+    // Ignore.
   }
 }
 
@@ -54,8 +93,6 @@ async function nativeRequest<T>(
   // Get stored auth token
   const token = getStoredToken();
 
-  console.log('[API Native] Request:', method, url, token ? '(with token)' : '(no token)');
-
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -74,8 +111,6 @@ async function nativeRequest<T>(
       data: options.body ? JSON.parse(options.body as string) : undefined,
     });
 
-    console.log('[API Native] Response status:', response.status);
-
     const data = response.data;
 
     if (response.status >= 400 || !data.success) {
@@ -88,8 +123,6 @@ async function nativeRequest<T>(
 
     return data as T;
   } catch (error) {
-    console.error('[API Native] Error:', error);
-
     if (error instanceof APIError) {
       throw error;
     }
@@ -104,20 +137,28 @@ async function nativeRequest<T>(
 // Browser/PWA HTTP request using fetch
 async function browserRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryingAfterCsrfRefresh = false
 ): Promise<T> {
   const url = `./api/${endpoint}`;
+  const method = (options.method || 'GET').toUpperCase();
+  const csrfToken = getStoredCsrfToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    ...(options.headers as Record<string, string> | undefined),
+  };
+
+  if (csrfToken && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    headers['X-CSRF-Token'] = csrfToken;
+  }
 
   const config: RequestInit = {
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      ...options.headers,
-    },
     ...options,
+    headers,
   };
 
   try {
@@ -130,6 +171,21 @@ async function browserRequest<T>(
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
       throw new APIError('Invalid response from server', response.status);
+    }
+
+    if (
+      data.errorCode === 'CSRF_TOKEN_INVALID' &&
+      !retryingAfterCsrfRefresh &&
+      ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+    ) {
+      const refreshed = await refreshCsrfToken();
+      if (refreshed) {
+        return browserRequest<T>(endpoint, options, true);
+      }
+    }
+
+    if (data.csrfToken) {
+      storeCsrfToken(data.csrfToken);
     }
 
     if (!response.ok || !data.success) {
@@ -151,6 +207,30 @@ async function browserRequest<T>(
       'NETWORK_ERROR'
     );
   }
+}
+
+async function refreshCsrfToken(): Promise<boolean> {
+  if (Capacitor.isNativePlatform()) {
+    return false;
+  }
+
+  try {
+    const response = await fetch('./api/auth/login.php?action=csrf', {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+      },
+    });
+    const data = await response.json();
+    if (data?.success && data.csrfToken) {
+      storeCsrfToken(data.csrfToken);
+      return true;
+    }
+  } catch {
+    // Caller will surface the original API error.
+  }
+
+  return false;
 }
 
 // Unified request function - uses native HTTP for apps, fetch for browser
@@ -193,6 +273,11 @@ export const authAPI = {
       credentials: 'include',
     });
     const data = await response.json();
+    if (data.csrfToken) {
+      storeCsrfToken(data.csrfToken);
+    } else if (!data.loggedIn) {
+      clearCsrfToken();
+    }
     return {
       success: true,
       isLoggedIn: data.loggedIn || false,
@@ -205,10 +290,10 @@ export const authAPI = {
       body: JSON.stringify({ email, password }),
     });
 
-    // Store token for native app
-    if (response.token) {
+    if (response.token && Capacitor.isNativePlatform()) {
       storeToken(response.token);
     }
+    storeCsrfToken(response.csrfToken);
 
     return response;
   },
@@ -219,21 +304,23 @@ export const authAPI = {
       body: JSON.stringify({ email, password }),
     });
 
-    // Store token for native app
-    if (response.token) {
+    if (response.token && Capacitor.isNativePlatform()) {
       storeToken(response.token);
     }
+    storeCsrfToken(response.csrfToken);
 
     return response;
   },
 
   async logout(): Promise<AuthResponse> {
-    // Clear stored token first
-    clearToken();
-
-    return request('auth/login.php?action=logout', {
-      method: 'POST',
-    });
+    try {
+      return await request<AuthResponse>('auth/login.php?action=logout', {
+        method: 'POST',
+      });
+    } finally {
+      clearToken();
+      clearCsrfToken();
+    }
   },
 
   async forgotPassword(email: string): Promise<AuthResponse> {
@@ -299,7 +386,7 @@ export const roundsAPI = {
     success: boolean;
     totalRounds: number;
     groups: any[];
-    cumulative: any;
+    cumulative: any | null;
     trends: any[];
   }> {
     return request('stats/load.php');
@@ -316,10 +403,14 @@ export const roundsAPI = {
     });
   },
 
-  async deleteRound(roundNumber: number): Promise<{ success: boolean; message: string; totalRounds?: number }> {
+  async deleteRound(roundNumber?: number, roundId?: string): Promise<{ success: boolean; message: string; totalRounds?: number }> {
+    const payload: { roundNumber?: number; roundId?: string } = {};
+    if (roundNumber !== undefined) payload.roundNumber = roundNumber;
+    if (roundId) payload.roundId = roundId;
+
     return request('rounds/delete.php', {
       method: 'POST',
-      body: JSON.stringify({ roundNumber }),
+      body: JSON.stringify(payload),
     });
   },
 

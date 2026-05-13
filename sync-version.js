@@ -1,6 +1,6 @@
 // Karl's GIR - Automated Version Sync Script
-// This script automatically updates version numbers in all markdown files
-// to match the version in package.json
+// This script updates current-version metadata in markdown files to match
+// package.json without rewriting historical release notes.
 //
 // Usage:
 //   node sync-version.js
@@ -8,12 +8,11 @@
 // This script will:
 // 1. Read version from package.json
 // 2. Find all markdown files (.md) in the project
-// 3. Update version references in common patterns:
+// 3. Update current-version references in common patterns:
 //    - **Version:** X.X.X
 //    - Version: X.X.X
 //    - Current Version: X.X.X
-//    - vX.X.X
-//    - (X.X.X)
+// Historical release notes are intentionally left alone.
 
 import fs from 'fs';
 import path from 'path';
@@ -59,18 +58,6 @@ const versionPatterns = [
     replacement: `Current Version: ${newVersion}`,
     description: 'Current version (non-bold)'
   },
-  // v3.1.0 in text
-  {
-    pattern: /\bv(\d+\.\d+\.\d+)\b/g,
-    replacement: `v${newVersion}`,
-    description: 'Version with v prefix'
-  },
-  // (3.1.0) in parentheses
-  {
-    pattern: /\((\d+\.\d+\.\d+)\)/g,
-    replacement: `(${newVersion})`,
-    description: 'Version in parentheses'
-  },
   // Version 3.1.0 - Title format
   {
     pattern: /^## Version (\d+\.\d+\.\d+) -/gm,
@@ -92,8 +79,8 @@ function findMarkdownFiles(dir, fileList = []) {
     const stat = fs.statSync(filePath);
 
     if (stat.isDirectory()) {
-      // Skip node_modules and other build directories
-      if (!['node_modules', '.git', 'dist', 'public', '.vite'].includes(file)) {
+      // Skip dependencies, generated deploy output, and archived release copies.
+      if (!['node_modules', '.git', 'dist', 'public', '.vite', '._files'].includes(file)) {
         findMarkdownFiles(filePath, fileList);
       }
     } else if (file.endsWith('.md')) {
@@ -136,9 +123,9 @@ function updateFileVersion(filePath) {
 
   // Special handling for README.md - update "Version X.X.X - Current Release" section
   if (path.basename(filePath) === 'README.md') {
-    const currentReleasePattern = /## 🎉 Version (\d+\.\d+\.\d+) - Current Release/g;
+    const currentReleasePattern = /^## (?:.*? )?Version (\d+\.\d+\.\d+) - Current Release/gm;
     if (currentReleasePattern.test(content)) {
-      content = content.replace(currentReleasePattern, `## 🎉 Version ${newVersion} - Current Release`);
+      content = content.replace(currentReleasePattern, `## Version ${newVersion} - Current Release`);
       updated = true;
       changes.push('Current Release section header');
     }

@@ -29,12 +29,23 @@ if (empty($roundsData) || !is_array($roundsData)) {
     exit;
 }
 
+// Official dashboard stats should only include rounds the player explicitly ended.
+$completedRoundsData = array_values(array_filter($roundsData, function($round) {
+    $holeCount = count($round['holes'] ?? []);
+    return (($round['completed'] ?? false) === true) && $holeCount >= 9;
+}));
+
+if (empty($completedRoundsData)) {
+    echo json_encode(['success' => true, 'totalRounds' => 0, 'rounds' => [], 'groups' => [], 'cumulative' => null, 'trends' => []]);
+    exit;
+}
+
 // Group rounds individually (one round per card)
 $groups = [];
-$totalRounds = count($roundsData);
+$totalRounds = count($completedRoundsData);
 
 // Reverse the rounds array so newest appears first
-$reversedRounds = array_reverse($roundsData);
+$reversedRounds = array_reverse($completedRoundsData);
 
 for ($i = 0; $i < $totalRounds; $i++) {
     $round = $reversedRounds[$i];
@@ -61,11 +72,11 @@ for ($i = 0; $i < $totalRounds; $i++) {
 }
 
 // Calculate cumulative stats (all rounds)
-$cumulativeStats = calculateStatsForRounds($roundsData);
+$cumulativeStats = calculateStatsForRounds($completedRoundsData);
 
 // Build trend data from per-round stats (oldest to newest for chart display)
 $trends = [];
-foreach ($roundsData as $round) {
+foreach ($completedRoundsData as $round) {
     $roundStats = calculateStats($round['holes'] ?? []);
     if ($roundStats) {
         $trends[] = [

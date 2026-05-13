@@ -9,7 +9,7 @@ interface AnalyticsEvent {
 class Analytics {
   private static async track(data: AnalyticsEvent): Promise<void> {
     try {
-      await fetch('./api/admin/track.php', {
+      await fetch('./api/track.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
