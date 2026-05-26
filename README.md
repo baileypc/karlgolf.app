@@ -1,6 +1,6 @@
 # Karl Golf GIR - Golf Tracking PWA
 
-**Version:** 3.8.1 (Production)
+**Version:** 3.8.2 (Production)
 **Status:** Production ready
 **Domain:** [https://karlgolf.app](https://karlgolf.app)
 
@@ -8,10 +8,18 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 
 ---
 
-## Version 3.8.1 - Current Release
+## Version 3.8.2 - Current Release
 
-**Release type:** Production patch
-**Status:** Ready for deployment
+**Release type:** Scoring accuracy & UX patch
+**Status:** Production ready
+
+### What's New in 3.8.2
+- **Scoring fix — Par 5 tee penalty + Holed it!** - "Holed it!" on the approach after a tee penalty was saving 1 stroke too few (birdie recorded as eagle). Now correctly counts the holed approach as a shot.
+- **Scoring fix — Par 3 +2 Drop submit label** - The submit button was displaying a score 1 lower than what was actually saved for Par 3 +2 local-rule drops. Label now matches the saved score.
+- **Par 3 penalty formula generalised** - Score calculation for Par 3 tee penalties now correctly handles both +1 Re-tee and +2 Drop using the actual penalty count instead of hardcoded values.
+- **Consistent penalty UI** - Par 3 Card 2.5 penalty buttons now show the same "+1 Re-tee" and "+2 Drop" labels as Par 4/5, replacing the old single-button design.
+- **Approach distance hidden for Par 3 tee penalty** - When a tee penalty is taken on a Par 3 and the re-tee shot reaches the green, the approach distance input is no longer shown (it is not applicable in that flow).
+- **PWA install prompt persistence** - Dismissing the install banner now persists across sessions via localStorage so it does not reappear on every visit.
 
 ### What's New in 3.8.1
 - **Stats accuracy hardening** - Fairway, GIR-by-lie, putts-per-GIR, penalty strokes, and TypeScript/PHP stat parity were tightened.
@@ -249,4 +257,4 @@ See **[TODOs](docs/TODOS.md)** for complete list of future features.
 **Website:** [cloudvirtue.com](https://cloudvirtue.com)
 **Repository:** Private
 **License:** Proprietary
-**Version:** 3.8.1 (Production)
+**Version:** 3.8.2 (Production)

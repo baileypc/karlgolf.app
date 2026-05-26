@@ -584,6 +584,7 @@ export default function TrackRoundPage() {
       // Determine if GIR should be 'n' (auto-denied by penalties)
       // Par 3/4: Any penalty denies GIR. Par 5: Any tee penalty or 2nd shot in hazard denies GIR.
       const teePenaltyNum = parseInt(teePenalty || '0');
+      const isTeeDrop = teePenalty.includes('drop');
       const secondShotPenaltyNum = par === 5 ? parseInt(secondShotPenalty || '0') : 0;
       const approachPenaltyNum = parseInt(penalty || '0');
       const totalPenaltiesBeforeGreen = teePenaltyNum + secondShotPenaltyNum + approachPenaltyNum;
@@ -663,7 +664,7 @@ export default function TrackRoundPage() {
         // Par 4/5 tee penalty: base=3 (OB+penalty+re-tee to fairway). Tee penalty is embedded;
         //   do NOT add teePenaltyNum again.
         const baseShotsBeforeRecovery = girDeniedByTeePenalty
-          ? (par === 3 ? (gir === 'y' ? 2 : 3) : 3)
+          ? (par === 3 ? (gir === 'y' ? 1 + teePenaltyNum : 1 + teePenaltyNum + 1) : (isTeeDrop ? 1 + teePenaltyNum + (par === 5 ? 1 : 0) : (par === 5 ? 4 : 3)))
           : (par === 5 && girDeniedBySecondShotPenalty) ? 2
           : (par - 2);
         const additionalShots = shotsToGreen || 0;
@@ -1096,6 +1097,7 @@ export default function TrackRoundPage() {
                 {(() => {
                   let runningScore = 1; // Tee shot always counts as 1
                   const teePen = parseInt(teePenalty) || 0;
+                  const isTeePenaltyDrop = teePenalty.includes('drop');
                   const secondPen = parseInt(secondShotPenalty) || 0;
                   const approachPen = parseInt(penalty) || 0;
 
@@ -1124,7 +1126,7 @@ export default function TrackRoundPage() {
                     //   gir='n' → re-tee MISSED: base=3 (OB+penalty+missed-re-tee); recovery in shotsToGreen
                     // Par 4/5 tee penalty: base=3 (OB+penalty+re-tee to fairway) regardless of GIR.
                     const baseShotsBeforeRecovery = girDeniedByTeePenalty
-                      ? (par === 3 ? (gir === 'y' ? 2 : 3) : 3)
+                      ? (par === 3 ? (gir === 'y' ? 1 + teePen : 1 + teePen + 1) : (isTeePenaltyDrop ? 1 + teePen + (par === 5 ? 1 : 0) : (par === 5 ? 4 : 3)))
                       : (par === 5 && girDeniedBySecondShotPenalty) ? 2
                       : (par - 2);
                     // For Par 4/5 tee penalty + GIR='n': add 1 for the missed approach shot.
@@ -1132,6 +1134,13 @@ export default function TrackRoundPage() {
                     // the +1 only shows once the player has actually entered recovery shots on the GIR card.
                     const extraMissedApproach = girDeniedByTeePenalty && par !== 3 && gir === 'n' && shotsToGreen !== null ? 1 : 0;
                     runningScore = baseShotsBeforeRecovery + (shotsToGreen || 0) + extraMissedApproach;
+                  } else {
+                    if (girDeniedByTeePenalty) {
+                      runningScore += teePen;
+                      if (!isTeePenaltyDrop) {
+                        runningScore += 1;
+                      }
+                    }
                   }
 
                   if (putts) runningScore += putts;
@@ -1225,11 +1234,16 @@ export default function TrackRoundPage() {
                 <span>
                   <span className="collapsed-summary-value">
                     {par === 3
-                      ? (teePenalty !== '' ? `Penalty (+${teePenalty})` : gir === 'y' ? 'On Green' : gir === 'n' ? 'Missed' : '')
+                      ? (teePenalty !== '' ? `Penalty (+${teePenalty})` : fairway === 'na' ? 'Penalty' : gir === 'y' ? 'On Green' : gir === 'n' ? 'Missed' : '')
                       : (fairway === 'c' || fairway === 'l' || fairway === 'r' ? 'Fairway' : 
                          fairway === 'rough' ? 'Rough/Trees' :
                          fairway === 'sand' ? 'Sand' :
-                         fairway === 'na' ? `Penalty ${teePenalty ? '(+'+teePenalty+')' : ''}` : '')}
+                         fairway === 'na' ? (
+                           teePenalty === '1-retee' ? 'Penalty (+1 Re-tee)' :
+                           teePenalty === '1-drop' ? 'Penalty (+1 Drop)' :
+                           teePenalty === '2-drop' ? 'Penalty (+2 Drop)' :
+                           teePenalty ? `Penalty (+${parseInt(teePenalty) || ''})` : 'Penalty'
+                         ) : '')}
                   </span>
                   <span className="collapsed-summary-edit">Edit</span>
                 </span>
@@ -1306,6 +1320,7 @@ export default function TrackRoundPage() {
                         setGir(null); setTeePenalty(''); setPutts(null); setHoledOut(false); setPuttDistances([]);
                         setShotsToGreen(null); setWedgeShotDistances([]);
                         setApproachMissLocation(null); setProximity(null);
+                        setActiveCard(2.5);
                       }}
                       className="btn btn-secondary"
                       style={{
@@ -1316,26 +1331,7 @@ export default function TrackRoundPage() {
                     >
                       Penalty
                     </button>
-                    {fairway === 'na' && (
-                      <button
-                        onClick={() => {
-                          setTeePenalty('1');
-                          setGir(null);
-                          setPutts(null); setHoledOut(false); setPuttDistances([]);
-                          setShotsToGreen(null); setWedgeShotDistances([]);
-                          setApproachMissLocation(null);
-                          setActiveCard(4);
-                        }}
-                        className="btn btn-secondary"
-                        style={{
-                          width: '100%',
-                          backgroundColor: teePenalty === '1' ? 'var(--color-interactive)' : 'transparent',
-                          color: teePenalty === '1' ? '#000' : 'var(--color-interactive)',
-                        }}
-                      >
-                        +1 Confirm Penalty &amp; Continue
-                      </button>
-                    )}
+                    {/* Inline Par 3 penalty buttons moved to Card 2.5 */}
                   </div>
                 ) : (
                 <>
@@ -1426,6 +1422,8 @@ export default function TrackRoundPage() {
                           setSecondShotLie(null);
                           if (option.value !== 'na') {
                             setActiveCard(3);
+                          } else {
+                            setActiveCard(2.5);
                           }
                         }}
                         className="btn btn-secondary"
@@ -1452,67 +1450,105 @@ export default function TrackRoundPage() {
                     </button>
                   )}
                 </div>
-
-                {fairway === 'na' && (
-                  <button
-                    onClick={() => {
-                      setTeePenalty('1');
-                      setGir('n');
-                      setPutts(null);
-                      setHoledOut(false);
-                      setPuttDistances([]);
-                      setShotsToGreen(null);
-                      setWedgeShotDistances([]);
-                      setApproachMissLocation(null);
-                      setSecondShotLie(null);
-                      // Auto-capture re-tee distance from hole distance entered in Card 1
-                      if (par === 5) {
-                        setSecondShotDistance(holeDistance);
-                        setActiveCard(4); // Skip re-tee distance card → go to lie selection
-                      } else {
-                        setProximity(holeDistance);
-                        setActiveCard(3); // Go to lie selection card
-                      }
-                    }}
-                    className="btn btn-secondary"
-                    style={{
-                      width: '100%',
-                      marginTop: '0.5rem',
-                      backgroundColor: teePenalty === '1' ? 'var(--color-interactive)' : 'transparent',
-                      color: teePenalty === '1' ? '#000' : 'var(--color-interactive)',
-                    }}
-                  >
-                    +1 Confirm Penalty &amp; Continue
-                  </button>
-                )}
                 </> )} {/* end par !== 3 else branch */}
               </div>
             )
           )}
 
-          {/* CARD 3 (Par 5): 2nd Shot Distance — hidden when tee penalty active (distance auto-captured from Card 1) */}
-          {par === 5 && (parseInt(teePenalty) || 0) === 0 && fairway !== null && fairway !== 'na' && (
+          {/* CARD 2.5 (Penalty Selection) */}
+          {par !== null && fairway === 'na' && (
+            activeCard !== 2.5 && teePenalty !== '' ? (
+              <div className="collapsed-summary" onClick={() => setActiveCard(2.5)}>
+                <span className="collapsed-summary-label">Penalty Type:</span>
+                <span>
+                  <span className="collapsed-summary-value">
+                    {teePenalty === '1-retee' ? '+1 Re-tee' : teePenalty === '2-drop' ? '+2 Drop (Local Rule)' : teePenalty ? `+${parseInt(teePenalty)||''} Penalty` : ''}
+                  </span>
+                  <span className="collapsed-summary-edit">Edit</span>
+                </span>
+              </div>
+            ) : activeCard === 2.5 && (
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+                  Penalty Type
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', marginTop: '0.5rem' }}>
+                  <>
+                    <button
+                      onClick={() => {
+                        setTeePenalty('1-retee');
+                        setGir(null); setPutts(null); setHoledOut(false); setPuttDistances([]); setShotsToGreen(null); setWedgeShotDistances([]); setApproachMissLocation(null);
+                        if (par !== 3) { setSecondShotLie(null); setProximity(null); setSecondShotDistance(null); }
+                        setActiveCard(par === 3 ? 4 : 3);
+                      }}
+                      className="btn btn-secondary"
+                      style={{
+                        width: '100%',
+                        backgroundColor: teePenalty === '1-retee' ? 'var(--color-interactive)' : 'transparent',
+                        color: teePenalty === '1-retee' ? '#000' : 'var(--color-interactive)',
+                      }}
+                    >
+                      +1 Re-tee
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTeePenalty('1-drop');
+                        setGir(null); setPutts(null); setHoledOut(false); setPuttDistances([]); setShotsToGreen(null); setWedgeShotDistances([]); setApproachMissLocation(null);
+                        if (par !== 3) { setSecondShotLie(null); setProximity(null); setSecondShotDistance(null); }
+                        setActiveCard(par === 3 ? 4 : 3);
+                      }}
+                      className="btn btn-secondary"
+                      style={{
+                        width: '100%',
+                        backgroundColor: teePenalty === '1-drop' ? 'var(--color-interactive)' : 'transparent',
+                        color: teePenalty === '1-drop' ? '#000' : 'var(--color-interactive)',
+                      }}
+                    >
+                      +1 Drop
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTeePenalty('2-drop');
+                        setGir(null); setPutts(null); setHoledOut(false); setPuttDistances([]); setShotsToGreen(null); setWedgeShotDistances([]); setApproachMissLocation(null);
+                        if (par !== 3) { setSecondShotLie(null); setProximity(null); setSecondShotDistance(null); }
+                        setActiveCard(par === 3 ? 4 : 3);
+                      }}
+                      className="btn btn-secondary"
+                      style={{
+                        width: '100%',
+                        backgroundColor: teePenalty === '2-drop' ? 'var(--color-interactive)' : 'transparent',
+                        color: teePenalty === '2-drop' ? '#000' : 'var(--color-interactive)',
+                      }}
+                    >
+                      +2 Drop (Local Rule)
+                    </button>
+                  </>
+                </div>
+              </div>
+            )
+          )}
+
+          {/* CARD 3 (Par 5): 2nd Shot Distance */}
+          {par === 5 && fairway !== null && (fairway !== 'na' || (parseInt(teePenalty) || 0) >= 1) && (
             activeCard !== 3 && secondShotDistance != null ? (
               <div className="collapsed-summary" onClick={() => setActiveCard(3)}>
-                <span className="collapsed-summary-label">{(parseInt(teePenalty) || 0) >= 1 ? 'Re-tee:' : 'Next Shot:'}</span>
+                <span className="collapsed-summary-label">Next Shot:</span>
                 <span><span className="collapsed-summary-value">{secondShotDistance} yds</span><span className="collapsed-summary-edit">Edit</span></span>
               </div>
             ) : activeCard === 3 && par === 5 && (
               <div className="card" style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
-                  {(parseInt(teePenalty) || 0) >= 1 ? 'Re-tee Distance' : 'Next Shot Distance'}{' '}
+                  Next Shot Distance{' '}
                   <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>(yards)</span>
                 </label>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '0.75rem', fontStyle: 'italic' }}>
-                  {(parseInt(teePenalty) || 0) >= 1
-                    ? "How far is the hole from the tee? (You're re-teeing)"
-                    : 'How far was your next shot?'}
+                  How far was your next shot?
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                   <input
                     type="number"
                     inputMode="numeric"
-                    placeholder={(parseInt(teePenalty) || 0) >= 1 ? 'e.g. 420' : 'e.g. 180'}
+                    placeholder="e.g. 180"
                     value={secondShotDistance ?? ''}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -1763,6 +1799,37 @@ export default function TrackRoundPage() {
                         This is your swing from the fairway. Tap <strong>On Green!</strong> if you reached in one shot. If you missed, enter how many more shots it took to finish getting on the green — include every swing from here until the ball is on the putting surface.
                       </div>
                     )}
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                        Approach distance{' '}
+                        <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem' }}>(yds · optional)</span>
+                      </label>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '0.5rem', fontStyle: 'italic' }}>
+                        How far was your approach shot?
+                      </div>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="e.g. 150"
+                        value={proximity ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setProximity(val === '' ? null : parseInt(val));
+                        }}
+                        style={{
+                          width: '100%',
+                          minHeight: 'var(--touch-min)',
+                          padding: '14px 8px',
+                          textAlign: 'center',
+                          backgroundColor: 'var(--bg-secondary)',
+                          border: '2px solid var(--border-primary)',
+                          borderRadius: 'var(--radius-md)',
+                          color: 'var(--text-primary)',
+                          WebkitTextFillColor: 'var(--text-primary)',
+                          fontSize: 'var(--font-base)',
+                        }}
+                      />
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                         {[{ value: 'y' as const, label: 'On!' }, { value: 'n' as const, label: 'Missed' }].map((opt) => (
@@ -1794,12 +1861,12 @@ export default function TrackRoundPage() {
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => {
-                            setGir('y'); setPutts(0); setHoledOut(true); setShotsToGreen(null); setPuttDistances([]); setActiveCard(6);
+                            setGir('y'); setPutts(0); setHoledOut(true); setShotsToGreen((parseInt(teePenalty) || 0) >= 1 ? 1 : null); setPuttDistances([]); setActiveCard(6);
                           }}
                           className="btn btn-secondary"
                           style={{ flex: 1, fontSize: '0.75rem', padding: '0.4rem', borderColor: 'var(--color-interactive)', color: 'var(--color-interactive)' }}
                         >
-                          <img src="./images/eagle_icon.png" alt="Eagle" style={{ width: '1.4em', height: '1.4em', verticalAlign: 'middle', marginRight: '0.3rem', borderRadius: '3px' }} />Eagle!
+                          <img src="./images/eagle_icon.png" alt="Eagle" style={{ width: '1.4em', height: '1.4em', verticalAlign: 'middle', marginRight: '0.3rem', borderRadius: '3px' }} />Holed it!
                         </button>
                       </div>
                     </div>
@@ -1989,17 +2056,15 @@ export default function TrackRoundPage() {
 
           {/* CARD 3 (Approach Distance or Par 3 Recovery) */}
           {par !== null && par !== 5 && (par === 3 ? (gir === 'n' && activeCard >= 3) : (fairway !== null && (fairway !== 'na' || teePenalty !== '') && activeCard >= 3)) && (
-            activeCard !== 3 && (proximity !== null || (parseInt(teePenalty) || 0) >= 1 || (par === 3 && shotsToGreen !== null)) ? (
+            activeCard !== 3 && (proximity !== null || (par === 3 && shotsToGreen !== null)) ? (
               <div className="collapsed-summary" onClick={() => setActiveCard(3)}>
                 <span className="collapsed-summary-label">
-                  {par === 3 ? 'Recovery:' : (parseInt(teePenalty) || 0) >= 1 ? 'Re-tee:' : 'Next Shot:'}
+                  {par === 3 ? 'Recovery:' : 'Next Shot:'}
                 </span>
                 <span>
                   <span className="collapsed-summary-value">
                     {par === 3 ? (
                       <>{approachMissLocation ? formatMissLocation(approachMissLocation) : ''}{penalty ? ` (+${penalty})` : ''}{shotsToGreen ? ` · ${shotsToGreen} ${shotsToGreen === 1 ? 'Shot' : 'Shots'}` : ''}</>
-                    ) : (parseInt(teePenalty) || 0) >= 1 ? (
-                      <>{proximity ? `${proximity} yds` : ''}{secondShotLie ? ` · ${secondShotLie === 'c' ? 'Fairway' : secondShotLie === 'rough' ? 'Rough' : secondShotLie === 'sand' ? 'Sand' : 'Penalty'}` : ''}</>
                     ) : (
                       <>{proximity ? `${proximity} yds` : ''}</>
                     )}
@@ -2009,83 +2074,46 @@ export default function TrackRoundPage() {
               </div>
             ) : activeCard === 3 && (
               <div className="card" style={{ marginBottom: '1.5rem' }}>
-                {/* Par 4: Approach Distance (normal) or Re-tee Lie selection (tee penalty) */}
+                {/* Par 4: Approach Distance */}
                 {par !== 3 && (
                   <>
-                    {(parseInt(teePenalty) || 0) === 0 && (
-                      <>
-                        <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
-                          Next Shot Distance{' '}
-                          <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>(yards)</span>
-                        </label>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '0.75rem', fontStyle: 'italic' }}>
-                          How far was your approach shot?
-                        </div>
-                      </>
-                    )}
-                    {(parseInt(teePenalty) || 0) >= 1 ? (
-                      /* Re-tee: distance auto-captured from Card 1 — just ask where it landed */
-                      <>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                          Where did your re-tee shot land?
-                        </label>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
-                          {[
-                            { value: 'c' as const, label: 'Fairway' },
-                            { value: 'rough' as const, label: 'Rough' },
-                            { value: 'sand' as const, label: 'Sand' },
-                            { value: 'na' as const, label: 'Penalty' },
-                          ].map((option) => (
-                            <button
-                              key={option.value}
-                              onClick={() => {
-                                setSecondShotLie(option.value);
-                                setActiveCard(4);
-                              }}
-                              className="btn btn-secondary"
-                              style={{
-                                backgroundColor: secondShotLie === option.value ? 'var(--color-interactive)' : 'transparent',
-                                color: secondShotLie === option.value ? '#000' : 'var(--color-interactive)',
-                              }}
-                            >
-                              {option.label}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      /* Normal approach: distance + Next button */
-                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          placeholder="e.g. 150"
-                          value={proximity ?? ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setProximity(val === '' ? null : parseInt(val));
-                          }}
-                          style={{
-                            flex: '1 1 0%',
-                            minWidth: 0,
-                            minHeight: 'var(--touch-min)',
-                            padding: 'var(--touch-padding)',
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '2px solid var(--border-primary)',
-                            borderRadius: 'var(--radius-md)',
-                            color: 'var(--text-primary)',
-                            fontSize: 'var(--font-base)',
-                          }}
-                        />
-                        <button
-                          className="btn btn-primary"
-                          onClick={() => setActiveCard(4)}
-                          style={{ flex: '0 0 30%', minWidth: 'min-content' }}
-                        >
-                          Next
-                        </button>
-                      </div>
-                    )}
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+                      Next Shot Distance{' '}
+                      <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem', marginLeft: '0.5rem' }}>(yards)</span>
+                    </label>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '0.75rem', fontStyle: 'italic' }}>
+                      How far was your approach shot?
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="e.g. 150"
+                        value={proximity ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setProximity(val === '' ? null : parseInt(val));
+                        }}
+                        style={{
+                          flex: '1 1 0%',
+                          minWidth: 0,
+                          minHeight: 'var(--touch-min)',
+                          padding: 'var(--touch-padding)',
+                          backgroundColor: 'var(--bg-secondary)',
+                          border: '2px solid var(--border-primary)',
+                          borderRadius: 'var(--radius-md)',
+                          color: 'var(--text-primary)',
+                          fontSize: 'var(--font-base)',
+                        }}
+                      />
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => setActiveCard(4)}
+                        style={{ flex: '0 0 30%', minWidth: 'min-content' }}
+                      >
+                        Next
+                      </button>
+                    </div>
                   </>
                 )}
 
@@ -2287,19 +2315,22 @@ export default function TrackRoundPage() {
                   <div style={{ marginBottom: (par === 4 && gir === 'n') ? '1.5rem' : '0' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
                       {par === 3 && (parseInt(teePenalty) || 0) >= 1
-                        ? 'Re-tee shot — did you reach the green?'
+                        ? (teePenalty.includes('drop') ? 'Drop shot — did you reach the green?' : 'Re-tee shot — did you reach the green?')
                         : par === 4 && (parseInt(teePenalty) || 0) >= 1
-                        ? `Approach from ${secondShotLie === 'rough' ? 'the rough' : secondShotLie === 'sand' ? 'the sand' : 'the fairway'} — did you reach the green?`
+                        ? 'Approach shot — did you reach the green?'
                         : 'Green in Regulation (GIR)'}
                     </label>
                     {par === 3 && (parseInt(teePenalty) || 0) >= 1 && (
                       <div style={{ fontSize: '0.82rem', opacity: 0.7, marginBottom: '0.5rem' }}>
-                        This is your re-tee shot. Tap <strong>On!</strong> if it reached the green. If you missed, enter recovery shots.
+                        {teePenalty.includes('drop')
+                          ? <>This is your shot from the drop zone. Tap <strong>On!</strong> if it reached the green. If you missed, enter recovery shots.</>
+                          : <>This is your re-tee shot. Tap <strong>On!</strong> if it reached the green. If you missed, enter recovery shots.</>
+                        }
                       </div>
                     )}
                     {par === 4 && (parseInt(teePenalty) || 0) >= 1 && (
                       <div style={{ fontSize: '0.82rem', opacity: 0.7, marginBottom: '0.5rem' }}>
-                        This is your approach shot after re-teeing. Tap <strong>On!</strong> if you reached in one shot. If you missed, enter how many more shots it took to get on the green.
+                        This is your approach shot after your penalty. Tap <strong>On!</strong> if you reached in one shot. If you missed, enter how many more shots it took to get on the green.
                       </div>
                     )}
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -2374,15 +2405,15 @@ export default function TrackRoundPage() {
                     {/* Hero Pills for Par 4/5 — hide when Missed is selected */}
                     {(par === 4 || par === 5) && gir !== 'n' && (
                       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                        {par === 4 && (parseInt(teePenalty) || 0) === 0 && (
+                        {par === 4 && (
                           <button
                             onClick={() => {
-                              setGir('y'); setPutts(0); setHoledOut(true); setShotsToGreen(2); setPuttDistances([]); setActiveCard(5);
+                              setGir('y'); setPutts(0); setHoledOut(true); setShotsToGreen((parseInt(teePenalty) || 0) >= 1 ? 1 : 2); setPuttDistances([]); setActiveCard(5);
                             }}
                             className="btn btn-secondary"
                             style={{ flex: 1, fontSize: '0.75rem', padding: '0.4rem', borderColor: 'var(--color-interactive)', color: 'var(--color-interactive)' }}
                           >
-                            <img src="./images/eagle_icon.png" alt="Eagle" style={{ width: '1.4em', height: '1.4em', verticalAlign: 'middle', marginRight: '0.3rem', borderRadius: '3px' }} />Eagle!
+                            <img src="./images/eagle_icon.png" alt="Eagle" style={{ width: '1.4em', height: '1.4em', verticalAlign: 'middle', marginRight: '0.3rem', borderRadius: '3px' }} />Holed it!
                           </button>
                         )}
 
@@ -2590,8 +2621,9 @@ export default function TrackRoundPage() {
                                          (par === 5 && teePenNum >= 1) ||
                                          (par === 5 && secondShotLie === 'na');
             // Match save formula base exactly (Par 3 tee penalty is gir-dependent).
+            const isTeePenaltyDropLocal = teePenalty.includes('drop');
             const baseShotsBeforeRecovery = girDeniedByTeePenalty
-              ? (par === 3 ? (gir === 'y' ? 2 : 3) : 3)
+              ? (par === 3 ? (gir === 'y' ? 1 + teePenNum : 1 + teePenNum + 1) : (isTeePenaltyDropLocal ? 1 + teePenNum + (par === 5 ? 1 : 0) : (par === 5 ? 4 : 3)))
               : (par === 5 && girDeniedBySecondShotPenalty) ? 2
               : (par! - 2);
             // Tee penalty is embedded in base; only add non-tee penalties.
@@ -2612,7 +2644,7 @@ export default function TrackRoundPage() {
 
             return (
             <div className="card" style={{ marginBottom: '1.5rem' }}>
-              {gir === 'y' && !isAce && !isHoleOut && (par === 3 || (par === 4 && proximity == null) || par === 5) && (
+              {gir === 'y' && !isAce && !isHoleOut && (par === 3 || (par === 4 && proximity == null) || par === 5) && !(par === 3 && teePenNum >= 1) && (
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>
                     Approach distance{' '}

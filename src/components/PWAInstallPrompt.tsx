@@ -13,8 +13,12 @@ export function PWAInstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // Check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches || (window as any).Capacitor?.isNativePlatform()) {
+    // Check if app is already installed or if user previously dismissed it
+    if (
+      window.matchMedia('(display-mode: standalone)').matches || 
+      (window as any).Capacitor?.isNativePlatform() ||
+      localStorage.getItem('pwa_prompt_dismissed') === 'true'
+    ) {
       setIsInstalled(true);
       return;
     }
@@ -34,6 +38,7 @@ export function PWAInstallPrompt() {
       setIsInstalled(true);
       setShowPrompt(false);
       setDeferredPrompt(null);
+      localStorage.setItem('pwa_prompt_dismissed', 'true');
     });
 
     return () => {
@@ -55,11 +60,12 @@ export function PWAInstallPrompt() {
     // Clear the prompt
     setDeferredPrompt(null);
     setShowPrompt(false);
+    localStorage.setItem('pwa_prompt_dismissed', 'true');
   };
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    // Don't clear deferredPrompt so user can install later if needed
+    localStorage.setItem('pwa_prompt_dismissed', 'true');
   };
 
   // Don't show if already installed or no prompt available

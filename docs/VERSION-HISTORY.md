@@ -1,5 +1,22 @@
 # Version History
 
+## Version 3.8.2 - Scoring Accuracy & UX Patch (May 2026)
+
+### Bug Fixes
+
+**Scoring accuracy:**
+- Fixed Par 5 "Holed it!" with tee penalty undercounting by 1 stroke — the holed approach after a re-tee was not being counted as a shot, recording birdie as an eagle-equivalent score.
+- Fixed Par 3 +2 Drop submit button label showing a score 1 lower than the value that was actually saved (display-only discrepancy; saved data was correct for +1 Re-tee).
+- Generalised Par 3 tee penalty score formula from hardcoded +1-only values to `1 + teePenaltyNum` so both +1 Re-tee and +2 Drop paths produce the correct base stroke count.
+
+**UI / UX improvements:**
+- Par 3 Card 2.5 penalty buttons now show consistent "+1 Re-tee" and "+2 Drop" labels matching the Par 4/5 design (previously showed a single generic confirm button).
+- Card 4 description text updated to distinguish between re-tee and drop penalty flows.
+- Approach distance input hidden for Par 3 tee penalty + On! path where it is not applicable.
+- PWA install prompt dismissal now persists to `localStorage` so the banner does not re-appear on every visit.
+
+---
+
 ## Version 3.8.1 - Production Stability Patch (May 2026)
 
 ### Bug Fixes
@@ -311,6 +328,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.8.1 (Production)
+**Current Version:** 3.8.2 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

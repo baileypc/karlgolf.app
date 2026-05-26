@@ -59,10 +59,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const responseClone = response.clone();
+          const responseToCache = response.clone();
+          const responseToCache2 = response.clone();
           caches.open(RUNTIME_CACHE).then((cache) => {
-            cache.put(request, responseClone);
-            cache.put('./index.html', response.clone());
+            cache.put(request, responseToCache);
+            cache.put('./index.html', responseToCache2);
           });
           return response;
         })
@@ -86,9 +87,9 @@ self.addEventListener('fetch', (event) => {
             return response;
           }
 
-          const responseClone = response.clone();
+          const responseToCache = response.clone();
           caches.open(RUNTIME_CACHE).then((cache) => {
-            cache.put(request, responseClone);
+            cache.put(request, responseToCache);
           });
 
           return response;
