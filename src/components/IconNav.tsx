@@ -1,10 +1,14 @@
-// Karl's GIR - Icon Navigation
+// Karl's GIR - Bottom Navigation
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faClipboard, faRightFromBracket, faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { faChartLine, faClipboard, faRightFromBracket, faUserPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '@/hooks/useAuth';
 
-export default function IconNav() {
+interface IconNavProps {
+  onDiscard?: () => void;
+}
+
+export default function IconNav({ onDiscard }: IconNavProps = {}) {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, isLoggedIn } = useAuth();
@@ -13,7 +17,6 @@ export default function IconNav() {
     try {
       await logout();
     } catch (error) {
-      // Logout should always succeed locally even if API fails
       console.error('Logout API call failed, but clearing local state:', error);
     }
     navigate('/');
@@ -26,137 +29,122 @@ export default function IconNav() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <>
-      {/* Solid black backdrop behind header */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '60px',
-        backgroundColor: '#000',
-        zIndex: 999
-      }} />
-
-      {/* Header with semi-transparent mint green */}
-      <nav style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '60px',
-        backgroundColor: 'var(--bg-card)',
-        borderBottom: '2px solid var(--border-primary)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 1rem',
-        zIndex: 1000
-      }}>
-        {/* Logo */}
-        <div style={{
-          display: 'flex',
+    <nav className="glass-bottom-nav" style={{
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: '80px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '0 1.5rem',
+      paddingBottom: 'env(safe-area-inset-bottom, 16px)',
+      zIndex: 1000
+    }}>
+      {/* Logo acting as Home (Dashboard) */}
+      <div 
+        onClick={() => navigate('/dashboard')}
+        style={{ 
+          cursor: 'pointer', 
+          display: 'flex', 
           alignItems: 'center',
-          gap: '0.75rem',
-          cursor: 'pointer'
+          opacity: 1,
+          transition: 'all 0.2s ease',
+          filter: isActive('/dashboard') ? 'drop-shadow(0 0 8px rgba(221, 237, 210, 0.5))' : 'none'
         }}
-          onClick={() => navigate('/dashboard')}
-        >
-          <img
-            src="./images/karls_gir.png"
-            alt="Karl Golf GIR"
-            style={{
-              width: '40px',
-              height: '40px',
-              objectFit: 'contain'
-            }}
-          />
-          <span style={{
-            fontSize: 'var(--font-lg)',
-            fontWeight: 'bold',
-            color: 'var(--text-primary)'
-          }}>
-            Karl Golf GIR
-          </span>
-        </div>
+      >
+        <img
+          src="./images/karls_gir.png"
+          alt="Home"
+          style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '10px',
+            boxShadow: isActive('/dashboard') ? '0 0 15px rgba(0,0,0,0.8)' : '0 0 10px rgba(0,0,0,0.6)'
+          }}
+        />
+      </div>
 
-        {/* Icon Navigation */}
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          {isLoggedIn ? (
-            <>
-              {/* Dashboard - Logged in users only */}
+      {/* Right side navigation items (Original Functionality restored) */}
+      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+        {isLoggedIn ? (
+          <>
+            {onDiscard && (
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={onDiscard}
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: isActive('/dashboard') ? 'var(--text-primary)' : 'rgba(221, 237, 210, 0.5)',
-                  fontSize: '1.25rem',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  transition: 'color 0.2s'
+                  background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem',
+                  color: '#e6c280', fontSize: '1.25rem', transition: 'color 0.2s'
                 }}
-                title="Dashboard (Stats & History)"
+                title="Discard Round"
               >
-                <FontAwesomeIcon icon={faChartLine} />
+                <FontAwesomeIcon icon={faTrash} />
               </button>
+            )}
 
-              {/* Track Round - Logged in users only */}
-              <button
-                onClick={() => navigate('/track-round')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: isActive('/track-round') ? 'var(--text-primary)' : 'rgba(221, 237, 210, 0.5)',
-                  fontSize: '1.25rem',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  transition: 'color 0.2s'
-                }}
-                title="Track Round (Record Keeping)"
-              >
-                <FontAwesomeIcon icon={faClipboard} />
-              </button>
+            <button
+              onClick={() => navigate('/dashboard')}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem',
+                color: isActive('/dashboard') ? '#DDEDD2' : 'rgba(221, 237, 210, 0.5)',
+                fontSize: '1.25rem', transition: 'color 0.2s'
+              }}
+              title="Dashboard (Stats)"
+            >
+              <FontAwesomeIcon icon={faChartLine} style={{ filter: isActive('/dashboard') ? 'drop-shadow(0 0 8px rgba(221, 237, 210, 0.5))' : 'none' }} />
+            </button>
 
-              {/* Logout - Logged in users only */}
+            <button
+              onClick={() => navigate('/track-round')}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem',
+                color: isActive('/track-round') ? '#DDEDD2' : 'rgba(221, 237, 210, 0.5)',
+                fontSize: '1.25rem', transition: 'color 0.2s'
+              }}
+              title="Track Round"
+            >
+              <FontAwesomeIcon icon={faClipboard} style={{ filter: isActive('/track-round') ? 'drop-shadow(0 0 8px rgba(221, 237, 210, 0.5))' : 'none' }} />
+            </button>
+
+            <button
+              onClick={handleLogout}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem',
+                color: 'rgba(221, 237, 210, 0.5)', fontSize: '1.25rem', transition: 'color 0.2s'
+              }}
+              title="Logout"
+            >
+              <FontAwesomeIcon icon={faRightFromBracket} />
+            </button>
+          </>
+        ) : (
+          <>
+            {onDiscard && (
               <button
-                onClick={handleLogout}
+                onClick={onDiscard}
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'rgba(221, 237, 210, 0.5)',
-                  fontSize: '1.25rem',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  transition: 'color 0.2s'
+                  background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem',
+                  color: '#e6c280', fontSize: '1.25rem', transition: 'color 0.2s'
                 }}
-                title="Logout"
+                title="Discard Round"
               >
-                <FontAwesomeIcon icon={faRightFromBracket} />
+                <FontAwesomeIcon icon={faTrash} />
               </button>
-            </>
-          ) : (
-            <>
-              {/* Create Account - Guest users only, prominent styling */}
-              <button
-                onClick={handleCreateAccount}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-primary)',
-                  fontSize: '1.25rem',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  transition: 'color 0.2s'
-                }}
-                title="Create Account (Save Your Data)"
-              >
-                <FontAwesomeIcon icon={faUserPlus} />
-              </button>
-            </>
-          )}
-        </div>
-      </nav>
-    </>
+            )}
+            <button
+              onClick={handleCreateAccount}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem',
+                color: '#DDEDD2', fontSize: '1.25rem', transition: 'color 0.2s'
+              }}
+              title="Create Account"
+            >
+              <FontAwesomeIcon icon={faUserPlus} />
+            </button>
+          </>
+        )}
+      </div>
+    </nav>
   );
 }

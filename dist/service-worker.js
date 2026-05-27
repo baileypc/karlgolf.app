@@ -1,7 +1,7 @@
 // Karl's GIR - Service Worker
 // App-shell caching for installability and offline navigation fallback.
 
-const CACHE_NAME = 'karls-gir-v3.8.2';
+const CACHE_NAME = 'karls-gir-v3.9.0';
 const RUNTIME_CACHE = 'karls-gir-runtime';
 
 const ASSETS_TO_CACHE = [
@@ -29,7 +29,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) =>
       Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
+          if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
           return null;

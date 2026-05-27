@@ -9,6 +9,7 @@ import { roundsAPI, authAPI } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import Modal, { useModal } from '@/components/Modal';
 import { exportAllRoundsToCSV } from '@/lib/export';
+import CircularProgress from '@/components/CircularProgress';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -172,7 +173,7 @@ export default function DashboardPage() {
   return (
     <>
       <IconNav />
-      <div className="min-h-screen" style={{ padding: '0.25rem', paddingTop: '76px', paddingBottom: '3rem', maxWidth: '900px', margin: '0 auto' }}>
+      <div className="min-h-screen" style={{ padding: '0.25rem', paddingTop: '16px', paddingBottom: '100px', maxWidth: '900px', margin: '0 auto' }}>
         <div className="container">
           {/* Header */}
           <div style={{
@@ -280,15 +281,21 @@ export default function DashboardPage() {
           {hasData && (
             <>
               {/* Primary Stat - Average GIR% */}
-              <div className="card" style={{ marginBottom: '1rem', textAlign: 'center', padding: '1.25rem 1rem' }}>
-                <div style={{ fontSize: 'var(--font-sm)', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                  Average GIR %
+              <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '1.5rem', opacity: 0.8 }}>
+                  Key Stats (All Time)
                 </div>
-                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--text-primary)', lineHeight: 1.1 }}>
-                  {statsData.cumulative.girPct.toFixed(1)}%
+                
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <CircularProgress 
+                    value={statsData.cumulative.girPct} 
+                    label={`${statsData.cumulative.girPct.toFixed(1)}%`}
+                    sublabel="GIR"
+                  />
                 </div>
-                <p style={{ color: 'var(--text-primary)', marginTop: '0.25rem', fontSize: 'var(--font-xs)', opacity: 0.6 }}>
-                  {statsData.totalRounds} round{statsData.totalRounds !== 1 ? 's' : ''} · {statsData.cumulative.totalHoles} holes
+                
+                <p style={{ color: 'var(--text-primary)', fontSize: '0.9rem', opacity: 0.6 }}>
+                  Based on {statsData.totalRounds} round{statsData.totalRounds !== 1 ? 's' : ''} ({statsData.cumulative.totalHoles} holes)
                 </p>
               </div>
 

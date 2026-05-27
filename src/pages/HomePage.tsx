@@ -16,7 +16,6 @@ export default function HomePage() {
   }, [isLoggedIn, navigate]);
 
   const handleStartRound = () => {
-    // Go to track round page - works for both guest and logged-in users
     navigate('/track-round');
   };
 
@@ -24,94 +23,123 @@ export default function HomePage() {
     <div
       className="min-h-screen flex flex-col items-center justify-center mx-auto"
       style={{
-        padding: 'var(--space-xl) var(--space-md)',
-        maxWidth: '600px'
+        padding: '2rem 1.5rem',
+        maxWidth: '100%',
+        width: '100vw',
+        background: '#000000',
+        justifyContent: 'space-between'
       }}
     >
-      {/* Logo and Title */}
-      <div className="text-center mb-xl">
-        <img
-          src="./images/karls_gir.png"
-          alt="Karl Golf GIR Logo"
-          className="mx-auto block"
-          style={{
-            width: '10rem',
-            height: '10rem',
-            marginBottom: 'var(--space-xl)',
-            borderRadius: 'var(--radius-lg)'
-          }}
-        />
-        <h1 className="font-bold" style={{ fontSize: 'var(--font-4xl)', marginBottom: 'var(--space-md)' }}>
-          Karl Golf GIR
-        </h1>
-        <div
-          className="mx-auto"
-          style={{
-            borderBottom: '2px solid var(--border-primary)',
-            width: '80px',
-            marginBottom: 'var(--space-md)'
-          }}
-        />
-        <p className="text-lg opacity-90" style={{ marginBottom: 'var(--space-sm)' }}>
-          Track key averages for game improvement.
-        </p>
-        <p className="opacity-70">
-          GIR's, fairway's, putting, misses and average scores.
-        </p>
-      </div>
-
-      {/* Main Call to Action */}
-      <div className="w-full mb-lg">
-        <button
-          onClick={handleStartRound}
-          className="btn btn-primary w-full"
-          style={{
-            padding: 'var(--space-lg) var(--space-xl)',
-            fontSize: 'var(--font-2xl)',
-            fontWeight: 'bold',
-            minHeight: '80px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem'
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', width: '100%' }}>
+        <div 
+          className="w-full mx-auto" 
+          style={{ 
+            maxWidth: '500px', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center'
           }}
         >
-          <span>Start Round</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 'normal', opacity: 0.8 }}>
-            Start now. Create account later.
-          </span>
-        </button>
-      </div>
+          {/* Logo and Title */}
+          <div className="text-center w-full" style={{ marginBottom: '3.5rem' }}>
+            <img
+              src="./images/karls_gir.png"
+              alt="Karl Golf GIR Logo"
+              className="mx-auto block"
+              style={{
+                width: '130px',
+                height: '130px',
+                marginBottom: '1.5rem',
+                borderRadius: '28px',
+                boxShadow: '0 0 30px rgba(0,0,0,0.8)'
+              }}
+            />
+            <h1 className="font-normal" style={{ 
+              fontSize: '2.5rem',
+              color: '#DDEDD2',
+              letterSpacing: '0px',
+              marginBottom: '1rem'
+            }}>
+              Karl Golf GIR
+            </h1>
+            <p style={{ 
+              color: 'rgba(221, 237, 210, 0.9)', 
+              fontSize: '1.1rem',
+              marginBottom: '0.25rem' 
+            }}>
+              Track key averages for game improvement.
+            </p>
+            <p style={{ 
+              color: 'rgba(221, 237, 210, 0.6)',
+              fontSize: '0.9rem' 
+            }}>
+              GIR's, fairway's, putting, misses and average scores.
+            </p>
+          </div>
 
-      {/* Secondary Action - Login */}
-      <div className="text-center mb-xl">
-        <button
-          onClick={() => navigate('/login')}
-          className="btn btn-secondary"
-          style={{ minWidth: '200px' }}
-        >
-          Login / Register
-        </button>
+          {/* Buttons matching the mockup */}
+          <div className="w-full" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <button
+              onClick={handleStartRound}
+              className="glow-primary-intense"
+              style={{
+                width: '100%',
+                padding: '1.25rem',
+                fontSize: '1.4rem',
+                fontWeight: '500',
+                backgroundColor: '#DDEDD2',
+                color: '#000000',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              Start Round
+            </button>
+
+            <button
+              onClick={() => navigate('/login')}
+              style={{ 
+                width: '100%',
+                padding: '1.25rem',
+                fontSize: '1.4rem',
+                fontWeight: '400',
+                backgroundColor: '#000000',
+                color: '#DDEDD2',
+                border: '1px solid #5A6A52',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Login / Register
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
       <div
         className="w-full text-center"
         style={{
-          marginTop: 'auto',
-          paddingTop: 'var(--space-lg)',
-          borderTop: '1px solid var(--border-primary)'
+          marginTop: '2rem',
+          paddingTop: '1.5rem',
+          borderTop: '1px solid rgba(221, 237, 210, 0.1)',
+          maxWidth: '500px'
         }}
       >
-        <p className="text-sm" style={{ fontSize: '0.75rem', opacity: 0.6, marginBottom: 'var(--space-xs)' }}>
+        <p style={{ fontSize: '0.75rem', color: 'rgba(221, 237, 210, 0.4)', marginBottom: '0.25rem' }}>
           Version {version}
         </p>
-        <p className="text-sm" style={{ fontSize: '0.75rem', opacity: 0.6 }}>
+        <p style={{ fontSize: '0.75rem', color: 'rgba(221, 237, 210, 0.4)' }}>
           © {new Date().getFullYear()} Karl Golf GIR. All rights reserved.
         </p>
         <p style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
-          <a href="./privacy.html" style={{ color: 'var(--text-secondary)', textDecoration: 'underline', opacity: 0.8 }}>
+          <a href="./privacy.html" style={{ color: 'rgba(221, 237, 210, 0.6)', textDecoration: 'underline' }}>
             Privacy Policy
           </a>
         </p>

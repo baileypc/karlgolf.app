@@ -1,6 +1,6 @@
 # Karl Golf GIR - Golf Tracking PWA
 
-**Version:** 3.8.2 (Production)
+**Version:** 3.9.0 (Production)
 **Status:** Production ready
 **Domain:** [https://karlgolf.app](https://karlgolf.app)
 
@@ -8,12 +8,20 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 
 ---
 
-## Version 3.8.2 - Current Release
+## Version 3.9.0 - Current Release
 
-**Release type:** Scoring accuracy & UX patch
+**Release type:** UI/UX Overhaul & Modernization
 **Status:** Production ready
 
-### What's New in 3.8.2
+### What's New in 3.9.0
+- **Glassmorphism UI Overhaul:** Replaced the previous solid colors with a modern, glass-like frosted aesthetic (`.glass-card`, `.glass-bottom-nav`) atop a deep black (`#000000`) background.
+- **Pill-shaped Buttons:** Fully updated all interactive buttons globally to feature a sleek, modern pill-shape design with smoother hover states and better touch feedback.
+- **Header Score Indicator:** The current round score (+/- par) has been moved out of the playing cards and into the fixed header, styled in a subtle light tan (`#e6c280`) color. It is toggleable (click to show/hide) to hide the score while playing.
+- **Bottom Navigation Refinement:** Moved the logo cleanly to the left and placed a safe "Discard Round" trash icon directly in the navigation bar when a round is active, triggering a safety confirmation modal.
+- **Uncluttered Track Round UI:** Fixed the main active playing cards to the top of the screen and anchored the "End/Pause Round" and "Snapshot" statistics blocks completely out of the way to the bottom footer area.
+- **Course Par Auto-Detection:** Removed the redundant global Course Par picker; par is now handled seamlessly hole-by-hole.
+
+### What's New in 3.8.6
 - **Scoring fix — Par 5 tee penalty + Holed it!** - "Holed it!" on the approach after a tee penalty was saving 1 stroke too few (birdie recorded as eagle). Now correctly counts the holed approach as a shot.
 - **Scoring fix — Par 3 +2 Drop submit label** - The submit button was displaying a score 1 lower than what was actually saved for Par 3 +2 local-rule drops. Label now matches the saved score.
 - **Par 3 penalty formula generalised** - Score calculation for Par 3 tee penalties now correctly handles both +1 Re-tee and +2 Drop using the actual penalty count instead of hardcoded values.
@@ -257,4 +265,4 @@ See **[TODOs](docs/TODOS.md)** for complete list of future features.
 **Website:** [cloudvirtue.com](https://cloudvirtue.com)
 **Repository:** Private
 **License:** Proprietary
-**Version:** 3.8.2 (Production)
+**Version:** 3.9.0 (Production)

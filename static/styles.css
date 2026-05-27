@@ -98,16 +98,42 @@ html {
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-size: var(--font-base);
     line-height: var(--line-normal);
     color: var(--text-primary);
     background-color: var(--bg-app);
+    background-attachment: fixed;
     min-height: 100%;
     min-height: -webkit-fill-available;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+}
+
+/* Glassmorphism Utilities */
+.glass-card {
+    background: rgba(221, 237, 210, 0.05);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(221, 237, 210, 0.1);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-bottom-nav {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(221, 237, 210, 0.1);
+}
+
+.glow-primary {
+    box-shadow: 0 0 20px rgba(221, 237, 210, 0.15);
+}
+
+.glow-primary-intense {
+    box-shadow: 0 0 30px rgba(221, 237, 210, 0.4);
 }
 
 /* Hide scrollbar for cleaner mobile experience */
@@ -177,7 +203,6 @@ a:active {
     min-height: -webkit-fill-available;
     display: flex;
     flex-direction: column;
-    background-color: var(--bg-app);
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
 }
@@ -221,11 +246,11 @@ a:active {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: var(--touch-min);
-    padding: var(--touch-padding);
-    font-size: var(--font-base);
-    font-weight: 600;
-    border-radius: var(--radius-lg);
+    min-height: calc(var(--touch-min) + 8px);
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 99px; /* Pill-shaped */
     border: none;
     cursor: pointer;
     transition: all var(--transition-base);
@@ -241,28 +266,34 @@ a:active {
 .btn-primary {
     background-color: var(--color-interactive);
     color: var(--text-on-light);
+    box-shadow: 0 0 20px rgba(221, 237, 210, 0.6); /* Increased glow */
 }
 
 .btn-primary:hover {
     background-color: #c5ddb8;
+    box-shadow: 0 0 25px rgba(221, 237, 210, 0.8);
 }
 
 .btn-primary:active {
     background-color: #b5cda8;
+    box-shadow: 0 0 10px rgba(221, 237, 210, 0.4);
 }
 
 .btn-secondary {
     background-color: transparent;
     color: var(--color-interactive);
     border: 2px solid var(--color-interactive);
+    box-shadow: 0 0 10px rgba(221, 237, 210, 0.1);
 }
 
 .btn-secondary:hover {
     background-color: rgba(221, 237, 210, 0.1);
+    box-shadow: 0 0 15px rgba(221, 237, 210, 0.3);
 }
 
 .btn-secondary:active {
     background-color: rgba(221, 237, 210, 0.2);
+    box-shadow: 0 0 8px rgba(221, 237, 210, 0.2);
 }
 
 .btn-error {
@@ -384,11 +415,13 @@ input[type="radio"] {
    7. CARDS
    ============================================ */
 .card {
-    background-color: var(--bg-card);
-    border: 2px solid var(--border-primary);
-    border-radius: var(--radius-lg);
-    padding: 1rem;  /* Reduced from var(--space-lg) 24px to 16px for mobile */
-    box-shadow: none;
+    background: rgba(221, 237, 210, 0.05);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(221, 237, 210, 0.1);
+    border-radius: var(--radius-xl);
+    padding: 1.25rem;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 .card-primary {
@@ -420,11 +453,13 @@ input[type="radio"] {
 
 /* Login/Auth form card */
 .login-form-card {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-primary);
+    background-color: rgba(10, 20, 10, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(221, 237, 210, 0.15);
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
 @media (min-width: 640px) {
@@ -448,15 +483,17 @@ input[type="radio"] {
 }
 
 .modal {
-    background-color: var(--bg-modal);
-    border: 2px solid var(--border-primary);
+    background-color: rgba(10, 20, 10, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(221, 237, 210, 0.2);
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
     max-width: 500px;
     width: 100%;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: var(--shadow-xl);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 .modal-large {

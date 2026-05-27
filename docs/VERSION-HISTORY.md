@@ -328,6 +328,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.8.2 (Production)
+**Current Version:** 3.9.0 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

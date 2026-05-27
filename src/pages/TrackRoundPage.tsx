@@ -2,7 +2,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPencil, faTrash, faDownload } from '@fortawesome/free-solid-svg-icons';
+import { faPencil, faTrash, faDownload, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { roundsAPI } from '@/lib/api';
 import { exportRoundToCSV } from '@/lib/export';
 import { convertToAPIHole } from '@/lib/hole-conversion';
@@ -107,6 +107,7 @@ export default function TrackRoundPage() {
   const [isStatsExpanded, setIsStatsExpanded] = useState<boolean>(false);
   const [isEditingCourseName, setIsEditingCourseName] = useState(false);
   const [editCourseNameValue, setEditCourseNameValue] = useState('');
+  const [showScore, setShowScore] = useState(true);
 
   const MAX_WEDGE_SHOTS = 3; // cap wedge shot inputs (never more than 3); allow typing >3 to show "Call your coach!"
   const wedgeCount = Math.min(Math.max(0, Number(shotsToGreen) || 0), MAX_WEDGE_SHOTS);
@@ -924,6 +925,24 @@ export default function TrackRoundPage() {
     return Math.floor(holeCount / 9);
   };
 
+  const handleDiscardRound = () => {
+    setModalMessage(`Discard this round? You have ${holes.length} hole${holes.length !== 1 ? 's' : ''} entered. Minimum 9 holes required to save stats.`);
+    setModalAction(() => async () => {
+      if (isLoggedIn) {
+        try {
+          await roundsAPI.deleteRound(undefined, roundId);
+          await roundsAPI.deleteIncompleteRound();
+          queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
+        } catch (error) {
+          console.error('Failed to discard server round:', error);
+        }
+      }
+      localStorage.removeItem('karlsGIR_currentRound');
+      navigate(isLoggedIn ? '/dashboard' : '/');
+    });
+    discardModal.open();
+  };
+
   // Ensure round is marked started once holes are present (after async loads)
   useEffect(() => {
     if (holes.length > 0 && !roundStarted) {
@@ -936,8 +955,8 @@ export default function TrackRoundPage() {
   if (!roundStarted) {
     return (
       <>
-        <IconNav />
-        <div style={{ paddingTop: '76px', padding: '76px 0.25rem 2rem', maxWidth: '900px', margin: '0 auto' }}>
+        <IconNav onDiscard={holes.length > 0 ? handleDiscardRound : undefined} />
+        <div style={{ paddingTop: '16px', padding: '16px 0.25rem 100px', maxWidth: '900px', margin: '0 auto' }}>
           <div className="container">
             {/* Always show course selector - incomplete rounds are handled on Dashboard */}
             <div className="card">
@@ -954,9 +973,9 @@ export default function TrackRoundPage() {
 
   return (
     <>
-      <IconNav />
-      <div style={{ paddingTop: '76px', padding: '76px 1rem 2rem' }}>
-        <div className="container" style={{ maxWidth: '800px' }}>
+      <IconNav onDiscard={holes.length > 0 ? handleDiscardRound : undefined} />
+      <div style={{ paddingTop: '16px', padding: '16px 1rem 100px', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <div className="container" style={{ maxWidth: '800px', display: 'flex', flexDirection: 'column', flex: 1 }}>
           {/* Guest Mode Indicator */}
           {!isLoggedIn && (
             <div style={{
@@ -977,117 +996,113 @@ export default function TrackRoundPage() {
           )}
 
           {/* Header */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h1 style={{ marginBottom: '0.5rem' }}>Track Round</h1>
-            {isEditingCourseName ? (
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <input
-                  type="text"
-                  value={editCourseNameValue}
-                  onChange={(e) => setEditCourseNameValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+          <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h1 style={{ marginBottom: '0.5rem' }}>Track Round</h1>
+              {isEditingCourseName ? (
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    value={editCourseNameValue}
+                    onChange={(e) => setEditCourseNameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const trimmed = editCourseNameValue.trim();
+                        if (trimmed) setCourseName(trimmed);
+                        setIsEditingCourseName(false);
+                      } else if (e.key === 'Escape') {
+                        setIsEditingCourseName(false);
+                      }
+                    }}
+                    style={{
+                      flex: '1 1 180px',
+                      padding: '0.4rem 0.6rem',
+                      fontSize: 'var(--font-base)',
+                      backgroundColor: 'rgba(221, 237, 210, 0.08)',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: 'var(--radius-md)',
+                      color: 'var(--text-primary)',
+                      outline: 'none',
+                    }}
+                    placeholder="Course name"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => {
                       const trimmed = editCourseNameValue.trim();
                       if (trimmed) setCourseName(trimmed);
                       setIsEditingCourseName(false);
-                    } else if (e.key === 'Escape') {
-                      setIsEditingCourseName(false);
-                    }
-                  }}
-                  style={{
-                    flex: '1 1 180px',
-                    padding: '0.4rem 0.6rem',
-                    fontSize: 'var(--font-base)',
-                    backgroundColor: 'rgba(221, 237, 210, 0.08)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: 'var(--radius-md)',
-                    color: 'var(--text-primary)',
-                    outline: 'none',
-                  }}
-                  placeholder="Course name"
-                  autoFocus
-                />
-                <button
-                  onClick={() => {
-                    const trimmed = editCourseNameValue.trim();
-                    if (trimmed) setCourseName(trimmed);
-                    setIsEditingCourseName(false);
-                  }}
-                  className="btn btn-primary"
-                  style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem' }}
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setIsEditingCourseName(false)}
-                  className="btn btn-secondary"
-                  style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem' }}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <p style={{ opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <span>{courseName}{editingHole !== null ? ' - Editing' : ''}</span>
-                <button
-                  onClick={() => { setEditCourseNameValue(courseName); setIsEditingCourseName(true); }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--color-interactive)',
-                    cursor: 'pointer',
-                    padding: '0.15rem 0.3rem',
-                    fontSize: '0.75rem',
-                    opacity: 0.7,
-                    lineHeight: 1,
-                  }}
-                  aria-label="Edit course name"
-                >
-                  <FontAwesomeIcon icon={faPencil} />
-                </button>
-              </p>
-            )}
-          </div>
-
-          {/* Course Par Selector */}
-          {roundStarted && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.8rem', opacity: 0.7, whiteSpace: 'nowrap' }}>Course Par:</span>
-                {[68, 69, 70, 71, 72].map((cp) => (
-                  <button
-                    key={cp}
-                    onClick={() => setCoursePar(coursePar === cp ? null : cp)}
-                    style={{
-                      padding: '0.25rem 0.6rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-primary)',
-                      backgroundColor: coursePar === cp ? 'var(--color-interactive)' : 'transparent',
-                      color: coursePar === cp ? '#000' : 'var(--text-primary)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      minWidth: '36px',
-                      textAlign: 'center' as const,
                     }}
+                    className="btn btn-primary"
+                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem' }}
                   >
-                    {cp}
+                    Save
                   </button>
-                ))}
-                {coursePar && holes.length > 0 && (() => {
-                  const overUnder = holes.reduce((acc, h) => acc + (h.score - h.par), 0);
-                  const color = overUnder > 0 ? '#ff6b6b' : overUnder < 0 ? '#51cf66' : '#51cf66';
-                  const label = overUnder > 0 ? `+${overUnder}` : overUnder < 0 ? `${overUnder}` : 'E';
-                  return (
-                    <span style={{ fontSize: '1rem', fontWeight: '700', color, marginLeft: '0.25rem', alignSelf: 'center' }}>
-                      {label}
-                    </span>
-                  );
-                })()}
-              </div>
+                  <button
+                    onClick={() => setIsEditingCourseName(false)}
+                    className="btn btn-secondary"
+                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <p style={{ opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span>{courseName}{editingHole !== null ? ' - Editing' : ''}</span>
+                  <button
+                    onClick={() => { setEditCourseNameValue(courseName); setIsEditingCourseName(true); }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--color-interactive)',
+                      cursor: 'pointer',
+                      padding: '0.15rem 0.3rem',
+                      fontSize: '0.75rem',
+                      opacity: 0.7,
+                      lineHeight: 1,
+                    }}
+                    aria-label="Edit course name"
+                  >
+                    <FontAwesomeIcon icon={faPencil} />
+                  </button>
+                </p>
+              )}
             </div>
-          )}
+            
+            {/* Current Score Display */}
+            {roundStarted && holes.length > 0 && (() => {
+              const overUnder = holes.reduce((acc, h) => acc + (h.score - h.par), 0);
+              const color = '#e6c280'; // Light tan color requested by user
+              const label = overUnder > 0 ? `+${overUnder}` : overUnder < 0 ? `${overUnder}` : 'E';
+              return (
+                <div 
+                  onClick={() => setShowScore(!showScore)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '50%',
+                    border: `2px solid ${color}`,
+                    color: color,
+                    fontSize: showScore ? '1.25rem' : '1rem',
+                    fontWeight: 'bold',
+                    flexShrink: 0,
+                    marginLeft: '1rem',
+                    boxShadow: `0 0 10px ${color}33`,
+                    marginTop: '0.25rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    opacity: showScore ? 1 : 0.6
+                  }}
+                  title={showScore ? "Click to hide score" : "Click to show score"}
+                >
+                  {showScore ? label : <FontAwesomeIcon icon={faEyeSlash} />}
+                </div>
+              );
+            })()}
+          </div>
 
           {/* Hole Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
@@ -1239,9 +1254,8 @@ export default function TrackRoundPage() {
                          fairway === 'rough' ? 'Rough/Trees' :
                          fairway === 'sand' ? 'Sand' :
                          fairway === 'na' ? (
-                           teePenalty === '1-retee' ? 'Penalty (+1 Re-tee)' :
-                           teePenalty === '1-drop' ? 'Penalty (+1 Drop)' :
-                           teePenalty === '2-drop' ? 'Penalty (+2 Drop)' :
+                           teePenalty === '1-retee' ? 'Penalty (OB / Re-Tee)' :
+                           teePenalty === '1-drop' ? 'Penalty (Red/Yellow Hazard)' :
                            teePenalty ? `Penalty (+${parseInt(teePenalty) || ''})` : 'Penalty'
                          ) : '')}
                   </span>
@@ -1462,7 +1476,7 @@ export default function TrackRoundPage() {
                 <span className="collapsed-summary-label">Penalty Type:</span>
                 <span>
                   <span className="collapsed-summary-value">
-                    {teePenalty === '1-retee' ? '+1 Re-tee' : teePenalty === '2-drop' ? '+2 Drop (Local Rule)' : teePenalty ? `+${parseInt(teePenalty)||''} Penalty` : ''}
+                    {teePenalty === '1-retee' ? 'OB / Re-Tee' : teePenalty === '1-drop' ? 'Red/Yellow Hazard' : teePenalty ? `+${parseInt(teePenalty)||''} Penalty` : ''}
                   </span>
                   <span className="collapsed-summary-edit">Edit</span>
                 </span>
@@ -1488,7 +1502,7 @@ export default function TrackRoundPage() {
                         color: teePenalty === '1-retee' ? '#000' : 'var(--color-interactive)',
                       }}
                     >
-                      +1 Re-tee
+                      OB / Re-Tee
                     </button>
                     <button
                       onClick={() => {
@@ -1504,23 +1518,7 @@ export default function TrackRoundPage() {
                         color: teePenalty === '1-drop' ? '#000' : 'var(--color-interactive)',
                       }}
                     >
-                      +1 Drop
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTeePenalty('2-drop');
-                        setGir(null); setPutts(null); setHoledOut(false); setPuttDistances([]); setShotsToGreen(null); setWedgeShotDistances([]); setApproachMissLocation(null);
-                        if (par !== 3) { setSecondShotLie(null); setProximity(null); setSecondShotDistance(null); }
-                        setActiveCard(par === 3 ? 4 : 3);
-                      }}
-                      className="btn btn-secondary"
-                      style={{
-                        width: '100%',
-                        backgroundColor: teePenalty === '2-drop' ? 'var(--color-interactive)' : 'transparent',
-                        color: teePenalty === '2-drop' ? '#000' : 'var(--color-interactive)',
-                      }}
-                    >
-                      +2 Drop (Local Rule)
+                      Red/Yellow Hazard
                     </button>
                   </>
                 </div>
@@ -2852,8 +2850,10 @@ export default function TrackRoundPage() {
           );
           })()}
 
-          {/* Stats Panel (Moved to Bottom) */}
-          {holes.length > 0 && (
+          {/* Bottom Section: Snapshot & Actions */}
+          <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
+            {/* Stats Panel (Moved to Bottom) */}
+            {holes.length > 0 && (
             <div className="card" style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem' }}>
               <div 
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
@@ -2929,31 +2929,14 @@ export default function TrackRoundPage() {
           )}
 
           {/* End/Pause Round Button */}
-          {holes.length > 0 && (
+          {holes.length >= 9 && (
             <>
               <button
                 onClick={() => {
                   const completeNines = getCompleteNines(holes.length);
                   const incompleteHoles = holes.length % 9;
 
-                  if (holes.length < 9) {
-                    // Less than 9 holes - discard round (no server save, just clear localStorage)
-                    setModalMessage(`Discard this round? You have ${holes.length} hole${holes.length !== 1 ? 's' : ''} entered. Minimum 9 holes required to save stats.`);
-                    setModalAction(() => async () => {
-                      if (isLoggedIn) {
-                        try {
-                          await roundsAPI.deleteRound(undefined, roundId);
-                          await roundsAPI.deleteIncompleteRound();
-                          queryClient.invalidateQueries({ queryKey: ['incompleteRounds'] });
-                        } catch (error) {
-                          console.error('Failed to discard server round:', error);
-                        }
-                      }
-                      localStorage.removeItem('karlsGIR_currentRound');
-                      navigate(isLoggedIn ? '/dashboard' : '/');
-                    });
-                    discardModal.open();
-                  } else if (incompleteHoles > 0) {
+                  if (incompleteHoles > 0) {
                     // Incomplete nine - only record complete nines
                     setModalMessage(`You've completed ${completeNines * 9} holes. The remaining ${incompleteHoles} hole${incompleteHoles !== 1 ? 's' : ''} will be deleted. Continue?`);
                     setModalAction(() => async () => {
@@ -3063,7 +3046,7 @@ export default function TrackRoundPage() {
                   marginTop: '1.5rem',
                 }}
               >
-                {holes.length < 9 ? `Discard Round (${holes.length} hole${holes.length !== 1 ? 's' : ''})` : `End Round (${holes.length} holes)`}
+                End Round ({holes.length} holes)
               </button>
 
               {/* Pause Round Button - only for >= 9 holes */}
@@ -3140,6 +3123,7 @@ export default function TrackRoundPage() {
               )}
             </>
           )}
+          </div>
         </div>
       </div>
 
