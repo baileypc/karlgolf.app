@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Edit Preview</title>
+<style>
+  :root {
+    --green: #5a9e5a;
+    --green-dim: rgba(90,158,90,0.15);
+    --bg: #1a1f1a;
+    --card: #222822;
+    --text: #ddefd2;
+    --muted: rgba(221,237,210,0.55);
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 1.5rem; }
+  h1 { font-size: 1.1rem; margin-bottom: 0.4rem; color: var(--green); }
+  .label { font-size: 0.72rem; color: var(--muted); margin-bottom: 1.5rem; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 900px; }
+  @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+  .col-header { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; text-align: center; }
+  .col-header.before { color: #888; }
+  .col-header.after { color: var(--green); }
+
+  /* ── Card ── */
+  .card { background: var(--card); border-radius: var(--radius); padding: 0.75rem 1rem; margin-bottom: 1rem; }
+  .card-title { font-size: 0.85rem; font-weight: 700; text-align: center; margin-bottom: 0.75rem; }
+
+  /* ── Compact stat grid ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; text-align: center; }
+  .stat-cell { padding: 0.5rem 0; }
+  .stat-val { font-size: 1.35rem; font-weight: 700; }
+  .stat-lbl { font-size: 0.72rem; color: var(--muted); }
+  .stat-sub { font-size: 0.62rem; color: rgba(221,237,210,0.35); margin-top: 0.1rem; }
+
+  /* Highlight new cell */
+  .new-cell { background: rgba(90,158,90,0.18); border-radius: 8px; border: 1px solid rgba(90,158,90,0.35); }
+  .changed-lbl { color: #8ecf8e; }
+
+  /* ── Callout ── */
+  .note { background: rgba(90,158,90,0.1); border-left: 3px solid var(--green); border-radius: 6px; padding: 0.65rem 0.9rem; margin-top: 1.5rem; font-size: 0.8rem; color: var(--text); line-height: 1.5; }
+  .note strong { color: var(--green); }
+  .note ul { margin-top: 0.4rem; padding-left: 1.2rem; }
+  .note li { margin-bottom: 0.25rem; }
+  .tag { display: inline-block; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-radius: 4px; padding: 0.15rem 0.45rem; margin-right: 0.3rem; }
+  .tag-new { background: rgba(90,158,90,0.3); color: #8ecf8e; }
+  .tag-change { background: rgba(200,160,60,0.25); color: #e0c060; }
+  .tag-none { background: rgba(150,150,150,0.15); color: #999; }
+  .sep { border: none; border-top: 1px solid rgba(221,237,210,0.08); margin: 1rem 0; }
+  .golfer-context { font-size: 0.75rem; color: var(--muted); font-style: italic; margin-top: 0.3rem; }
+</style>
+</head>
+<body>
+
+<h1>Dashboard · Proposed Changes Preview</h1>
+<p class="label">How a golfer will see the compact stats card — Before vs After</p>
+
+<div class="cols">
+
+  <!-- ─── BEFORE ─── -->
+  <div>
+    <div class="col-header before">● CURRENT</div>
+    <div class="card">
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <div class="stat-val">54</div>
+          <div class="stat-lbl">Holes</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">61.3%</div>
+          <div class="stat-lbl">Fairways</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">2.1</div>
+          <div class="stat-lbl">Putts/Hole</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">2</div>
+          <div class="stat-lbl">Hole-Outs</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">0.7</div>
+          <div class="stat-lbl">HO/18</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">447</div>
+          <div class="stat-lbl">Strokes</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">33.3%</div>
+          <div class="stat-lbl">Scrambling</div>
+          <!-- No sub-label — user can't tell 33% of what -->
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">142yd</div>
+          <div class="stat-lbl">Approach</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">4</div>
+          <div class="stat-lbl">Penalty Strokes</div>
+        </div>
+      </div>
+    </div>
+    <p class="golfer-context">Reading "33.3% Scrambling" — 33% of what? All holes? I can't tell.</p>
+    <p class="golfer-context" style="margin-top:0.3rem">No putting quality metric for when I actually hit the green.</p>
+  </div>
+
+  <!-- ─── AFTER ─── -->
+  <div>
+    <div class="col-header after">✦ PROPOSED</div>
+    <div class="card">
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <div class="stat-val">54</div>
+          <div class="stat-lbl">Holes</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">61.3%</div>
+          <div class="stat-lbl">Fairways</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">2.1</div>
+          <div class="stat-lbl">Putts/Hole</div>
+        </div>
+        <div class="stat-cell new-cell">
+          <div class="stat-val">1.94</div>
+          <div class="stat-lbl changed-lbl">Putts/GIR <span class="tag tag-new">NEW</span></div>
+          <!-- Avg putts only on holes where you hit the green in regulation -->
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">2</div>
+          <div class="stat-lbl">Hole-Outs</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">0.7</div>
+          <div class="stat-lbl">HO/18</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">447</div>
+          <div class="stat-lbl">Strokes</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">33.3%</div>
+          <div class="stat-lbl changed-lbl">Scrambling <span class="tag tag-change">EDIT</span></div>
+          <div class="stat-sub">of missed GIR</div>
+          <!-- Now shows: saved par on 33% of holes where you MISSED the green -->
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">142yd</div>
+          <div class="stat-lbl">Approach</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">4</div>
+          <div class="stat-lbl">Penalty Strokes</div>
+        </div>
+      </div>
+    </div>
+    <p class="golfer-context">"of missed GIR" — now I know this is my par-save rate when I miss the green.</p>
+    <p class="golfer-context" style="margin-top:0.3rem">"Putts/GIR 1.94" — when I do hit the green, I average 1.94 putts. PGA Tour ≈ 1.77.</p>
+  </div>
+
+</div>
+
+<hr class="sep">
+
+<!-- ─── Golfer explanation ─── -->
+<div class="note">
+  <strong>What each change means to you as a golfer</strong>
+  <ul>
+    <li>
+      <strong>Putts/GIR (new)</strong> — "When I actually hit the green in regulation, how well do I putt from there?"
+      PGA Tour average is <strong>≈ 1.77</strong>. Most club golfers are 1.9–2.2.
+      If your Putts/Hole is 2.1 but your Putts/GIR is 2.3, your putting is actually <em>worse</em> when you've earned the advantage of a regulation approach — a very common and actionable finding.
+    </li>
+    <li style="margin-top:0.5rem">
+      <strong>Scrambling "of missed GIR"</strong> — Scrambling = making par or better after missing the green.
+      Adding the sub-label "of missed GIR" makes it clear: <em>out of the holes where you missed the green, you saved par on X%</em>.
+      Without it, a golfer reading "33%" doesn't know if that means 1-in-3 total holes or 1-in-3 missed greens.
+    </li>
+  </ul>
+</div>
+
+<div class="note" style="margin-top:0.75rem; background: rgba(60,60,80,0.3); border-left-color: #666;">
+  <strong style="color:#aaa">Changes NOT visible to a golfer (internal only)</strong>
+  <ul>
+    <li><code>gir: h.gir === 'y' ? 'y' : 'n'</code> — defensive fallback in TrackRoundPage. Zero visual impact.</li>
+    <li>Rename <code>girPercentage</code> → <code>girPct</code> in TypeScript types. Zero visual impact.</li>
+  </ul>
+</div>
+
+</body>
+</html>

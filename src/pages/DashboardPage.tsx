@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faDownload, faRotateRight, faUserSlash, faPencil } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faRotateRight, faUserSlash, faPencil, faFilePdf } from '@fortawesome/free-solid-svg-icons';
 import IconNav from '@/components/IconNav';
 import { roundsAPI, authAPI } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import Modal, { useModal } from '@/components/Modal';
-import { exportAllRoundsToCSV } from '@/lib/export';
+import { exportRoundReportPDF, exportRoundLogPDF, exportCareerReportPDF } from '@/lib/pdf-export';
 import CircularProgress from '@/components/CircularProgress';
 
 export default function DashboardPage() {
@@ -920,6 +920,26 @@ export default function DashboardPage() {
                           <FontAwesomeIcon icon={faPencil} />
                           Edit Course
                         </button>
+                        {!isIncomplete && (
+                          <button
+                            onClick={() => {
+                              const round = group.rounds[0];
+                              exportRoundReportPDF(round.holes ?? [], group.courseName, round.date);
+                            }}
+                            className="btn btn-secondary"
+                            style={{
+                              width: '100%',
+                              fontSize: '0.875rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.5rem',
+                            }}
+                          >
+                            <FontAwesomeIcon icon={faFilePdf} />
+                            Round Report (PDF)
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             setRoundToDelete({ roundNumber: group.roundNumber, roundId: group.rounds[0]?.roundId, courseName: group.courseName });
@@ -958,38 +978,46 @@ export default function DashboardPage() {
                   paddingTop: '1.5rem',
                   borderTop: '1px solid rgba(221, 237, 210, 0.2)'
                 }}>
-                  {/* Export Data */}
-                  <button
-                    onClick={() => {
-                      if (!statsData?.success || !statsData.groups || statsData.groups.length === 0) {
-                        alert('No data to export');
-                        return;
-                      }
-
-                      // Collect all rounds from groups
-                      const allRounds: any[] = [];
-                      statsData.groups.forEach((group: any) => {
-                        if (group.rounds && Array.isArray(group.rounds)) {
-                          allRounds.push(...group.rounds);
+                  {/* Export PDFs */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'rgba(221, 237, 210, 0.6)', paddingBottom: '0.25rem' }}>Export Reports (PDF)</div>
+                    <button
+                      onClick={() => {
+                        if (!statsData?.success || !statsData.groups || statsData.groups.length === 0) {
+                          alert('No rounds to export');
+                          return;
                         }
-                      });
-
-                      // Call the CSV export function
-                      exportAllRoundsToCSV(allRounds);
-                    }}
-                    className="btn btn-secondary"
-                    style={{
-                      width: '100%',
-                      fontSize: '0.875rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faDownload} />
-                    Export All Data
-                  </button>
+                        const allRounds: any[] = [];
+                        statsData.groups.forEach((group: any) => {
+                          if (group.rounds && Array.isArray(group.rounds)) allRounds.push(...group.rounds);
+                        });
+                        exportRoundLogPDF(allRounds);
+                      }}
+                      className="btn btn-secondary"
+                      style={{ width: '100%', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                    >
+                      <FontAwesomeIcon icon={faFilePdf} />
+                      Round Log (all rounds)
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (!statsData?.success || !statsData.groups || statsData.groups.length === 0) {
+                          alert('No rounds to export');
+                          return;
+                        }
+                        const allRounds: any[] = [];
+                        statsData.groups.forEach((group: any) => {
+                          if (group.rounds && Array.isArray(group.rounds)) allRounds.push(...group.rounds);
+                        });
+                        exportCareerReportPDF(allRounds, statsData.cumulative);
+                      }}
+                      className="btn btn-secondary"
+                      style={{ width: '100%', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                    >
+                      <FontAwesomeIcon icon={faFilePdf} />
+                      Career Report
+                    </button>
+                  </div>
 
                   {/* Clear Cache */}
                   <button
@@ -1052,39 +1080,48 @@ export default function DashboardPage() {
               paddingTop: '1.5rem',
               borderTop: '1px solid rgba(221, 237, 210, 0.2)'
             }}>
-              {/* Export Data */}
-              <button
-                onClick={() => {
-                  if (!statsData?.success || !statsData.groups || statsData.groups.length === 0) {
-                    setErrorMessage('No data to export');
-                    errorModal.open();
-                    return;
-                  }
-
-                  // Collect all rounds from groups
-                  const allRounds: any[] = [];
-                  statsData.groups.forEach((group: any) => {
-                    if (group.rounds && Array.isArray(group.rounds)) {
-                      allRounds.push(...group.rounds);
+              {/* Export PDFs */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'rgba(221, 237, 210, 0.6)', paddingBottom: '0.25rem' }}>Export Reports (PDF)</div>
+                <button
+                  onClick={() => {
+                    if (!statsData?.success || !statsData.groups || statsData.groups.length === 0) {
+                      setErrorMessage('No rounds to export');
+                      errorModal.open();
+                      return;
                     }
-                  });
-
-                  // Call the CSV export function
-                  exportAllRoundsToCSV(allRounds);
-                }}
-                className="btn btn-secondary"
-                style={{
-                  width: '100%',
-                  fontSize: '0.875rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <FontAwesomeIcon icon={faDownload} />
-                Export All Data
-              </button>
+                    const allRounds: any[] = [];
+                    statsData.groups.forEach((group: any) => {
+                      if (group.rounds && Array.isArray(group.rounds)) allRounds.push(...group.rounds);
+                    });
+                    exportRoundLogPDF(allRounds);
+                  }}
+                  className="btn btn-secondary"
+                  style={{ width: '100%', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <FontAwesomeIcon icon={faFilePdf} />
+                  Round Log (all rounds)
+                </button>
+                <button
+                  onClick={() => {
+                    if (!statsData?.success || !statsData.groups || statsData.groups.length === 0) {
+                      setErrorMessage('No rounds to export');
+                      errorModal.open();
+                      return;
+                    }
+                    const allRounds: any[] = [];
+                    statsData.groups.forEach((group: any) => {
+                      if (group.rounds && Array.isArray(group.rounds)) allRounds.push(...group.rounds);
+                    });
+                    exportCareerReportPDF(allRounds, statsData.cumulative);
+                  }}
+                  className="btn btn-secondary"
+                  style={{ width: '100%', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <FontAwesomeIcon icon={faFilePdf} />
+                  Career Report
+                </button>
+              </div>
 
               {/* Delete All Rounds */}
               <button

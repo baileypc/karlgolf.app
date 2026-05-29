@@ -1,5 +1,23 @@
 # Version History
 
+## Version 3.10.0 - PDF Export Reports (June 2026)
+
+### New Features
+
+**PDF export system — replaces CSV:**
+- **Round Report (PDF)**: Full per-round scorecard (hole-by-hole: Par, Score, +/-, GIR, Putts, Fairway, Proximity, Penalties) plus a stats summary with PGA Tour benchmarks. Button appears on each completed round card. Files saved as `karls-gir_round-report_<course>_<date>.pdf`.
+- **Round Log (PDF)**: Landscape table with one row per round — Date, Course, Holes, Score, +/-, GIR%, FW%, Putts, Putts/GIR, Scrambling%. Replaces the old "Export All Data" CSV button. File saved as `karls-gir_round-log_<date>.pdf`.
+- **Career Report (PDF)**: All-time career averages, a last-5-rounds vs all-time trend table with ▲/▼ indicators, and a "Best Round" callout. Replaces the old CSV global export. File saved as `karls-gir_career-report_<date>.pdf`.
+
+All PDFs are read-only, clearly branded "Karl Golf GIR · karlgolf.app", and include generation date. Cannot be edited like CSV.
+
+**Dependencies added:** `jspdf` + `jspdf-autotable`
+
+### Removed
+- CSV "Export All Data" button from player-facing UI (both footer locations in DashboardPage)
+
+---
+
 ## Version 3.9.1 - Dashboard Stats Patch (May 2026)
 
 ### Improvements
@@ -344,6 +362,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.9.1 (Production)
+**Current Version:** 3.10.0 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

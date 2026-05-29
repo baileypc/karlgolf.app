@@ -1,6 +1,6 @@
 {
   "name": "karls-gir",
-  "version": "3.9.1",
+  "version": "3.10.0",
   "type": "module",
   "description": "Karl Golf GIR - Golf Statistics Tracker PWA",
   "scripts": {
@@ -38,6 +38,8 @@
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
     "@fortawesome/react-fontawesome": "^3.1.0",
     "@tanstack/react-query": "^5.90.7",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hot-toast": "^2.6.0",

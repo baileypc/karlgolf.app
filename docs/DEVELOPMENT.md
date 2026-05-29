@@ -1,6 +1,6 @@
 # Karl's GIR - Development Setup
 
-**Version:** 3.9.1
+**Version:** 3.10.0
 **Last Updated:** December 2025
 
 ## 🚀 Quick Start
