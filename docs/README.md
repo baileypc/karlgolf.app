@@ -1,6 +1,6 @@
 # Karl's GIR - Documentation Index
 
-**Version:** 3.9.0
+**Version:** 3.9.1
 **Last Updated:** March 2026
 
 This directory contains all documentation for the Karl's GIR Golf Tracker application.
@@ -218,6 +218,6 @@ When adding or updating documentation:
 
 ---
 
-**Current Version:** 3.9.0
+**Current Version:** 3.9.1
 **Documentation Last Updated:** December 2025
 

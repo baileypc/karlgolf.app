@@ -1,5 +1,21 @@
 # Version History
 
+## Version 3.9.1 - Dashboard Stats Patch (May 2026)
+
+### Improvements
+
+**Dashboard stats card:**
+- Replaced all-time total stroke count tile with **Putts/GIR** — average putts on holes where the green was hit in regulation. PGA Tour average ≈ 1.77. More actionable than a cumulative stroke total.
+- Added **"of missed GIR"** sub-label to the Scrambling % tile to make the denominator explicit (par-saves per missed green, not per total holes).
+
+**Data integrity:**
+- GIR value in the continue-round server-load path now uses a strict `=== 'y'` check to match all other load paths, preventing a potential `undefined` state from legacy or corrupt data.
+
+**TypeScript config:**
+- Added `"ignoreDeprecations": "6.0"` to suppress the `baseUrl` deprecation warning introduced in TypeScript 6.
+
+---
+
 ## Version 3.8.2 - Scoring Accuracy & UX Patch (May 2026)
 
 ### Bug Fixes
@@ -328,6 +344,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.9.0 (Production)
+**Current Version:** 3.9.1 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

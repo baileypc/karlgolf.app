@@ -304,7 +304,7 @@ export default function TrackRoundPage() {
             holeNumber: h.holeNumber,
             par: h.par,
             score: h.score,
-            gir: h.gir,
+            gir: h.gir === 'y' ? 'y' : 'n',
             putts: h.putts,
             puttDistances: h.puttDistances || [],
             holedOut: Boolean(h.holedOut || (h.putts === 0 && (h.puttDistances?.length ?? 0) === 0)),

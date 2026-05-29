@@ -1,6 +1,6 @@
 # Karl Golf GIR - Golf Tracking PWA
 
-**Version:** 3.9.0 (Production)
+**Version:** 3.9.1 (Production)
 **Status:** Production ready
 **Domain:** [https://karlgolf.app](https://karlgolf.app)
 
@@ -8,10 +8,16 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 
 ---
 
-## Version 3.9.0 - Current Release
+## Version 3.9.1 - Current Release
 
-**Release type:** UI/UX Overhaul & Modernization
+**Release type:** Dashboard Stats Patch
 **Status:** Production ready
+
+### What's New in 3.9.1
+- **Putts/GIR dashboard tile:** The compact stats card now shows average putts per green hit in regulation — the most actionable putting quality metric, replacing the less-useful all-time total stroke count. PGA Tour benchmark ≈ 1.77 for context.
+- **Scrambling denominator clarity:** The Scrambling % tile now shows "of missed GIR" as a sub-label so it's clear this is par-or-better saves per missed green, not per total holes.
+- **GIR data hardening:** The continue-round server load path now uses a strict `=== 'y'` check when restoring GIR state from a saved hole, consistent with all other load paths.
+- **TypeScript config:** Added `"ignoreDeprecations": "6.0"` to suppress the `baseUrl` deprecation warning in TypeScript 6+.
 
 ### What's New in 3.9.0
 - **Glassmorphism UI Overhaul:** Replaced the previous solid colors with a modern, glass-like frosted aesthetic (`.glass-card`, `.glass-bottom-nav`) atop a deep black (`#000000`) background.
@@ -265,4 +271,4 @@ See **[TODOs](docs/TODOS.md)** for complete list of future features.
 **Website:** [cloudvirtue.com](https://cloudvirtue.com)
 **Repository:** Private
 **License:** Proprietary
-**Version:** 3.9.0 (Production)
+**Version:** 3.9.1 (Production)

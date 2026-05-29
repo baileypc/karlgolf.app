@@ -323,12 +323,13 @@ export default function DashboardPage() {
                     <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>HO/18</div>
                   </div>
                   <div style={{ padding: '0.5rem 0' }}>
-                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.totalScore}</div>
-                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Strokes</div>
+                    <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.puttsPerGIR > 0 ? statsData.cumulative.puttsPerGIR.toFixed(2) : '—'}</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Putts/GIR</div>
                   </div>
                   <div style={{ padding: '0.5rem 0' }}>
                     <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.scramblingPct.toFixed(1)}%</div>
                     <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Scrambling</div>
+                    <div style={{ fontSize: '0.65rem', opacity: 0.4 }}>of missed GIR</div>
                   </div>
                   <div style={{ padding: '0.5rem 0' }}>
                     <div style={{ fontSize: 'var(--font-xl)', fontWeight: '700' }}>{statsData.cumulative.avgProximity > 0 ? `${Math.round(statsData.cumulative.avgProximity)}yd` : 'N/A'}</div>

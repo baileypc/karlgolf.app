@@ -1,6 +1,6 @@
 {
   "name": "karls-gir",
-  "version": "3.9.0",
+  "version": "3.9.1",
   "type": "module",
   "description": "Karl Golf GIR - Golf Statistics Tracker PWA",
   "scripts": {
