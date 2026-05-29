@@ -250,7 +250,7 @@ a:active {
     padding: 1rem 1.5rem;
     font-size: 1.1rem;
     font-weight: 700;
-    border-radius: 99px; /* Pill-shaped */
+    border-radius: var(--radius-lg); /* Rounded rectangle */
     border: none;
     cursor: pointer;
     transition: all var(--transition-base);
