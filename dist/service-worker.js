@@ -1,7 +1,7 @@
 // Karl's GIR - Service Worker
 // App-shell caching for installability and offline navigation fallback.
 
-const CACHE_NAME = 'karls-gir-v3.10.0';
+const CACHE_NAME = 'karls-gir-v3.10.1';
 const RUNTIME_CACHE = 'karls-gir-runtime';
 
 const ASSETS_TO_CACHE = [

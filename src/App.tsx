@@ -8,6 +8,7 @@ import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import HomePage from '@/pages/HomePage';
 import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/DashboardPage';
+import AccountPage from '@/pages/AccountPage';
 import TrackRoundPage from '@/pages/TrackRoundPage';
 import TrackLivePage from '@/pages/TrackLivePage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
@@ -56,6 +57,15 @@ function AppRoutes() {
         <Route path="/offline" element={<OfflinePage />} />
 
         {/* Protected routes */}
+        <Route
+          path="/account"
+          element={
+            <ProtectedRoute>
+              <AccountPage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/dashboard"
           element={

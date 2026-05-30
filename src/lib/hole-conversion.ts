@@ -1,4 +1,4 @@
-import type { Hole as APIHole } from '@/types';
+import type { GirAttemptSource, Hole as APIHole, PenaltyOrigin } from '@/types';
 
 export interface LocalHoleLike {
   holeNumber: number;
@@ -12,6 +12,12 @@ export interface LocalHoleLike {
   shotsToGreen?: number;
   penalty?: string | null;
   proximity?: number;
+  approachLie?: APIHole['approachLie'];
+  girAttemptSource?: GirAttemptSource | null;
+  girAttemptShotNumber?: number | null;
+  girAttemptDistance?: number | null;
+  greenReachedOnShot?: number | null;
+  penaltyOrigin?: PenaltyOrigin;
   secondShotDistance?: number;
   secondShotLie?: 'c' | 'fairway' | 'rough' | 'sand' | 'na' | 'hazard' | 'green' | null;
   secondShotPenalty?: string | number | null;
@@ -62,6 +68,10 @@ function toSecondShotPenalty(hole: LocalHoleLike): number {
 }
 
 function toApproachLie(localHole: LocalHoleLike): APIHole['approachLie'] {
+  if (localHole.girAttemptSource === 'fairway' || localHole.girAttemptSource === 'rough' || localHole.girAttemptSource === 'sand') {
+    return localHole.girAttemptSource;
+  }
+
   if (localHole.par === 3) return null;
 
   if (localHole.par === 5) {
@@ -81,6 +91,7 @@ function toApproachLie(localHole: LocalHoleLike): APIHole['approachLie'] {
 export function convertToAPIHole(localHole: LocalHoleLike): APIHole {
   const totalPenalties = toPenaltyStrokes(localHole);
   const secondShotPenalty = toSecondShotPenalty(localHole);
+  const girAttemptDistance = localHole.girAttemptDistance ?? localHole.proximity;
 
   const apiHole: APIHole = {
     holeNumber: localHole.holeNumber,
@@ -96,8 +107,13 @@ export function convertToAPIHole(localHole: LocalHoleLike): APIHole {
       : localHole.shotsToGreen,
     penalty: totalPenalties > 0 ? 'other' : null,
     penaltyStrokes: totalPenalties > 0 ? totalPenalties : undefined,
-    proximity: localHole.proximity,
+    proximity: girAttemptDistance,
     approachLie: toApproachLie(localHole),
+    girAttemptSource: localHole.girAttemptSource,
+    girAttemptShotNumber: localHole.girAttemptShotNumber,
+    girAttemptDistance,
+    greenReachedOnShot: localHole.greenReachedOnShot,
+    penaltyOrigin: localHole.penaltyOrigin,
   };
 
   if (localHole.par === 5) {

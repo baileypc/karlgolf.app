@@ -90,6 +90,22 @@ function normalizeSecondShotLieValue($lie) {
     return null;
 }
 
+function normalizeGirAttemptSourceValue($source) {
+    if (in_array($source, ['tee', 'fairway', 'rough', 'sand', 'retee', 'drop', 'recovery', 'unknown'], true)) {
+        return $source;
+    }
+
+    return null;
+}
+
+function normalizePenaltyOriginValue($origin) {
+    if (in_array($origin, ['none', 'tee', 'second-shot', 'approach'], true)) {
+        return $origin;
+    }
+
+    return null;
+}
+
 function positiveIntOrNull($value) {
     return is_numeric($value) && (int)$value > 0 ? (int)$value : null;
 }
@@ -205,6 +221,28 @@ function validateHole($hole) {
     $approachLie = normalizeApproachLieValue($hole['approachLie'] ?? null);
     if ($approachLie !== null) {
         $sanitized['approachLie'] = $approachLie;
+    }
+
+    $girAttemptSource = normalizeGirAttemptSourceValue($hole['girAttemptSource'] ?? null);
+    if ($girAttemptSource !== null) {
+        $sanitized['girAttemptSource'] = $girAttemptSource;
+    }
+
+    if (($value = positiveIntOrNull($hole['girAttemptShotNumber'] ?? null)) !== null) {
+        $sanitized['girAttemptShotNumber'] = $value;
+    }
+
+    if (($value = positiveFloatOrNull($hole['girAttemptDistance'] ?? null)) !== null) {
+        $sanitized['girAttemptDistance'] = $value;
+    }
+
+    if (($value = positiveIntOrNull($hole['greenReachedOnShot'] ?? null)) !== null) {
+        $sanitized['greenReachedOnShot'] = $value;
+    }
+
+    $penaltyOrigin = normalizePenaltyOriginValue($hole['penaltyOrigin'] ?? null);
+    if ($penaltyOrigin !== null) {
+        $sanitized['penaltyOrigin'] = $penaltyOrigin;
     }
 
     $secondShotLie = normalizeSecondShotLieValue($hole['secondShotLie'] ?? null);
@@ -338,5 +376,26 @@ function validatePassword($password, $minLength = 8) {
     }
 
     return ['valid' => true, 'error' => null];
+}
+
+function validateUsername($username, $maxLength = 40) {
+    if (!is_string($username)) {
+        return ['valid' => false, 'sanitized' => '', 'error' => 'Username is required'];
+    }
+
+    $trimmed = trim($username);
+    if ($trimmed === '') {
+        return ['valid' => false, 'sanitized' => '', 'error' => 'Username is required'];
+    }
+
+    if (strlen($trimmed) > $maxLength) {
+        return ['valid' => false, 'sanitized' => '', 'error' => "Username must be $maxLength characters or fewer"];
+    }
+
+    if (!preg_match('/^[A-Za-z0-9 _.-]+$/', $trimmed)) {
+        return ['valid' => false, 'sanitized' => '', 'error' => 'Username contains invalid characters'];
+    }
+
+    return ['valid' => true, 'sanitized' => $trimmed, 'error' => null];
 }
 

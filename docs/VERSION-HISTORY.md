@@ -1,5 +1,27 @@
 # Version History
 
+## Version 3.10.1 - Account Settings & GIR Data Hardening (June 2026)
+
+### New Features
+
+**Account settings:**
+- Added a dedicated in-app account page accessible from the footer navigation.
+- Logged-in users can now update their sign-in email address and password without leaving the app.
+- Email changes preserve the user's existing rounds and stats by migrating the underlying hashed account folder safely.
+
+**GIR data reliability:**
+- Added canonical GIR-attempt fields so saved holes now preserve attempt source, attempt shot number, attempt distance, green-reached shot, and penalty origin explicitly.
+- Track Round save flow now normalizes hole semantics before they reach the API, reducing ambiguity in GIR-by-lie and approach-distance reporting.
+- Added a one-time migration script to backfill canonical GIR fields into legacy round data where the old saved hole data was deterministic.
+
+### Improvements
+
+- Added a footer-nav account icon and protected account settings page while keeping the existing dashboard and round-entry flow intact.
+- Added persistent profile metadata support per user directory.
+- Improved public-facing release notes to describe the new account settings and stats-data accuracy work.
+
+---
+
 ## Version 3.10.0 - PDF Export Reports (June 2026)
 
 ### New Features
@@ -362,6 +384,6 @@ See **[TODOs](TODOS.md)** for complete list of future features.
 
 ---
 
-**Current Version:** 3.10.0 (Production)
+**Current Version:** 3.10.1 (Production)
 **Next Version:** 4.0.0 (Future enhancements)
 

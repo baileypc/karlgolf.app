@@ -6,7 +6,8 @@ import { faPencil, faTrash, faDownload, faEyeSlash } from '@fortawesome/free-sol
 import { roundsAPI } from '@/lib/api';
 import { exportRoundToCSV } from '@/lib/export';
 import { convertToAPIHole } from '@/lib/hole-conversion';
-import type { CourseMetadata } from '@/types';
+import { normalizeHoleForSave } from '@/lib/hole-normalization';
+import type { CourseMetadata, DirectGreenSource, GirAttemptSource, PenaltyOrigin } from '@/types';
 import IconNav from '../components/IconNav';
 import Modal, { useModal } from '../components/Modal';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,6 +27,12 @@ interface LocalHole {
   shotsToGreen?: number;
   penalty?: string;
   proximity?: number;
+  approachLie?: 'fairway' | 'rough' | 'sand' | null;
+  girAttemptSource?: GirAttemptSource | null;
+  girAttemptShotNumber?: number | null;
+  girAttemptDistance?: number | null;
+  greenReachedOnShot?: number | null;
+  penaltyOrigin?: PenaltyOrigin;
   // Par 5 only: second shot and wedge result
   secondShotDistance?: number;
   secondShotLie?: 'c' | 'rough' | 'sand' | 'na' | 'green';
@@ -102,6 +109,7 @@ export default function TrackRoundPage() {
   const [approachMissLocation, setApproachMissLocation] = useState<'short' | 'sand' | 'long' | 'hazard' | 'left' | 'right' | 'fringe' | 'fringe-left' | 'fringe-right' | 'fringe-long' | 'fringe-short' | null>(null);
   const [wedgeShotDistances, setWedgeShotDistances] = useState<number[]>([]); // one per wedge shot when missed GIR
   const [holeDistance, setHoleDistance] = useState<number | null>(null); // total hole distance tee to pin
+  const [directGreenSource, setDirectGreenSource] = useState<DirectGreenSource | null>(null);
 
   const [activeCard, setActiveCard] = useState<number>(1); // 1: Par, 2: Tee, 3: Approach/2ndShot, 4: GIR/2ndTrouble, 5: Green/Wedge, 6: Green (Par 5 only)
   const [isStatsExpanded, setIsStatsExpanded] = useState<boolean>(false);
@@ -180,6 +188,12 @@ export default function TrackRoundPage() {
         shotsToGreen: h.shotsToGreen,
         penalty: h.penalty || '',
         proximity: h.proximity || 0,
+        approachLie: h.approachLie ?? null,
+        girAttemptSource: h.girAttemptSource ?? null,
+        girAttemptShotNumber: h.girAttemptShotNumber ?? null,
+        girAttemptDistance: h.girAttemptDistance ?? null,
+        greenReachedOnShot: h.greenReachedOnShot ?? null,
+        penaltyOrigin: h.penaltyOrigin,
         secondShotDistance: h.secondShotDistance,
         secondShotLie: secondShotLieLocal,
         secondShotPenalty: h.secondShotPenalty != null ? String(h.secondShotPenalty) : undefined,
@@ -248,6 +262,7 @@ export default function TrackRoundPage() {
           if (f.secondShotPenalty !== undefined) setSecondShotPenalty(f.secondShotPenalty);
           if (f.approachMissLocation !== undefined) setApproachMissLocation(f.approachMissLocation);
           if (f.wedgeShotDistances !== undefined) setWedgeShotDistances(Array.isArray(f.wedgeShotDistances) ? f.wedgeShotDistances : []);
+          if (f.directGreenSource !== undefined) setDirectGreenSource(f.directGreenSource);
         }
       }
     } catch (e) {
@@ -369,11 +384,12 @@ export default function TrackRoundPage() {
           secondShotPenalty,
           approachMissLocation,
           wedgeShotDistances,
+          directGreenSource,
         },
         lastUpdated: new Date().toISOString(),
       }));
     }
-  }, [holes, roundId, courseName, courseMetadata, coursePar, roundStarted, editingRoundNumber, par, gir, putts, puttDistances, holedOut, fairway, shotsToGreen, penalty, proximity, teePenalty, holeDistance, secondShotDistance, secondShotLie, secondShotPenalty, approachMissLocation, wedgeShotDistances]);
+  }, [holes, roundId, courseName, courseMetadata, coursePar, roundStarted, editingRoundNumber, par, gir, putts, puttDistances, holedOut, fairway, shotsToGreen, penalty, proximity, teePenalty, holeDistance, secondShotDistance, secondShotLie, secondShotPenalty, approachMissLocation, wedgeShotDistances, directGreenSource]);
 
   // Helper function to show alert modal
 
@@ -427,6 +443,13 @@ export default function TrackRoundPage() {
     setSecondShotPenalty(hole.secondShotPenalty ?? '');
     setApproachMissLocation(hole.approachMissLocation ?? null);
     setWedgeShotDistances(hole.wedgeShotDistances ?? (hole.wedgeShotDistance != null ? [hole.wedgeShotDistance] : []));
+    setDirectGreenSource(
+      hole.par === 4 && hole.girAttemptSource === 'tee' && hole.girAttemptShotNumber === 1
+        ? 'tee'
+        : hole.par === 5 && hole.girAttemptShotNumber === 2
+          ? 'second-shot'
+          : null
+    );
     setHoleDistance(hole.holeDistance ?? null);
     // Don't change currentHole - it should stay as the next hole to be entered
 
@@ -709,6 +732,7 @@ export default function TrackRoundPage() {
         wedgeShotDistances: (par === 5 || (par !== 5 && gir === 'n')) && wedgeShotDistances.length > 0 ? wedgeShotDistances.slice(0, MAX_WEDGE_SHOTS) : undefined,
         holeDistance: holeDistance ?? undefined,
       };
+      const normalizedHole = normalizeHoleForSave(hole, { teePenalty, directGreenSource });
 
       // Store whether we're editing before clearing the state
       const wasEditing = editingHole !== null;
@@ -721,15 +745,15 @@ export default function TrackRoundPage() {
         if (holeIndex !== -1) {
           // Replace the hole at the found index
           newHoles = [...holes];
-          newHoles[holeIndex] = hole;
+          newHoles[holeIndex] = normalizedHole;
         } else {
           // Hole not found (shouldn't happen), but fallback to map
-          newHoles = holes.map(h => h.holeNumber === editingHoleNumber ? hole : h);
+          newHoles = holes.map(h => h.holeNumber === editingHoleNumber ? normalizedHole : h);
         }
         setEditingHole(null); // Clear editing state
       } else {
         // Add new hole
-        newHoles = [...holes, hole];
+        newHoles = [...holes, normalizedHole];
       }
       setHoles(newHoles);
 
@@ -802,6 +826,7 @@ export default function TrackRoundPage() {
       setApproachMissLocation(null);
       setWedgeShotDistances([]);
       setHoleDistance(null);
+      setDirectGreenSource(null);
       setActiveCard(1);
 
       // If we were editing, also ensure editingHole is cleared (redundant but safe)
@@ -1269,7 +1294,7 @@ export default function TrackRoundPage() {
                 {par === 3 ? (
                   /* Par 3: On Green / Ace! / Missed / Penalty — mirrors Par 4/5 Card 2 in style */
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', gap: '0.5rem', alignItems: 'center' }}>
                       {/* On! */}
                       <button
                         onClick={() => {
@@ -1277,11 +1302,15 @@ export default function TrackRoundPage() {
                           setTeePenalty(''); setFairway(null); setPutts(null); setHoledOut(false); setPuttDistances([]);
                           setShotsToGreen(null); setWedgeShotDistances([]);
                           setApproachMissLocation(null); setProximity(holeDistance ?? null);
+                          setDirectGreenSource(null);
                           setActiveCard(5); // On green → putting
                         }}
                         className="btn btn-secondary"
                         style={{
-                          flex: 1,
+                          width: '100%',
+                          minWidth: 0,
+                          padding: '0.9rem 0.75rem',
+                          fontSize: '1rem',
                           backgroundColor: gir === 'y' && teePenalty === '' ? 'var(--color-interactive)' : 'transparent',
                           color: gir === 'y' && teePenalty === '' ? '#000' : 'var(--color-interactive)',
                         }}
@@ -1293,7 +1322,8 @@ export default function TrackRoundPage() {
                         onClick={() => {
                           setGir('y'); setShotsToGreen(1); setPutts(0); setHoledOut(true); setPuttDistances([]);
                           setTeePenalty(''); setFairway(null); setWedgeShotDistances([]);
-                          setApproachMissLocation(null); setProximity(null);
+                          setApproachMissLocation(null); setProximity(holeDistance ?? null);
+                          setDirectGreenSource(null);
                           setActiveCard(5);
                         }}
                         className="btn btn-secondary"
@@ -1301,7 +1331,7 @@ export default function TrackRoundPage() {
                           width: '56px', height: '56px', borderRadius: '50%',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: '0.8rem', padding: 0, borderColor: '#FFD700', color: '#FFD700',
-                          flexShrink: 0, fontWeight: 'bold',
+                          fontWeight: 'bold',
                           backgroundColor: 'rgba(255, 215, 0, 0.1)',
                           boxShadow: '0 0 10px rgba(255, 215, 0, 0.2)',
                         }}
@@ -1319,7 +1349,10 @@ export default function TrackRoundPage() {
                         }}
                         className="btn btn-secondary"
                         style={{
-                          flex: 1,
+                          width: '100%',
+                          minWidth: 0,
+                          padding: '0.9rem 0.75rem',
+                          fontSize: '1rem',
                           backgroundColor: gir === 'n' && teePenalty === '' ? 'var(--color-interactive)' : 'transparent',
                           color: gir === 'n' && teePenalty === '' ? '#000' : 'var(--color-interactive)',
                         }}
@@ -1350,7 +1383,7 @@ export default function TrackRoundPage() {
                 ) : (
                 <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: par === 4 ? 'minmax(0, 1fr) auto minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', gap: '0.5rem', alignItems: 'center' }}>
                     {[
                       { value: 'c', label: 'Fairway' },
                       { value: 'rough', label: 'Rough' },
@@ -1371,13 +1404,17 @@ export default function TrackRoundPage() {
                             setProximity(null);
                             setSecondShotDistance(null);
                             setSecondShotLie(null);
+                            setDirectGreenSource(null);
                             if (option.value !== 'na') {
                               setActiveCard(3);
                             }
                           }}
                           className="btn btn-secondary"
                           style={{
-                            flex: 1,
+                            width: '100%',
+                            minWidth: 0,
+                            padding: '0.9rem 0.75rem',
+                            fontSize: '1rem',
                             backgroundColor: (option.value === 'c' ? ['c', 'l', 'r'].includes(fairway || '') : fairway === option.value) ? 'var(--color-interactive)' : 'transparent',
                             color: (option.value === 'c' ? ['c', 'l', 'r'].includes(fairway || '') : fairway === option.value) ? '#000' : 'var(--color-interactive)',
                           }}
@@ -1387,7 +1424,7 @@ export default function TrackRoundPage() {
                         {par === 4 && idx === 0 && (
                           <button
                             onClick={() => {
-                              setFairway('c'); setGir('y'); setShotsToGreen(1); setPutts(0); setHoledOut(true); setPuttDistances([]); setActiveCard(5);
+                              setFairway('c'); setPenalty(''); setTeePenalty(''); setGir('y'); setShotsToGreen(1); setPutts(0); setHoledOut(true); setPuttDistances([]); setWedgeShotDistances([]); setApproachMissLocation(null); setProximity(holeDistance ?? null); setDirectGreenSource('tee'); setActiveCard(5);
                             }}
                             className="btn btn-secondary"
                             style={{ 
@@ -1401,7 +1438,6 @@ export default function TrackRoundPage() {
                               padding: 0, 
                               borderColor: '#FFD700', 
                               color: '#FFD700',
-                              flexShrink: 0,
                               fontWeight: 'bold',
                               backgroundColor: 'rgba(255, 215, 0, 0.1)',
                               boxShadow: '0 0 10px rgba(255, 215, 0, 0.2)'
@@ -1413,7 +1449,7 @@ export default function TrackRoundPage() {
                       </Fragment>
                     ))}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.5rem' }}>
                     {[
                       { value: 'sand', label: 'Sand' },
                       { value: 'na', label: 'Penalty' },
@@ -1434,6 +1470,7 @@ export default function TrackRoundPage() {
                           setProximity(null);
                           setSecondShotDistance(null);
                           setSecondShotLie(null);
+                          setDirectGreenSource(null);
                           if (option.value !== 'na') {
                             setActiveCard(3);
                           } else {
@@ -1442,7 +1479,10 @@ export default function TrackRoundPage() {
                         }}
                         className="btn btn-secondary"
                         style={{
-                          flex: 1,
+                          width: '100%',
+                          minWidth: 0,
+                          padding: '0.9rem 0.75rem',
+                          fontSize: '1rem',
                           backgroundColor: (option.value === 'c' ? ['c', 'l', 'r'].includes(fairway || '') : fairway === option.value) ? 'var(--color-interactive)' : 'transparent',
                           color: (option.value === 'c' ? ['c', 'l', 'r'].includes(fairway || '') : fairway === option.value) ? '#000' : 'var(--color-interactive)',
                         }}
@@ -1454,7 +1494,7 @@ export default function TrackRoundPage() {
                   {par === 4 && (
                     <button
                       onClick={() => {
-                        setFairway('c'); setGir('y'); setShotsToGreen(1);
+                        setFairway('c'); setPenalty(''); setTeePenalty(''); setGir('y'); setShotsToGreen(1); setPutts(null); setHoledOut(false); setPuttDistances([]); setWedgeShotDistances([]); setApproachMissLocation(null); setProximity(holeDistance ?? null); setDirectGreenSource('tee');
                         setActiveCard(5);
                       }}
                       className="btn btn-secondary"
@@ -1492,8 +1532,13 @@ export default function TrackRoundPage() {
                       onClick={() => {
                         setTeePenalty('1-retee');
                         setGir(null); setPutts(null); setHoledOut(false); setPuttDistances([]); setShotsToGreen(null); setWedgeShotDistances([]); setApproachMissLocation(null);
-                        if (par !== 3) { setSecondShotLie(null); setProximity(null); setSecondShotDistance(null); }
-                        setActiveCard(par === 3 ? 4 : 3);
+                        if (par !== 3) {
+                          setSecondShotLie(null);
+                          setSecondShotDistance(null);
+                          setProximity(holeDistance ?? null);
+                        }
+                        setDirectGreenSource(null);
+                        setActiveCard(par === 3 ? 4 : par === 4 ? 4 : 3);
                       }}
                       className="btn btn-secondary"
                       style={{
@@ -1509,6 +1554,7 @@ export default function TrackRoundPage() {
                         setTeePenalty('1-drop');
                         setGir(null); setPutts(null); setHoledOut(false); setPuttDistances([]); setShotsToGreen(null); setWedgeShotDistances([]); setApproachMissLocation(null);
                         if (par !== 3) { setSecondShotLie(null); setProximity(null); setSecondShotDistance(null); }
+                        setDirectGreenSource(null);
                         setActiveCard(par === 3 ? 4 : 3);
                       }}
                       className="btn btn-secondary"
@@ -1604,6 +1650,13 @@ export default function TrackRoundPage() {
                       onClick={() => {
                         setSecondShotLie(option.value);
                         setSecondShotPenalty('');
+                        setProximity(null);
+                        setGir(null);
+                        setShotsToGreen(null);
+                        setApproachMissLocation(null);
+                        setPenalty('');
+                        setWedgeShotDistances([]);
+                        setDirectGreenSource(null);
                         if (option.value === 'na') setGir('n');
                         else setActiveCard(5);
                       }}
@@ -1620,7 +1673,7 @@ export default function TrackRoundPage() {
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
                   <button
                     onClick={() => {
-                      setSecondShotLie('green'); setSecondShotPenalty(''); setGir('y'); setPutts(0); setHoledOut(true); setShotsToGreen(2); setPuttDistances([]); setActiveCard(6);
+                      setSecondShotLie('green'); setSecondShotPenalty(''); setGir('y'); setPutts(0); setHoledOut(true); setShotsToGreen(2); setPuttDistances([]); setProximity(secondShotDistance ?? null); setDirectGreenSource('second-shot'); setActiveCard(6);
                     }}
                     className="btn btn-secondary"
                     style={{ flex: 1, fontSize: '0.75rem', padding: '0.4rem', borderColor: '#FFD700', color: '#FFD700' }}
@@ -1629,7 +1682,7 @@ export default function TrackRoundPage() {
                   </button>
                   <button
                     onClick={() => {
-                      setSecondShotLie('green'); setSecondShotPenalty(''); setGir('y'); setPutts(null); setHoledOut(false); setPuttDistances([]); setShotsToGreen(2); setActiveCard(6);
+                      setSecondShotLie('green'); setSecondShotPenalty(''); setGir('y'); setPutts(null); setHoledOut(false); setPuttDistances([]); setShotsToGreen(2); setProximity(secondShotDistance ?? null); setDirectGreenSource('second-shot'); setActiveCard(6);
                     }}
                     className="btn btn-secondary"
                     style={{ flex: 1, fontSize: '0.75rem', padding: '0.4rem', borderColor: 'var(--color-interactive)', color: 'var(--color-interactive)' }}
@@ -1667,7 +1720,14 @@ export default function TrackRoundPage() {
                       <button
                         className="btn btn-primary"
                         style={{ width: '100%' }}
-                        onClick={() => setActiveCard(5)}
+                        onClick={() => {
+                          setProximity(null);
+                          setApproachMissLocation(null);
+                          setPenalty('');
+                          setShotsToGreen(null);
+                          setWedgeShotDistances([]);
+                          setActiveCard(5);
+                        }}
                       >
                         Next
                       </button>
@@ -1790,20 +1850,15 @@ export default function TrackRoundPage() {
                 ) : (
                   <>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                      {(parseInt(teePenalty) || 0) >= 1 ? 'Next shot from the fairway — did you reach the green?' : 'Green in Regulation (GIR)'}
+                      Third Shot Distance
                     </label>
-                    {(parseInt(teePenalty) || 0) >= 1 && (
-                      <div style={{ fontSize: '0.82rem', opacity: 0.7, marginBottom: '0.5rem' }}>
-                        This is your swing from the fairway. Tap <strong>On Green!</strong> if you reached in one shot. If you missed, enter how many more shots it took to finish getting on the green — include every swing from here until the ball is on the putting surface.
-                      </div>
-                    )}
                     <div style={{ marginBottom: '1rem' }}>
                       <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                        Approach distance{' '}
+                        Distance to green{' '}
                         <span style={{ fontWeight: 'normal', opacity: 0.6, fontSize: '0.8rem' }}>(yds · optional)</span>
                       </label>
                       <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '0.5rem', fontStyle: 'italic' }}>
-                        How far was your approach shot?
+                        How far did you have into the green for your 3rd shot?
                       </div>
                       <input
                         type="number"
@@ -1828,7 +1883,11 @@ export default function TrackRoundPage() {
                         }}
                       />
                     </div>
+                    {proximity !== null && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.1rem', fontWeight: 'bold' }}>
+                        {(parseInt(teePenalty) || 0) >= 1 ? 'Shot after penalty — what happened?' : '3rd shot result'}
+                      </label>
                       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                         {[{ value: 'y' as const, label: 'On!' }, { value: 'n' as const, label: 'Missed' }].map((opt) => (
                           <Fragment key={opt.value}>
@@ -1868,6 +1927,7 @@ export default function TrackRoundPage() {
                         </button>
                       </div>
                     </div>
+                    )}
                     {gir === 'n' && (
                       <>
                         <div style={{ marginBottom: '0.5rem' }}>
@@ -2315,7 +2375,7 @@ export default function TrackRoundPage() {
                       {par === 3 && (parseInt(teePenalty) || 0) >= 1
                         ? (teePenalty.includes('drop') ? 'Drop shot — did you reach the green?' : 'Re-tee shot — did you reach the green?')
                         : par === 4 && (parseInt(teePenalty) || 0) >= 1
-                        ? 'Approach shot — did you reach the green?'
+                        ? (teePenalty === '1-retee' ? 'Re-tee shot — did you reach the green?' : 'Shot after drop — did you reach the green?')
                         : 'Green in Regulation (GIR)'}
                     </label>
                     {par === 3 && (parseInt(teePenalty) || 0) >= 1 && (
@@ -2328,10 +2388,13 @@ export default function TrackRoundPage() {
                     )}
                     {par === 4 && (parseInt(teePenalty) || 0) >= 1 && (
                       <div style={{ fontSize: '0.82rem', opacity: 0.7, marginBottom: '0.5rem' }}>
-                        This is your approach shot after your penalty. Tap <strong>On!</strong> if you reached in one shot. If you missed, enter how many more shots it took to get on the green.
+                        {teePenalty === '1-retee'
+                          ? <>This is your re-tee shot from the original tee box. Tap <strong>On!</strong> if you reached the green from there. If you missed, enter how many more shots it took to get on the green.</>
+                          : <>This is your shot after the drop. Tap <strong>On!</strong> if you reached in one shot. If you missed, enter how many more shots it took to get on the green.</>
+                        }
                       </div>
                     )}
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: par === 3 ? 'minmax(0, 1fr) auto minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', gap: '0.5rem', alignItems: 'center' }}>
                       {[ { value: 'y', label: 'On!' }, { value: 'n', label: 'Missed' } ].map((option, idx) => (
                         <Fragment key={option.value}>
                           <button
@@ -2355,7 +2418,10 @@ export default function TrackRoundPage() {
                              }}
                             className="btn btn-secondary"
                             style={{
-                              flex: 1,
+                              width: '100%',
+                              minWidth: 0,
+                              padding: '0.9rem 0.75rem',
+                              fontSize: '1rem',
                               backgroundColor: gir === option.value ? 'var(--color-interactive)' : 'transparent',
                               color: gir === option.value ? '#000' : 'var(--color-interactive)',
                             }}
@@ -2387,7 +2453,6 @@ export default function TrackRoundPage() {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 cursor: 'pointer',
-                                flexShrink: 0,
                                 boxShadow: '0 0 15px rgba(255, 215, 0, 0.3)',
                                 transition: 'transform 0.2s',
                               }}
@@ -2642,7 +2707,7 @@ export default function TrackRoundPage() {
 
             return (
             <div className="card" style={{ marginBottom: '1.5rem' }}>
-              {gir === 'y' && !isAce && !isHoleOut && (par === 3 || (par === 4 && proximity == null) || par === 5) && !(par === 3 && teePenNum >= 1) && (
+              {gir === 'y' && !isAce && !isHoleOut && (par === 4 && proximity == null) && (
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold', fontSize: '0.9rem' }}>
                     Approach distance{' '}

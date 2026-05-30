@@ -1,4 +1,4 @@
-import type { AuthResponse, Round, RoundSaveResponse } from '@/types';
+import type { AccountResponse, AuthResponse, Round, RoundSaveResponse } from '@/types';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 
 // Production API URL for native apps
@@ -353,6 +353,39 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify({ action: 'delete-account' }),
     });
+  },
+
+  async getAccount(): Promise<AccountResponse> {
+    const response = await request<AccountResponse>('auth/account.php?action=get');
+    storeCsrfToken(response.csrfToken);
+    return response;
+  },
+
+  async updateUsername(username: string): Promise<AccountResponse> {
+    const response = await request<AccountResponse>('auth/account.php?action=update-username', {
+      method: 'POST',
+      body: JSON.stringify({ username }),
+    });
+    storeCsrfToken(response.csrfToken);
+    return response;
+  },
+
+  async updateEmail(email: string): Promise<AccountResponse> {
+    const response = await request<AccountResponse>('auth/account.php?action=update-email', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+    storeCsrfToken(response.csrfToken);
+    return response;
+  },
+
+  async updatePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string; csrfToken?: string | null }> {
+    const response = await request<{ success: boolean; message: string; csrfToken?: string | null }>('auth/account.php?action=update-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    storeCsrfToken(response.csrfToken);
+    return response;
   },
 };
 

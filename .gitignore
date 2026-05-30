@@ -20,6 +20,7 @@ php_errorlog
 # User data (keep out of version control)
 data/*
 !data/.gitkeep
+data-email-change-backups/
 
 # Environment variables (contains API keys)
 .env

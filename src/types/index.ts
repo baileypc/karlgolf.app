@@ -1,6 +1,20 @@
 // Karl's GIR - TypeScript Type Definitions
 // Based on existing PHP backend data structure
 
+export type GirAttemptSource =
+  | 'tee'
+  | 'fairway'
+  | 'rough'
+  | 'sand'
+  | 'retee'
+  | 'drop'
+  | 'recovery'
+  | 'unknown';
+
+export type PenaltyOrigin = 'none' | 'tee' | 'second-shot' | 'approach';
+
+export type DirectGreenSource = 'tee' | 'second-shot';
+
 export interface Hole {
   holeNumber: number;
   par: 3 | 4 | 5;
@@ -17,6 +31,11 @@ export interface Hole {
   penaltyStrokes?: number; // total numeric strokes for accurate stats (overrides legacy penalty-type counting)
   proximity?: number;
   approachLie?: 'fairway' | 'rough' | 'sand' | null;
+  girAttemptSource?: GirAttemptSource | null;
+  girAttemptShotNumber?: number | null;
+  girAttemptDistance?: number | null;
+  greenReachedOnShot?: number | null;
+  penaltyOrigin?: PenaltyOrigin;
   // Par 5: second shot (layup) and wedge-to-green result
   secondShotDistance?: number;
   secondShotLie?: 'fairway' | 'rough' | 'sand' | 'hazard' | 'green';
@@ -127,6 +146,18 @@ export interface AuthResponse {
   csrfToken?: string | null;
   token?: string;
   userHash?: string;
+}
+
+export interface AccountProfile {
+  email: string;
+  username: string;
+}
+
+export interface AccountResponse {
+  success: boolean;
+  message?: string;
+  csrfToken?: string | null;
+  account: AccountProfile;
 }
 
 export interface RoundSaveResponse {

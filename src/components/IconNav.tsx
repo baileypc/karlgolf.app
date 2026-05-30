@@ -1,7 +1,7 @@
 // Karl's GIR - Bottom Navigation
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faClipboard, faRightFromBracket, faUserPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faChartLine, faClipboard, faRightFromBracket, faUser, faUserPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '@/hooks/useAuth';
 
 interface IconNavProps {
@@ -82,6 +82,18 @@ export default function IconNav({ onDiscard }: IconNavProps = {}) {
                 <FontAwesomeIcon icon={faTrash} />
               </button>
             )}
+
+            <button
+              onClick={() => navigate('/account')}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem',
+                color: isActive('/account') ? '#DDEDD2' : 'rgba(221, 237, 210, 0.5)',
+                fontSize: '1.25rem', transition: 'color 0.2s'
+              }}
+              title="Account Settings"
+            >
+              <FontAwesomeIcon icon={faUser} style={{ filter: isActive('/account') ? 'drop-shadow(0 0 8px rgba(221, 237, 210, 0.5))' : 'none' }} />
+            </button>
 
             <button
               onClick={() => navigate('/dashboard')}

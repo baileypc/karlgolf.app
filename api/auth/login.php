@@ -13,6 +13,7 @@ require_once __DIR__ . '/../common/logger.php';
 require_once __DIR__ . '/../common/analytics-tracker.php';
 require_once __DIR__ . '/../common/rate-limiter.php';
 require_once __DIR__ . '/../common/csrf.php';
+require_once __DIR__ . '/../common/profile.php';
 require_once __DIR__ . '/welcome-email.php';
 
 // Initialize session
@@ -229,6 +230,15 @@ if ($action === 'register') {
             'userDirWritable' => is_writable($userDir)
         ]);
         echo json_encode(['success' => false, 'message' => 'Failed to initialize account data']);
+        exit;
+    }
+
+    if (!writeUserProfile($userDir, buildDefaultProfile($email))) {
+        logError('Failed to initialize profile during registration', [
+            'email' => $email,
+            'userDir' => $userDir,
+        ]);
+        echo json_encode(['success' => false, 'message' => 'Failed to initialize account profile']);
         exit;
     }
 

@@ -1,6 +1,6 @@
 # Karl Golf GIR - Golf Tracking PWA
 
-**Version:** 3.10.0 (Production)
+**Version:** 3.10.1 (Production)
 **Status:** Production ready
 **Domain:** [https://karlgolf.app](https://karlgolf.app)
 
@@ -8,17 +8,17 @@ A Progressive Web App for tracking golf performance with college coach metrics. 
 
 ---
 
-## Version 3.10.0 - Current Release
+## Version 3.10.1 - Current Release
 
-**Release type:** PDF Export Reports
+**Release type:** Account Settings + GIR Data Accuracy
 **Status:** Production ready
 
-### What's New in 3.10.0
-- **Round Report PDF:** Full scorecard PDF for a single round — hole-by-hole Par, Score, +/-, GIR, Putts, Fairway, Proximity, Penalties — plus stats summary with PGA Tour benchmarks. Button on every completed round card.
-- **Round Log PDF:** Landscape PDF with one row per round — Date, Course, Holes, Score, +/-, GIR%, FW%, Putts, Putts/GIR, Scrambling%. Full playing history in a clean read-only format ideal for coaches.
-- **Career Report PDF:** All-time career averages, a last-5 vs all-time trend table with ▲/▼ improvement indicators, and a best-round callout. Designed for season-end coach review meetings.
-- All PDFs are branded "Karl Golf GIR · karlgolf.app", dated, and cannot be edited — keeping stats honest.
-- CSV "Export All Data" removed from player-facing UI (replaced by the above).
+### What's New in 3.10.1
+- **Account settings:** Added a new account page in the footer nav where logged-in users can update their sign-in email and password from inside the app.
+- **Safer email changes:** Email updates now keep the existing account data, rounds, and stats with the user instead of creating a disconnected fresh profile.
+- **GIR data normalization:** New and edited holes now save canonical GIR-attempt context so dashboard lie splits and proximity stats stop depending on fragile post-hoc guesses.
+- **Historical round backfill:** Existing Parker round data was migrated locally using the same canonical rules so lie-based GIR and approach metrics better reflect the saved rounds.
+- **No UI redesign required:** The tracking flow stays familiar while the saved data contract underneath it is more accurate and easier to trust.
 
 ### What's New in 3.9.1
 - **Putts/GIR dashboard tile:** The compact stats card now shows average putts per green hit in regulation — the most actionable putting quality metric, replacing the less-useful all-time total stroke count. PGA Tour benchmark ≈ 1.77 for context.
@@ -277,4 +277,4 @@ See **[TODOs](docs/TODOS.md)** for complete list of future features.
 **Website:** [cloudvirtue.com](https://cloudvirtue.com)
 **Repository:** Private
 **License:** Proprietary
-**Version:** 3.10.0 (Production)
+**Version:** 3.10.1 (Production)
